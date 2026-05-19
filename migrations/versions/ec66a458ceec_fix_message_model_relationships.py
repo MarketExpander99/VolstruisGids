@@ -1,8 +1,8 @@
-"""Initial migration - create all tables
+"""Fix Message model relationships
 
-Revision ID: a403b56849e4
+Revision ID: ec66a458ceec
 Revises: 
-Create Date: 2026-05-19 16:33:32.327423
+Create Date: 2026-05-19 19:19:34.935854
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'a403b56849e4'
+revision = 'ec66a458ceec'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -31,43 +31,35 @@ def upgrade():
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=80), nullable=False),
-    sa.Column('email', sa.String(length=120), nullable=False),
+    sa.Column('email', sa.String(length=120), nullable=True),
+    sa.Column('phone', sa.String(length=20), nullable=False),
     sa.Column('password_hash', sa.String(length=255), nullable=False),
-    sa.Column('phone', sa.String(length=20), nullable=True),
+    sa.Column('is_business', sa.Boolean(), nullable=True),
+    sa.Column('business_name', sa.String(length=100), nullable=True),
+    sa.Column('profile_pic', sa.String(length=200), nullable=True),
+    sa.Column('bio', sa.Text(), nullable=True),
     sa.Column('location', sa.String(length=100), nullable=True),
-    sa.Column('is_admin', sa.Boolean(), nullable=True),
     sa.Column('posts_today', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('email'),
+    sa.UniqueConstraint('username')
     )
-    with op.batch_alter_table('users', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_users_email'), ['email'], unique=True)
-        batch_op.create_index(batch_op.f('ix_users_username'), ['username'], unique=True)
-
     op.create_table('listings',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(length=200), nullable=False),
-    sa.Column('description', sa.Text(), nullable=False),
-    sa.Column('price', sa.Float(), nullable=False),
-    sa.Column('location', sa.String(length=100), nullable=False),
-    sa.Column('contact_phone', sa.String(length=20), nullable=True),
-    sa.Column('contact_email', sa.String(length=120), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('is_promoted', sa.Boolean(), nullable=True),
-    sa.Column('views', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('category_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
+    sa.Column('title', sa.String(length=200), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('price', sa.Float(), nullable=True),
+    sa.Column('is_business_ad', sa.Boolean(), nullable=True),
+    sa.Column('photos', sa.JSON(), nullable=True),
+    sa.Column('area', sa.String(length=100), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('expires_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    with op.batch_alter_table('listings', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_listings_location'), ['location'], unique=False)
-        batch_op.create_index(batch_op.f('ix_listings_title'), ['title'], unique=False)
-
     op.create_table('payments',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -85,14 +77,13 @@ def upgrade():
     op.create_table('messages',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('sender_id', sa.Integer(), nullable=False),
-    sa.Column('recipient_id', sa.Integer(), nullable=False),
+    sa.Column('receiver_id', sa.Integer(), nullable=False),
     sa.Column('listing_id', sa.Integer(), nullable=True),
-    sa.Column('subject', sa.String(length=200), nullable=True),
-    sa.Column('body', sa.Text(), nullable=False),
-    sa.Column('is_read', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('text', sa.Text(), nullable=False),
+    sa.Column('read', sa.Boolean(), nullable=True),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['listing_id'], ['listings.id'], ),
-    sa.ForeignKeyConstraint(['recipient_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['receiver_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['sender_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -115,15 +106,7 @@ def downgrade():
     op.drop_table('promotions')
     op.drop_table('messages')
     op.drop_table('payments')
-    with op.batch_alter_table('listings', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_listings_title'))
-        batch_op.drop_index(batch_op.f('ix_listings_location'))
-
     op.drop_table('listings')
-    with op.batch_alter_table('users', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_users_username'))
-        batch_op.drop_index(batch_op.f('ix_users_email'))
-
     op.drop_table('users')
     with op.batch_alter_table('categories', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_categories_name'))

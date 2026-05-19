@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
@@ -15,9 +15,8 @@ def create():
             title=form.title.data,
             description=form.description.data,
             price=form.price.data,
-            is_business_ad=current_user.is_business or False,
-            area=form.area.data,
-            category_id=1  # TODO: connect real categories later
+            is_business_ad=getattr(current_user, 'is_business', False),
+            area=form.area.data
         )
         db.session.add(listing)
         db.session.commit()
