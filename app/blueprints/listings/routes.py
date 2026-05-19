@@ -15,9 +15,9 @@ def create():
             title=form.title.data,
             description=form.description.data,
             price=form.price.data,
-            is_business_ad=current_user.is_business,
+            is_business_ad=current_user.is_business or False,
             area=form.area.data,
-            category_id=1  # placeholder for now
+            category_id=1  # TODO: connect real categories later
         )
         db.session.add(listing)
         db.session.commit()
@@ -25,3 +25,8 @@ def create():
         return redirect(url_for('main.index'))
     
     return render_template('listings/create.html', form=form)
+
+@listings_bp.route('/<int:listing_id>')
+def detail(listing_id):
+    listing = Listing.query.get_or_404(listing_id)
+    return render_template('listings/detail.html', listing=listing)

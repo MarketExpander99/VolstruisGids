@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary mb-3">← Back to Home</a>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <h1>{{ listing.title }}</h1>
+            <h3 class="text-success">R{{ listing.price }}</h3>
+            <p><strong>Area:</strong> {{ listing.area }}</p>
+            <p><strong>Posted:</strong> {{ listing.created_at.strftime('%d %B %Y') }}</p>
+            
+            {% if listing.is_business_ad %}
+                <span class="badge bg-primary">Business Ad</span>
+            {% endif %}
+            
+            <hr>
+            <h5>Description</h5>
+            <p>{{ listing.description }}</p>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Contact Seller</h5>
+                    <p><strong>Via DM in future</strong></p>
+                    <a href="#" class="btn btn-primary w-100">Message Seller</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
