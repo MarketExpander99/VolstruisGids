@@ -31,6 +31,9 @@ def create_app(config_class=Config):
     from app.blueprints.main import main_bp
     app.register_blueprint(main_bp)
 
+    from app.blueprints.listings import listings_bp
+    app.register_blueprint(listings_bp)
+
     # Register other blueprints here when created
     # from app.blueprints.main import main_bp
     # app.register_blueprint(main_bp)
