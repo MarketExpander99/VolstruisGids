@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Login</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        {{ form.username.label }} {{ form.username() }}<br>
+        {{ form.password.label }} {{ form.password() }}<br>
+        {{ form.remember_me() }} {{ form.remember_me.label }}<br>
+        {{ form.submit() }}
+    </form>
+    <a href="{{ url_for('auth_bp.register') }}">Register</a>
+</div>
+{% endblock %}
