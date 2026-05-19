@@ -1,0 +1,7 @@
+# VolstruisGids Root Rules
+You MUST read and obey every file in the rules/ folder on every single task.
+You MUST read project_spec.json as the single source of truth on every task.
+Any idea not explicitly in project_spec.json goes ONLY to backlog.md.
+After EVERY task, append a dated entry to PROJECT_STATUS.md.
+Do NOT use internal file-read tools. Read project_spec.json and rules/ from context only.
+After every change: run pip install -r requirements.txt then python run.py and prove zero errors.

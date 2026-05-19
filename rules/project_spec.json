@@ -1,0 +1,93 @@
+{
+  "project": {
+    "name": "VolstruisGids",
+    "domain": "volstruisgids.co.za",
+    "tagline": "Klein Karoo se markplein – koop, verkoop, adverteer",
+    "description": "Local classifieds + notices platform replacing two high-traffic WhatsApp groups (Oudtshoorn–Calitzdorp–Ladismith–Van Wyksdorp–Zoar)",
+    "version": "1.0",
+    "date": "2026-05-18"
+  },
+  "tech_stack": {
+    "python": "3.12",
+    "framework": "Flask 3.1+",
+    "database": "SQLAlchemy 2.0+ + Flask-SQLAlchemy 3.1+",
+    "migrations": "Flask-Migrate 4.1+",
+    "auth": "Flask-Login 0.6+",
+    "forms": "Flask-WTF 1.2+",
+    "frontend": "Bootstrap 5.3 + HTMX 2.0 + Jinja2",
+    "i18n": "Flask-Babel 4.0+ (English + Afrikaans)",
+    "dev_db": "SQLite",
+    "prod_db": "PostgreSQL",
+    "payments": "PayFast (placeholders)"
+  },
+  "folder_structure": [
+    "volstruisgids/",
+    "├── app/",
+    "│   ├── __init__.py",
+    "│   ├── config.py",
+    "│   ├── models/",
+    "│   ├── blueprints/",
+    "│   ├── templates/",
+    "│   ├── static/",
+    "│   └── utils/",
+    "├── migrations/",
+    "├── instance/",
+    "├── tests/",
+    "├── rules/",
+    "├── .clinerules",
+    "├── project_spec.json",
+    "├── PROJECT_TECH_SPEC.md",
+    "├── PROJECT_STATUS.md",
+    "├── backlog.md",
+    "├── requirements.txt",
+    "├── run.py",
+    "├── .env.example",
+    "└── .gitignore"
+  ],
+  "database_models": {
+    "User": ["id", "username", "email", "phone", "password_hash", "is_business", "business_name", "profile_pic", "bio", "location", "created_at", "last_seen", "posts_today"],
+    "Category": ["id", "name_en", "name_af", "slug", "icon"],
+    "Listing": ["id", "user_id", "title", "description", "price", "is_business_ad", "photos (JSON list max 6)", "category_id", "area", "is_active", "created_at", "expires_at"],
+    "Promotion": ["id", "listing_id", "promotion_type (top_category_week | top_section_month)", "start_date", "end_date", "amount_paid", "payment_id"],
+    "Message": ["id", "sender_id", "receiver_id", "listing_id", "text", "read", "timestamp"],
+    "Payment": ["id", "user_id", "amount", "payfast_reference", "status", "created_at"]
+  },
+  "core_features": [
+    "Auth (register/login with username + phone)",
+    "Feed with infinite scroll (HTMX)",
+    "Create Listing (personal free, business paid)",
+    "Promotions (Top Category 7 days + Top Section 30 days)",
+    "Full-text search + filters",
+    "Direct Messages (DM chat)",
+    "User Profile + own ads",
+    "Simple Admin panel",
+    "Free tier limit: maximum 5 posts per day for personal users",
+    "Business listings in separate higher-visibility section",
+    "Notices / Questions section: post info or ask questions → replies via DM only"
+  ],
+  "monetisation": {
+    "free_posts_per_day": 5,
+    "business_ads": "separate section with badge and priority",
+    "promotions": "top of category (7 days) or top of section (30 days)",
+    "visibility": "paid top spots for faster sales and more views"
+  },
+  "phases": [
+    { "phase": 0, "name": "Skeleton", "description": "Create exact folder structure + run.py + requirements.txt + basic app/__init__.py" },
+    { "phase": 1, "name": "Config + Database + Models", "description": "config.py, all models.py files, Flask-Migrate setup" },
+    { "phase": 2, "name": "Auth Blueprint", "description": "Full auth routes + forms + login required decorator" },
+    { "phase": 3, "name": "Main Feed + Listing Model", "description": "Homepage feed with HTMX" },
+    { "phase": 4, "name": "Create & View Listings", "description": "Post ad form + photo upload + detail view" },
+    { "phase": 5, "name": "Search & Filters", "description": "Full search + sidebar filters" },
+    { "phase": 6, "name": "Promotions & PayFast", "description": "Buy top spot flow with placeholders" },
+    { "phase": 7, "name": "Messages (DM)", "description": "Inbox + chat view" },
+    { "phase": 8, "name": "Profile + Bilingual", "description": "Profile editing + Flask-Babel setup" },
+    { "phase": 9, "name": "Admin + Polish", "description": "Admin panel + final UI polish" },
+    { "phase": 10, "name": "Deployment prep", "description": "README, .env, production notes" }
+  ],
+  "rules": {
+    "build_guarantee": "After every change, run the app and prove it starts with ZERO errors",
+    "structure": "Blueprints from day 1",
+    "ui": "Mobile-first Bootstrap 5 + HTMX",
+    "security": "CSRF, hashed passwords, input validation"
+  }
+}
