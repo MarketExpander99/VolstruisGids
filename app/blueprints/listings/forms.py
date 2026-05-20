@@ -7,7 +7,7 @@ class ListingForm(FlaskForm):
     description = TextAreaField('Description', validators=[DataRequired(), Length(max=2000)])
     price = FloatField('Price (R)', validators=[DataRequired(), NumberRange(min=0)])
     
-    # New Town dropdown (Klein Karoo / ostrich country)
+    # Town dropdown (Klein Karoo / ostrich country)
     town = SelectField('Town', coerce=str, validators=[DataRequired()], choices=[
         ('', 'Select a town...'),
         ('Barrydale', 'Barrydale'),
@@ -21,12 +21,12 @@ class ListingForm(FlaskForm):
         ('Zoar', 'Zoar')
     ])
     
-    # Contact preference (4 options, DM Only = premium)
-    contact_preference = RadioField('Contact Preference', validators=[DataRequired()], choices=[
-        ('dm_only', '📩 DM Only (Premium feature)'),
+    # Refined Contact Preference
+    contact_preference = RadioField('How would you like to be contacted?', validators=[DataRequired()], choices=[
+        ('email', '📧 Email only'),
         ('phone', '📞 Phone only'),
-        ('phone_email', '📞 Phone and Email'),
-        ('all', '📞 Phone, Email and DM')
+        ('dm', '📩 DM only'),
+        ('any', '🌐 Any (Phone + Email + DM)')
     ])
     
     contact_phone = StringField('Contact Phone')

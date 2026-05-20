@@ -19,7 +19,6 @@ def resize_image_to_square(image_path, size=800):
     """Enforce perfect 1:1 square (center crop + resize) for optimal display."""
     try:
         with Image.open(image_path) as img:
-            # Center crop to square
             width, height = img.size
             if width > height:
                 left = (width - height) // 2
@@ -32,12 +31,10 @@ def resize_image_to_square(image_path, size=800):
                 right = width
                 bottom = top + width
             img = img.crop((left, top, right, bottom))
-            # Resize to exact square
             img = img.resize((size, size), Image.Resampling.LANCZOS)
             img.save(image_path)
         return True
     except Exception:
-        # Graceful fallback — keep original if resize fails
         return False
 
 @listings_bp.route('/create', methods=['GET', 'POST'])
@@ -50,25 +47,24 @@ def create():
         form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
 
     if form.validate_on_submit():
-        # Handle contact preference logic (premium check for DM Only)
         pref = form.contact_preference.data
         contact_phone = None
         contact_email = None
 
-        if pref == 'dm_only':
-            # Premium check (safe fallback if field doesn't exist yet)
-            if not getattr(current_user, 'is_premium', False) and not getattr(current_user, 'premium', False):
-                flash('📩 DM Only is a premium feature. Please upgrade your account or choose another contact option.', 'danger')
-                return render_template('listings/create.html', form=form)
-            contact_phone = None
-            contact_email = None
+        # Premium check for DM and Any
+        is_premium = getattr(current_user, 'is_premium', False) or getattr(current_user, 'premium', False)
+        
+        if pref in ('dm', 'any') and not is_premium:
+            flash('📩 DM and Any options are premium features. Please upgrade or choose Email/Phone only.', 'danger')
+            return render_template('listings/create.html', form=form)
+
+        if pref == 'email':
+            contact_email = form.contact_email.data
         elif pref == 'phone':
             contact_phone = form.contact_phone.data
-            contact_email = None
-        elif pref == 'phone_email':
-            contact_phone = form.contact_phone.data
-            contact_email = form.contact_email.data
-        else:  # 'all'
+        elif pref == 'dm':
+            pass  # no phone/email
+        else:  # 'any'
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
 
@@ -78,10 +74,7 @@ def create():
             os.makedirs(UPLOAD_FOLDER, exist_ok=True)
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             form.photo.data.save(filepath)
-            
-            # Enforce square 800x800
             resize_image_to_square(filepath)
-            
             photo_url = f'/static/uploads/{filename}'
 
         listing = Listing(
@@ -108,6 +101,5 @@ def create():
 
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
-    """Full listing detail page"""
     listing = Listing.query.get_or_404(listing_id)
     return render_template('listings/detail.html', listing=listing)

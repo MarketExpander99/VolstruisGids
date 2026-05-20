@@ -36,7 +36,7 @@
                             {% for error in form.description.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                         </div>
 
-                        <!-- Price + Category + Town row -->
+                        <!-- Price + Category + Town -->
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 {{ form.price.label(class="form-label") }}
@@ -55,7 +55,7 @@
                             </div>
                         </div>
 
-                        <!-- Contact Preference - Clean & reliable rendering -->
+                        <!-- Contact Preference -->
                         <div class="mb-4">
                             {{ form.contact_preference.label(class="form-label fw-bold") }}
                             <div class="list-group">
@@ -69,7 +69,7 @@
                             {% for error in form.contact_preference.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                         </div>
 
-                        <!-- Conditional Phone & Email -->
+                        <!-- Conditional Contact Fields -->
                         <div id="contact-details" class="row">
                             <div class="col-md-6 mb-3">
                                 {{ form.contact_phone.label(class="form-label") }}
@@ -81,7 +81,7 @@
                             </div>
                         </div>
 
-                        <!-- Photo with live preview -->
+                        <!-- Photo -->
                         <div class="mb-3">
                             {{ form.photo.label(class="form-label") }}
                             <small class="text-muted">(Square images recommended — will be automatically resized to 800×800 for perfect display)</small>
@@ -101,7 +101,7 @@
 </div>
 
 <script>
-    // Live image preview
+    // Image preview
     const photoInput = document.getElementById('photo');
     if (photoInput) {
         photoInput.addEventListener('change', function(e) {
@@ -109,21 +109,17 @@
             if (file && file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = function(ev) {
-                    const previewDiv = document.getElementById('image-preview');
-                    previewDiv.innerHTML = `
-                        <img src="${ev.target.result}" 
-                             class="img-fluid rounded border shadow-sm" 
-                             style="max-width: 320px; max-height: 320px; object-fit: cover; aspect-ratio: 1 / 1;"
-                             alt="Image Preview">
-                        <p class="text-muted mt-1 small">Preview (will be squared on upload)</p>
-                    `;
+                    document.getElementById('image-preview').innerHTML = `
+                        <img src="${ev.target.result}" class="img-fluid rounded border shadow-sm" 
+                             style="max-width: 320px; max-height: 320px; object-fit: cover; aspect-ratio: 1 / 1;" alt="Preview">
+                        <p class="text-muted mt-1 small">Preview (will be squared on upload)</p>`;
                 };
                 reader.readAsDataURL(file);
             }
         });
     }
 
-    // Contact preference toggle
+    // Contact fields toggle
     const radios = document.querySelectorAll('input[name="contact_preference"]');
     const contactDetails = document.getElementById('contact-details');
     const phoneField = document.getElementById('contact_phone');
@@ -131,18 +127,20 @@
 
     function toggleContactFields() {
         const selected = document.querySelector('input[name="contact_preference"]:checked');
-        if (selected && selected.value === 'dm_only') {
+        if (!selected) return;
+
+        if (selected.value === 'dm') {
             contactDetails.style.display = 'none';
-            phoneField.required = false;
-            emailField.required = false;
         } else {
             contactDetails.style.display = 'flex';
-            phoneField.required = true;
-            emailField.required = false;
+            
+            // For "Any" show both, for single options we can still show both fields (user can leave blank)
+            phoneField.required = (selected.value === 'phone' || selected.value === 'any');
+            emailField.required = (selected.value === 'email' || selected.value === 'any');
         }
     }
 
     radios.forEach(radio => radio.addEventListener('change', toggleContactFields));
-    toggleContactFields(); // initial state
+    toggleContactFields(); // initial
 </script>
 {% endblock %}
