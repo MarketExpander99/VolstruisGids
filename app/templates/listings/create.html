@@ -55,23 +55,21 @@
                             </div>
                         </div>
 
-                        <!-- Contact Preference - CLEAN radio group -->
+                        <!-- Contact Preference - Clean & reliable rendering -->
                         <div class="mb-4">
                             {{ form.contact_preference.label(class="form-label fw-bold") }}
-                            <div class="d-flex flex-wrap gap-3">
-                                {% for value, label in form.contact_preference.choices %}
-                                    <div class="form-check">
-                                        {{ form.contact_preference(value=value, id='pref_'+value, class='form-check-input') }}
-                                        <label class="form-check-label" for="pref_{{ value }}">
-                                            {{ label }}
-                                        </label>
-                                    </div>
+                            <div class="list-group">
+                                {% for subfield in form.contact_preference %}
+                                    <label class="list-group-item list-group-item-action d-flex align-items-center">
+                                        {{ subfield(class="form-check-input me-2") }}
+                                        <span>{{ subfield.label.text }}</span>
+                                    </label>
                                 {% endfor %}
                             </div>
                             {% for error in form.contact_preference.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                         </div>
 
-                        <!-- Conditional Phone & Email (shown/hidden by JS) -->
+                        <!-- Conditional Phone & Email -->
                         <div id="contact-details" class="row">
                             <div class="col-md-6 mb-3">
                                 {{ form.contact_phone.label(class="form-label") }}
@@ -103,7 +101,7 @@
 </div>
 
 <script>
-    // Live image preview (unchanged)
+    // Live image preview
     const photoInput = document.getElementById('photo');
     if (photoInput) {
         photoInput.addEventListener('change', function(e) {
@@ -125,7 +123,7 @@
         });
     }
 
-    // Contact preference logic - clean toggle
+    // Contact preference toggle
     const radios = document.querySelectorAll('input[name="contact_preference"]');
     const contactDetails = document.getElementById('contact-details');
     const phoneField = document.getElementById('contact_phone');
@@ -145,7 +143,6 @@
     }
 
     radios.forEach(radio => radio.addEventListener('change', toggleContactFields));
-    // Set initial state
-    toggleContactFields();
+    toggleContactFields(); // initial state
 </script>
 {% endblock %}
