@@ -19,7 +19,13 @@ def create_app(config_class=Config):
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
 
+    # Import ALL models here FIRST so relationships + foreign keys are registered correctly
     from app.models.user import User
+    from app.models.category import Category
+    from app.models.listing import Listing
+    from app.models.promotion import Promotion
+    from app.models.message import Message
+    from app.models.payment import Payment
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -33,9 +39,5 @@ def create_app(config_class=Config):
 
     from app.blueprints.listings import listings_bp
     app.register_blueprint(listings_bp)
-
-    # Register other blueprints here when created
-    # from app.blueprints.main import main_bp
-    # app.register_blueprint(main_bp)
 
     return app
