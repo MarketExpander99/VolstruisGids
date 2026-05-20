@@ -19,8 +19,11 @@ class Listing(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # New field - safe default
-    allow_comments = db.Column(db.Boolean, default=True, nullable=False)
+    # Photo field (added now)
+    photo_url = db.Column(db.String(255))
+    
+    # Comments toggle
+    allow_comments = db.Column(db.Boolean, default=True, nullable=True)
     
     # Foreign keys
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
