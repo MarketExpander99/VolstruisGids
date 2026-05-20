@@ -1,31 +1,63 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-    <nav class="mb-4">
-        <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary">← Back to Home</a>
-        <a href="{{ url_for('listings.create') }}" class="btn btn-success">+ Post New Ad</a>
-    </nav>
 
-    <h2>My Listings ({{ listings|length }})</h2>
-    
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4">📋 My Listings ({{ listings|length }})</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     {% if listings %}
         <div class="row">
             {% for listing in listings %}
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    {% if listing.photo_url %}
+                        <img src="{{ listing.photo_url }}" class="card-img-top" alt="{{ listing.title }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <span class="text-muted">No photo</span>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="card-body d-flex flex-column">
                         <h5 class="card-title">{{ listing.title }}</h5>
-                        <h6 class="text-success">R{{ listing.price | default(0) }}</h6>
-                        <p class="card-text">{{ listing.description[:100] }}...</p>
-                        <small class="text-muted">{{ listing.area }}</small>
+                        <p class="text-success fw-bold">R {{ listing.price | int }}</p>
+                        <p class="card-text text-muted small">{{ listing.area }} • {{ listing.created_at.strftime('%d %b %Y') }}</p>
+                        
+                        <div class="mt-auto">
+                            <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="btn btn-outline-primary btn-sm me-2">
+                                View
+                            </a>
+                            
+                            <!-- DELETE FORM -->
+                            <form action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
+                                  method="POST" 
+                                  style="display: inline;"
+                                  onsubmit="return confirm('Delete this listing permanently? This cannot be undone.');">
+                                {{ form.hidden_tag() if form else '' }}  <!-- CSRF if needed -->
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    🗑 Delete
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
     {% else %}
-        <p>You haven't posted any ads yet.</p>
-        <a href="{{ url_for('listings.create') }}" class="btn btn-success">Post Your First Ad</a>
+        <div class="alert alert-info">
+            You haven't posted any listings yet. 
+            <a href="{{ url_for('listings.create') }}" class="alert-link">Create your first listing →</a>
+        </div>
     {% endif %}
 </div>
 {% endblock %}
