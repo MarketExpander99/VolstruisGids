@@ -75,10 +75,13 @@ def create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
+        # Fix: Always pass a price (0.0 for non-sale posts)
+        final_price = form.price.data if form.post_type.data == 'sale' else 0.0
+
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
-            price=form.price.data if form.post_type.data == 'sale' else None,
+            price=final_price,
             location=form.town.data,
             area="Western Cape",
             contact_phone=contact_phone,
