@@ -36,31 +36,22 @@
                             {% for error in form.description.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                         </div>
 
-                        <!-- Price + Category row -->
+                        <!-- Price + Category + Town row -->
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 {{ form.price.label(class="form-label") }}
                                 {{ form.price(class="form-control") }}
                                 {% for error in form.price.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 {{ form.category.label(class="form-label") }}
                                 {{ form.category(class="form-select") }}
                                 {% for error in form.category.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                             </div>
-                        </div>
-
-                        <!-- Location + Area row -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.location.label(class="form-label") }}
-                                {{ form.location(class="form-control") }}
-                                {% for error in form.location.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.area.label(class="form-label") }}
-                                {{ form.area(class="form-control") }}
-                                {% for error in form.area.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                            <div class="col-md-4 mb-3">
+                                {{ form.town.label(class="form-label") }}
+                                {{ form.town(class="form-select") }}
+                                {% for error in form.town.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                             </div>
                         </div>
 

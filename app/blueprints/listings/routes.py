@@ -66,8 +66,8 @@ def create():
             title=form.title.data,
             description=form.description.data,
             price=form.price.data,
-            location=form.location.data,
-            area=form.area.data or "Klein Karoo",
+            location=form.town.data,         # ← selected town goes into location column
+            area="Western Cape",             # ← hard default (keeps existing column)
             contact_phone=form.contact_phone.data,
             contact_email=form.contact_email.data,
             category_id=form.category.data,
