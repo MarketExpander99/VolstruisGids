@@ -2,6 +2,7 @@ from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
+from app.models.category import Category
 from .forms import ListingForm
 from . import listings_bp
 import os
@@ -17,10 +18,16 @@ def allowed_file(filename):
 @login_required
 def create():
     form = ListingForm()
+    
+    # Populate categories here (inside request context — 100% reliable)
+    form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
+    
+    if not form.category.choices:
+        form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
+
     if form.validate_on_submit():
         photo_url = None
 
-        # Photo upload handling
         if form.photo.data and allowed_file(form.photo.data.filename):
             filename = secure_filename(form.photo.data.filename)
             os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -28,7 +35,6 @@ def create():
             form.photo.data.save(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        # Create listing with ONLY valid fields
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
