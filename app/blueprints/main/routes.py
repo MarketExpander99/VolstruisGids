@@ -9,7 +9,8 @@ def index():
     query = request.args.get('q', '')
     area = request.args.get('area', '')
     
-    listings = Listing.query.filter_by(is_active=True).order_by(Listing.created_at.desc()).limit(12).all()
+    listings = Listing.query.filter_by(is_active=True)\
+        .order_by(Listing.created_at.desc()).limit(12).all()
     
     return render_template('main/index.html', listings=listings, query=query, area=area)
 
@@ -19,6 +20,7 @@ def listing_detail(listing_id):
     if not listing.is_active:
         abort(404)
     
+    # Increment views
     listing.views = (listing.views or 0) + 1
     db.session.commit()
     
