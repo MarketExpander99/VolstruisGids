@@ -1,21 +1,22 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField, SubmitField, RadioField, BooleanField
-from wtforms.validators import DataRequired, Length, NumberRange
+from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 class ListingForm(FlaskForm):
-    title = StringField('Title', validators=[DataRequired(), Length(max=200)])
-    description = TextAreaField('Description', validators=[DataRequired(), Length(max=2000)])
-    
     # Post Type
     post_type = RadioField('Post Type', validators=[DataRequired()], choices=[
         ('sale', '🛒 Items for Sale'),
         ('wanted', '🔍 Looking for:'),
         ('announcement', '📢 General Announcement')
     ], default='sale')
+
+    title = StringField('Title', validators=[DataRequired(), Length(max=200)])
+    description = TextAreaField('Description', validators=[DataRequired(), Length(max=2000)])
     
-    price = FloatField('Price (R)', validators=[NumberRange(min=0)])
+    # Price only for sale
+    price = FloatField('Price (R)', validators=[Optional(), NumberRange(min=0)])
     
-    # Town dropdown
+    # Town
     town = SelectField('Town', coerce=str, validators=[DataRequired()], choices=[
         ('', 'Select a town...'),
         ('Barrydale', 'Barrydale'),

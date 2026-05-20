@@ -53,7 +53,7 @@ def create():
         is_premium = getattr(current_user, 'is_premium', False) or getattr(current_user, 'premium', False)
         
         if pref in ('dm', 'any') and not is_premium:
-            flash('📩 DM and Any options are premium features. Please upgrade or choose Email/Phone only.', 'danger')
+            flash('📩 DM and Any options are premium features.', 'danger')
             return render_template('listings/create.html', form=form)
 
         if pref == 'email':
@@ -62,7 +62,7 @@ def create():
             contact_phone = form.contact_phone.data
         elif pref == 'dm':
             pass
-        else:  # 'any'
+        else:  # any
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
 
@@ -86,8 +86,7 @@ def create():
             category_id=form.category.data,
             user_id=current_user.id,
             photo_url=photo_url,
-            allow_comments=form.allow_comments.data,
-            # post_type will be stored in description or added later
+            allow_comments=form.allow_comments.data
         )
         
         db.session.add(listing)

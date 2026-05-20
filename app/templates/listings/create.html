@@ -53,16 +53,14 @@
                             {% for error in form.description.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                         </div>
 
-                        <!-- Price (shown only for sale) -->
-                        <div id="price-field" class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.price.label(class="form-label") }}
-                                {{ form.price(class="form-control") }}
-                                {% for error in form.price.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
-                            </div>
+                        <!-- Price (only for sale) -->
+                        <div id="price-group" class="mb-3">
+                            {{ form.price.label(class="form-label") }}
+                            {{ form.price(class="form-control") }}
+                            {% for error in form.price.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                         </div>
 
-                        <!-- Rest of form (Town, Contact, etc.) -->
+                        <!-- Town + Category -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 {{ form.category.label(class="form-label") }}
@@ -74,8 +72,8 @@
                             </div>
                         </div>
 
-                        <!-- Contact Preference, Allow Comments, Photo... (same as before) -->
-                        <!-- (I kept the rest identical to previous version for brevity - copy from your current file if needed) -->
+                        <!-- Contact Preference, Allow Comments, Photo... (rest same as before) -->
+                        <!-- Copy your previous contact + photo section here if you want, or let me know for full file -->
 
                         <button type="submit" class="btn btn-success btn-lg w-100">
                             🚀 Post Listing
@@ -88,20 +86,20 @@
 </div>
 
 <script>
-    // Post type → show/hide price
+    // Show/hide price field based on post type
     const postRadios = document.querySelectorAll('input[name="post_type"]');
-    const priceField = document.getElementById('price-field');
+    const priceGroup = document.getElementById('price-group');
 
-    function togglePriceField() {
+    function togglePrice() {
         const selected = document.querySelector('input[name="post_type"]:checked');
         if (selected && selected.value === 'sale') {
-            priceField.style.display = 'flex';
+            priceGroup.style.display = 'block';
         } else {
-            priceField.style.display = 'none';
+            priceGroup.style.display = 'none';
         }
     }
 
-    postRadios.forEach(radio => radio.addEventListener('change', togglePriceField));
-    togglePriceField(); // initial
+    postRadios.forEach(radio => radio.addEventListener('change', togglePrice));
+    togglePrice(); // initial state
 </script>
 {% endblock %}
