@@ -1,37 +1,39 @@
-<div class="row">
-    {% for listing in listings %}
-    <div class="col-md-4 col-6 mb-4">
-        <div class="card h-100 shadow-sm border-0">
-            <!-- Photo -->
-            {% if listing.photo_url %}
-                <img src="{{ listing.photo_url }}" 
-                     class="card-img-top" 
-                     style="height: 200px; object-fit: cover;" 
-                     alt="{{ listing.title }}">
-            {% else %}
-                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
-                     style="height: 200px;">
-                    <span class="text-muted fs-1">📸</span>
-                </div>
-            {% endif %}
-
-            <div class="card-body d-flex flex-column">
-                <h6 class="card-title fw-bold">{{ listing.title }}</h6>
-                <p class="text-warning fw-bold mb-1">R {{ listing.price | int }}</p>
-                <p class="text-muted small mb-2">
-                    📍 {{ listing.area }} • {{ listing.location }}
-                </p>
-                
-                <a href="{{ url_for('main.listing_detail', listing_id=listing.id) }}" 
-                   class="btn btn-outline-warning btn-sm mt-auto">
-                    View Full Ad →
-                </a>
+{% for listing in listings %}
+<div class="col-md-6 col-lg-4 mb-4">
+    <div class="card h-100 shadow-sm">
+        {% if listing.photo_url %}
+            <img src="{{ listing.photo_url }}" class="card-img-top" alt="{{ listing.title }}" 
+                 style="height: 200px; object-fit: cover;">
+        {% else %}
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                 style="height: 200px;">
+                <span class="text-muted">No photo</span>
             </div>
+        {% endif %}
+        
+        <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ listing.title }}</h5>
+            <p class="text-success fw-bold">R {{ listing.price | int }}</p>
+            <p class="card-text text-muted small">
+                {{ listing.area }} • {{ listing.created_at.strftime('%d %b %Y') }}
+            </p>
             
-            <div class="card-footer bg-white border-0 text-end">
-                <small class="text-muted">{{ listing.created_at.strftime('%d %b') }}</small>
+            <div class="mt-auto">
+                <!-- ✅ Correct link to detail page -->
+                <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
+                   class="btn btn-outline-primary btn-sm me-2">
+                    👁 View
+                </a>
+                
+                {% if current_user.is_authenticated and listing.user_id == current_user.id %}
+                <form action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
+                      method="POST" style="display: inline;"
+                      onsubmit="return confirm('Delete this listing permanently?');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">🗑 Delete</button>
+                </form>
+                {% endif %}
             </div>
         </div>
     </div>
-    {% endfor %}
 </div>
+{% endfor %}
