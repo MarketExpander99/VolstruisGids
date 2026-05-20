@@ -1,44 +1,43 @@
 {% extends "base.html" %}
 
-{% block title %}VolstruisGids - Klein Karoo's Marketplace{% endblock %}
-
 {% block content %}
-<div class="hero py-5 text-center">
-    <div class="container">
-        <h1 class="display-4 fw-bold">Welcome to the Klein Karoo</h1>
-        <p class="lead mb-4">Buy • Sell • Connect — Without the WhatsApp chaos</p>
-        <div class="d-flex justify-content-center gap-3">
-            <a href="{{ url_for('listings.create') }}" class="btn btn-warning btn-lg">Post a Free Ad</a>
-            <a href="#latest" class="btn btn-outline-light btn-lg">Browse Listings</a>
+<div class="container py-5">
+    <h2 class="mb-4 text-center">🌵 Latest Listings in Klein Karoo</h2>
+    
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for listing in listings %}
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0">
+                {% if listing.photo_url %}
+                    <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="{{ listing.title }}">
+                {% else %}
+                    <img src="/static/images/placeholder.jpg" class="card-img-top" style="height: 180px; object-fit: cover;" alt="No photo">
+                {% endif %}
+                
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ listing.title }}</h5>
+                    {% if listing.price and listing.price > 0 %}
+                        <p class="text-success fw-bold fs-5">R{{ listing.price }}</p>
+                    {% else %}
+                        <p class="text-muted">No price listed</p>
+                    {% endif %}
+                    <p class="text-muted small">{{ listing.location }} • {{ listing.area }}</p>
+                    <p class="card-text flex-grow-1">{{ listing.description[:90] }}...</p>
+                    
+                    <div class="mt-auto">
+                        <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
+                           class="btn btn-success btn-sm w-100 mb-2">View Full Details</a>
+                        
+                        <a href="https://wa.me/?text=Check%20this%20listing%20on%20VolstruisGids%3A%20{{ listing.title }}%20-%20{{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
+                           target="_blank" 
+                           class="btn btn-outline-success btn-sm w-100">
+                            📲 Share on WhatsApp
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
-
-<!-- Categories -->
-<div class="container my-5">
-    <h3 class="text-center mb-4">Popular Categories</h3>
-    <div class="row text-center">
-        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🚜 Farm Equipment</div></div>
-        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🐦 Livestock & Ostriches</div></div>
-        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🏠 Property & Rentals</div></div>
-        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🛠️ Services</div></div>
-        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">📱 Electronics</div></div>
-        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🛒 General</div></div>
-    </div>
-</div>
-
-<!-- Latest Listings -->
-<div id="latest" class="container my-5">
-    <h3 class="mb-4">Latest Listings</h3>
-    {% include "main/_listing_cards.html" %}
-</div>
-
-<!-- Call to Action -->
-<div class="bg-dark text-white py-5 text-center">
-    <div class="container">
-        <h4>Are you a local business?</h4>
-        <p class="lead">Get more visibility with a Business Account — featured listings & longer duration</p>
-        <a href="#" class="btn btn-warning btn-lg">Become a Business Seller →</a>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

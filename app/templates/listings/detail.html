@@ -3,43 +3,42 @@
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary mb-3">← Back to Feed</a>
-            
+        <div class="col-lg-8">
             <div class="card shadow">
-                {% if listing.photo_url %}
-                <img src="{{ listing.photo_url }}" class="card-img-top" alt="{{ listing.title }}" style="max-height: 500px; object-fit: cover;">
-                {% endif %}
+                <div class="card-header bg-success text-white d-flex justify-content-between">
+                    <h4 class="mb-0">{{ listing.title }}</h4>
+                    <span class="badge bg-light text-dark">{{ listing.location }}</span>
+                </div>
                 
+                {% if listing.photo_url %}
+                    <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 420px; object-fit: cover;" alt="{{ listing.title }}">
+                {% endif %}
+
                 <div class="card-body">
-                    <h1 class="card-title">{{ listing.title }}</h1>
-                    <h3 class="text-success">R {{ listing.price | int }}</h3>
-                    
-                    <p class="text-muted">
-                        📍 {{ listing.area }} • {{ listing.location }} • 
-                        {{ listing.created_at.strftime('%d %b %Y') }}
-                    </p>
-
-                    <div class="mb-4">
-                        <span class="badge bg-primary">{{ listing.category.name }}</span>
-                        {% if listing.is_business_ad %}<span class="badge bg-warning">Business Ad</span>{% endif %}
-                        {% if listing.is_promoted %}<span class="badge bg-danger">⭐ Promoted</span>{% endif %}
-                    </div>
-
-                    <h5 class="mt-4">Description</h5>
+                    {% if listing.price and listing.price > 0 %}
+                        <h3 class="text-success">R{{ listing.price }}</h3>
+                    {% endif %}
                     <p class="lead">{{ listing.description }}</p>
 
-                    <hr>
-                    <h5>Contact the seller</h5>
-                    <p>
-                        📞 <strong>{{ listing.contact_phone or 'Not provided' }}</strong><br>
-                        ✉️ <a href="mailto:{{ listing.contact_email }}">{{ listing.contact_email or 'Not provided' }}</a>
-                    </p>
+                    <div class="my-4">
+                        {% if listing.contact_phone %}
+                            <p><strong>📞 Phone:</strong> {{ listing.contact_phone }}</p>
+                        {% endif %}
+                        {% if listing.contact_email %}
+                            <p><strong>📧 Email:</strong> {{ listing.contact_email }}</p>
+                        {% endif %}
+                    </div>
 
-                    <a href="{{ url_for('main.my_listings') if current_user.is_authenticated and listing.user_id == current_user.id else '#' }}" 
-                       class="btn btn-outline-primary">
-                        👤 View all my listings
+                    <!-- WhatsApp Share -->
+                    <a href="https://wa.me/?text=Check%20this%20listing%20on%20VolstruisGids%3A%20{{ listing.title }}%20-%20{{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
+                       target="_blank" 
+                       class="btn btn-success btn-lg w-100 mb-3">
+                        📲 Share on WhatsApp
                     </a>
+
+                    {% if listing.allow_comments %}
+                        <div class="alert alert-info">💬 Comments are enabled</div>
+                    {% endif %}
                 </div>
             </div>
         </div>
