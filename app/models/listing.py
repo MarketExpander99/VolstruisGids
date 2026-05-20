@@ -7,7 +7,7 @@ class Listing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
-    price = db.Column(db.Float, nullable=False)
+    price = db.Column(db.Float, nullable=True)                    # ← Changed to nullable
     location = db.Column(db.String(100), nullable=False, index=True)
     area = db.Column(db.String(100), nullable=False, index=True, server_default="")
     contact_phone = db.Column(db.String(20))
