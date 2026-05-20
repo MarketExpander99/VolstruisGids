@@ -19,7 +19,6 @@
                         {% endif %}
                     {% endwith %}
 
-                    <!-- 7-day free ad notice -->
                     <div class="alert alert-info">
                         <strong>🕒 Free ads last 7 days.</strong> Your listing will automatically expire after 7 days. 
                         Premium users can extend or promote their ads.
@@ -85,6 +84,12 @@
                                 {{ form.contact_email.label(class="form-label") }}
                                 {{ form.contact_email(class="form-control", id="contact_email") }}
                             </div>
+                        </div>
+
+                        <!-- Allow Comments -->
+                        <div class="mb-3 form-check">
+                            {{ form.allow_comments(class="form-check-input") }}
+                            {{ form.allow_comments.label(class="form-check-label") }}
                         </div>
 
                         <!-- Photo -->

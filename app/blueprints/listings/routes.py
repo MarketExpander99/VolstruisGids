@@ -16,7 +16,6 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def resize_image_to_square(image_path, size=800):
-    """Enforce perfect 1:1 square (center crop + resize) for optimal display."""
     try:
         with Image.open(image_path) as img:
             width, height = img.size
@@ -86,7 +85,8 @@ def create():
             contact_email=contact_email,
             category_id=form.category.data,
             user_id=current_user.id,
-            photo_url=photo_url
+            photo_url=photo_url,
+            allow_comments=form.allow_comments.data
         )
         
         db.session.add(listing)
