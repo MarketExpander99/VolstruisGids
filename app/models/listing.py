@@ -9,7 +9,7 @@ class Listing(db.Model):
     description = db.Column(db.Text, nullable=False)
     price = db.Column(db.Float, nullable=False)
     location = db.Column(db.String(100), nullable=False, index=True)
-    area = db.Column(db.String(100), nullable=False, index=True, server_default="")  # safe for existing DB
+    area = db.Column(db.String(100), nullable=False, index=True, server_default="")
     contact_phone = db.Column(db.String(20))
     contact_email = db.Column(db.String(120))
     is_active = db.Column(db.Boolean, default=True)
@@ -18,6 +18,9 @@ class Listing(db.Model):
     views = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # New field for Phase 4 photo upload (JSON list max 6 filenames)
+    photos = db.Column(db.JSON, nullable=True)
     
     # Foreign keys
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)

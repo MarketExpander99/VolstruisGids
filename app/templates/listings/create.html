@@ -1,46 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <nav class="mb-4">
-        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">← Back to Home</a>
-    </nav>
-
-    <h2>Post a New Ad</h2>
-
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <form method="POST" enctype="multipart/form-data">
-                {{ form.hidden_tag() }}
-                
-                <div class="mb-3">
-                    {{ form.title.label }}
-                    {{ form.title(class="form-control") }}
-                </div>
-                
-                <div class="mb-3">
-                    {{ form.description.label }}
-                    {{ form.description(class="form-control", rows=5) }}
-                </div>
-                
-                <div class="mb-3">
-                    {{ form.price.label }}
-                    {{ form.price(class="form-control") }}
-                </div>
-                
-                <div class="mb-3">
-                    {{ form.area.label }}
-                    {{ form.area(class="form-select") }}
-                </div>
-
-                <div class="mb-3">
-                    <label>Photos (coming soon)</label>
-                    <input type="file" class="form-control" disabled>
-                    <small class="text-muted">Photo upload will be added in next phase</small>
-                </div>
-
-                <button type="submit" class="btn btn-success btn-lg">Post Ad</button>
-            </form>
+    <h1 class="mb-4">Post a New Ad</h1>
+    
+    <form method="POST" enctype="multipart/form-data" class="row g-3">
+        {{ form.hidden_tag() }}
+        
+        <div class="col-12">
+            {{ form.title.label(class="form-label") }}
+            {{ form.title(class="form-control") }}
         </div>
-    </div>
+        
+        <div class="col-12">
+            {{ form.description.label(class="form-label") }}
+            {{ form.description(class="form-control", rows=5) }}
+        </div>
+        
+        <div class="col-md-4">
+            {{ form.price.label(class="form-label") }}
+            {{ form.price(class="form-control") }}
+        </div>
+        
+        <div class="col-md-4">
+            {{ form.area.label(class="form-label") }}
+            {{ form.area(class="form-control") }}
+        </div>
+        
+        <div class="col-md-4">
+            {{ form.category.label(class="form-label") }}
+            {{ form.category(class="form-select") }}
+        </div>
+        
+        <div class="col-12">
+            <label class="form-label">Photos (max 6)</label>
+            <input type="file" name="photos" multiple accept="image/*" class="form-control">
+            <small class="text-muted">JPG, PNG, GIF only</small>
+        </div>
+        
+        <div class="col-12">
+            {{ form.submit(class="btn btn-success btn-lg w-100") }}
+        </div>
+    </form>
 </div>
 {% endblock %}

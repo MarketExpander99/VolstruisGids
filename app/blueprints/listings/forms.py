@@ -1,16 +1,11 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, DecimalField, SelectField, SubmitField
-from wtforms.validators import DataRequired, Length
+from wtforms import StringField, TextAreaField, FloatField, SelectField, SubmitField
+from wtforms.validators import DataRequired, NumberRange
 
 class ListingForm(FlaskForm):
-    title = StringField('Title', validators=[DataRequired(), Length(max=200)])
+    title = StringField('Title', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[DataRequired()])
-    price = DecimalField('Price (R)', validators=[DataRequired()])
-    area = SelectField('Area', choices=[
-        ('Oudtshoorn', 'Oudtshoorn'),
-        ('Calitzdorp', 'Calitzdorp'),
-        ('Ladismith', 'Ladismith'),
-        ('Van Wyksdorp', 'Van Wyksdorp'),
-        ('Zoar', 'Zoar')
-    ], validators=[DataRequired()])
+    price = FloatField('Price (R)', validators=[DataRequired(), NumberRange(min=0)])
+    area = StringField('Area', validators=[DataRequired()])
+    category = SelectField('Category', coerce=int, validators=[DataRequired()])
     submit = SubmitField('Post Ad')
