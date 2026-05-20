@@ -22,7 +22,7 @@ class Listing(db.Model):
     photo_url = db.Column(db.String(255))
     allow_comments = db.Column(db.Boolean, default=True, nullable=True)
     
-    # New: Post Type
+    # Post Type
     post_type = db.Column(db.String(20), default='sale')   # sale, wanted, announcement
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)

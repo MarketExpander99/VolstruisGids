@@ -5,9 +5,15 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow">
-                <div class="card-header bg-success text-white d-flex justify-content-between">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">{{ listing.title }}</h4>
-                    <span class="badge bg-light text-dark">{{ listing.location }}</span>
+                    {% if listing.post_type == 'wanted' %}
+                        <span class="badge bg-warning text-dark fs-6">🔍 Looking For</span>
+                    {% elif listing.post_type == 'announcement' %}
+                        <span class="badge bg-info fs-6">📢 Announcement</span>
+                    {% else %}
+                        <span class="badge bg-success fs-6">🛒 For Sale</span>
+                    {% endif %}
                 </div>
                 
                 {% if listing.photo_url %}
@@ -17,28 +23,28 @@
                 <div class="card-body">
                     {% if listing.price and listing.price > 0 %}
                         <h3 class="text-success">R{{ listing.price }}</h3>
+                    {% elif listing.post_type == 'wanted' %}
+                        <h5 class="text-warning">🔍 Looking For</h5>
+                    {% else %}
+                        <h5 class="text-muted">No price listed</h5>
                     {% endif %}
+                    
                     <p class="lead">{{ listing.description }}</p>
 
                     <div class="my-4">
                         {% if listing.contact_phone %}
-                            <p><strong>📞 Phone:</strong> {{ listing.contact_phone }}</p>
+                            <p><strong>📞 {{ listing.contact_phone }}</strong></p>
                         {% endif %}
                         {% if listing.contact_email %}
-                            <p><strong>📧 Email:</strong> {{ listing.contact_email }}</p>
+                            <p><strong>📧 {{ listing.contact_email }}</strong></p>
                         {% endif %}
                     </div>
 
-                    <!-- WhatsApp Share -->
-                    <a href="https://wa.me/?text=Check%20this%20listing%20on%20VolstruisGids%3A%20{{ listing.title }}%20-%20{{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
+                    <a href="https://wa.me/?text=Check this listing on VolstruisGids: {{ listing.title }} {{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
                        target="_blank" 
                        class="btn btn-success btn-lg w-100 mb-3">
                         📲 Share on WhatsApp
                     </a>
-
-                    {% if listing.allow_comments %}
-                        <div class="alert alert-info">💬 Comments are enabled</div>
-                    {% endif %}
                 </div>
             </div>
         </div>

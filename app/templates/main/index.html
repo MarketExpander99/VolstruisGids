@@ -6,30 +6,11 @@
     <!-- Hero -->
     <div class="bg-success text-white rounded-3 p-5 mb-5 text-center">
         <h1 class="display-4 fw-bold">🌵 VolstruisGids</h1>
-        <p class="lead mb-4">Klein Karoo's Local Classifieds Platform</p>
-        <a href="{{ url_for('listings.create') }}" class="btn btn-light btn-lg px-5 py-3 shadow-sm">
+        <p class="lead mb-4">Klein Karoo's Local Classifieds</p>
+        <a href="{{ url_for('listings.create') }}" class="btn btn-light btn-lg px-5 py-3">
             🚀 Post New Listing
         </a>
     </div>
-
-    <!-- Search -->
-    <form method="GET" class="mb-5">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-6">
-                <input type="text" name="q" value="{{ query or '' }}" 
-                       class="form-control form-control-lg" 
-                       placeholder="Search titles or descriptions...">
-            </div>
-            <div class="col-md-4">
-                <select name="area" class="form-select form-select-lg">
-                    <option value="Western Cape" selected>Western Cape</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-success btn-lg w-100">🔍 Search</button>
-            </div>
-        </div>
-    </form>
 
     <h2 class="mb-4">Latest Listings</h2>
 
@@ -38,33 +19,43 @@
         <div class="col">
             <div class="card h-100 shadow-sm">
                 {% if listing.photo_url %}
-                    <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ listing.title }}">
+                    <div class="position-relative">
+                        <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ listing.title }}">
+                        
+                        <!-- Post Type Badge -->
+                        {% if listing.post_type == 'wanted' %}
+                            <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2">🔍 Looking For</span>
+                        {% elif listing.post_type == 'announcement' %}
+                            <span class="badge bg-info position-absolute top-0 start-0 m-2">📢 Announcement</span>
+                        {% else %}
+                            <span class="badge bg-success position-absolute top-0 start-0 m-2">🛒 For Sale</span>
+                        {% endif %}
+                    </div>
                 {% endif %}
                 
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">{{ listing.title }}</h5>
+                    
                     {% if listing.price and listing.price > 0 %}
                         <h6 class="text-success">R{{ listing.price }}</h6>
+                    {% elif listing.post_type == 'wanted' %}
+                        <h6 class="text-warning">🔍 Looking For</h6>
                     {% else %}
-                        <h6 class="text-muted">No price</h6>
+                        <h6 class="text-muted">No price listed</h6>
                     {% endif %}
+                    
                     <p class="text-muted small">{{ listing.location }}</p>
                     <p class="card-text flex-grow-1">{{ listing.description[:100] }}...</p>
                     
                     <div class="mt-auto">
                         <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
                            class="btn btn-success w-100 mb-2">View Details</a>
-                        <a href="https://wa.me/?text=Check this listing: {{ listing.title }} {{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
-                           target="_blank" 
-                           class="btn btn-outline-success w-100">📲 WhatsApp</a>
+                        <a href="https://wa.me/?text=Check this on VolstruisGids: {{ listing.title }} {{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
+                           target="_blank" class="btn btn-outline-success w-100">📲 WhatsApp</a>
                     </div>
                 </div>
             </div>
         </div>
-        {% else %}
-            <div class="col-12 text-center py-5">
-                <p class="text-muted">No listings found. Try a different search or <a href="{{ url_for('listings.create') }}">post something new</a>.</p>
-            </div>
         {% endfor %}
     </div>
 </div>
