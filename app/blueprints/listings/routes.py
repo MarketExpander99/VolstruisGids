@@ -50,6 +50,28 @@ def create():
         form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
 
     if form.validate_on_submit():
+        # Handle contact preference logic (premium check for DM Only)
+        pref = form.contact_preference.data
+        contact_phone = None
+        contact_email = None
+
+        if pref == 'dm_only':
+            # Premium check (safe fallback if field doesn't exist yet)
+            if not getattr(current_user, 'is_premium', False) and not getattr(current_user, 'premium', False):
+                flash('📩 DM Only is a premium feature. Please upgrade your account or choose another contact option.', 'danger')
+                return render_template('listings/create.html', form=form)
+            contact_phone = None
+            contact_email = None
+        elif pref == 'phone':
+            contact_phone = form.contact_phone.data
+            contact_email = None
+        elif pref == 'phone_email':
+            contact_phone = form.contact_phone.data
+            contact_email = form.contact_email.data
+        else:  # 'all'
+            contact_phone = form.contact_phone.data
+            contact_email = form.contact_email.data
+
         photo_url = None
         if form.photo.data and allowed_file(form.photo.data.filename):
             filename = secure_filename(form.photo.data.filename)
@@ -66,10 +88,10 @@ def create():
             title=form.title.data,
             description=form.description.data,
             price=form.price.data,
-            location=form.town.data,         # ← selected town goes into location column
-            area="Western Cape",             # ← hard default (keeps existing column)
-            contact_phone=form.contact_phone.data,
-            contact_email=form.contact_email.data,
+            location=form.town.data,
+            area="Western Cape",
+            contact_phone=contact_phone,
+            contact_email=contact_email,
             category_id=form.category.data,
             user_id=current_user.id,
             photo_url=photo_url

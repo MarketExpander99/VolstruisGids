@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField, SubmitField
+from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField, SubmitField, RadioField
 from wtforms.validators import DataRequired, Length, NumberRange
 
 class ListingForm(FlaskForm):
@@ -19,6 +19,14 @@ class ListingForm(FlaskForm):
         ('Oudtshoorn', 'Oudtshoorn'),
         ('Van Wyksdorp', 'Van Wyksdorp'),
         ('Zoar', 'Zoar')
+    ])
+    
+    # Contact preference (4 options, DM Only = premium)
+    contact_preference = RadioField('Contact Preference', validators=[DataRequired()], choices=[
+        ('dm_only', '📩 DM Only (Premium feature)'),
+        ('phone', '📞 Phone only'),
+        ('phone_email', '📞 Phone and Email'),
+        ('all', '📞 Phone, Email and DM')
     ])
     
     contact_phone = StringField('Contact Phone')

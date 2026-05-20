@@ -55,15 +55,29 @@
                             </div>
                         </div>
 
-                        <!-- Contact fields -->
-                        <div class="row">
+                        <!-- Contact Preference -->
+                        <div class="mb-4">
+                            {{ form.contact_preference.label(class="form-label fw-bold") }}
+                            <div class="btn-group w-100" role="group">
+                                {% for value, label in form.contact_preference.choices %}
+                                    <div class="form-check form-check-inline">
+                                        {{ form.contact_preference(value=value, id='pref_'+value, class='form-check-input') }}
+                                        <label class="form-check-label" for="pref_{{ value }}">{{ label }}</label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% for error in form.contact_preference.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <!-- Conditional Phone & Email -->
+                        <div id="contact-details" class="row">
                             <div class="col-md-6 mb-3">
                                 {{ form.contact_phone.label(class="form-label") }}
-                                {{ form.contact_phone(class="form-control") }}
+                                {{ form.contact_phone(class="form-control", id="contact_phone") }}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ form.contact_email.label(class="form-label") }}
-                                {{ form.contact_email(class="form-control") }}
+                                {{ form.contact_email(class="form-control", id="contact_email") }}
                             </div>
                         </div>
 
@@ -87,6 +101,7 @@
 </div>
 
 <script>
+    // Live image preview (unchanged)
     const photoInput = document.getElementById('photo');
     if (photoInput) {
         photoInput.addEventListener('change', function(e) {
@@ -107,5 +122,28 @@
             }
         });
     }
+
+    // Contact preference logic
+    const radios = document.querySelectorAll('input[name="contact_preference"]');
+    const contactDetails = document.getElementById('contact-details');
+    const phoneField = document.getElementById('contact_phone');
+    const emailField = document.getElementById('contact_email');
+
+    function toggleContactFields() {
+        const selected = document.querySelector('input[name="contact_preference"]:checked');
+        if (selected && selected.value === 'dm_only') {
+            contactDetails.style.display = 'none';
+            phoneField.required = false;
+            emailField.required = false;
+        } else {
+            contactDetails.style.display = 'flex';
+            phoneField.required = true;
+            emailField.required = false; // email optional in some options
+        }
+    }
+
+    radios.forEach(radio => radio.addEventListener('change', toggleContactFields));
+    // Initial state
+    toggleContactFields();
 </script>
 {% endblock %}
