@@ -55,21 +55,23 @@
                             </div>
                         </div>
 
-                        <!-- Contact Preference -->
+                        <!-- Contact Preference - CLEAN radio group -->
                         <div class="mb-4">
                             {{ form.contact_preference.label(class="form-label fw-bold") }}
-                            <div class="btn-group w-100" role="group">
+                            <div class="d-flex flex-wrap gap-3">
                                 {% for value, label in form.contact_preference.choices %}
-                                    <div class="form-check form-check-inline">
+                                    <div class="form-check">
                                         {{ form.contact_preference(value=value, id='pref_'+value, class='form-check-input') }}
-                                        <label class="form-check-label" for="pref_{{ value }}">{{ label }}</label>
+                                        <label class="form-check-label" for="pref_{{ value }}">
+                                            {{ label }}
+                                        </label>
                                     </div>
                                 {% endfor %}
                             </div>
                             {% for error in form.contact_preference.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                         </div>
 
-                        <!-- Conditional Phone & Email -->
+                        <!-- Conditional Phone & Email (shown/hidden by JS) -->
                         <div id="contact-details" class="row">
                             <div class="col-md-6 mb-3">
                                 {{ form.contact_phone.label(class="form-label") }}
@@ -123,7 +125,7 @@
         });
     }
 
-    // Contact preference logic
+    // Contact preference logic - clean toggle
     const radios = document.querySelectorAll('input[name="contact_preference"]');
     const contactDetails = document.getElementById('contact-details');
     const phoneField = document.getElementById('contact_phone');
@@ -138,12 +140,12 @@
         } else {
             contactDetails.style.display = 'flex';
             phoneField.required = true;
-            emailField.required = false; // email optional in some options
+            emailField.required = false;
         }
     }
 
     radios.forEach(radio => radio.addEventListener('change', toggleContactFields));
-    // Initial state
+    // Set initial state
     toggleContactFields();
 </script>
 {% endblock %}
