@@ -18,8 +18,6 @@ def allowed_file(filename):
 @login_required
 def create():
     form = ListingForm()
-    
-    # Populate categories here (inside request context — 100% reliable)
     form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
     
     if not form.category.choices:
@@ -27,7 +25,6 @@ def create():
 
     if form.validate_on_submit():
         photo_url = None
-
         if form.photo.data and allowed_file(form.photo.data.filename):
             filename = secure_filename(form.photo.data.filename)
             os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -55,3 +52,8 @@ def create():
         return redirect(url_for('main.index'))
     
     return render_template('listings/create.html', form=form)
+
+@listings_bp.route('/listing/<int:listing_id>')
+def detail(listing_id):
+    listing = Listing.query.get_or_404(listing_id)
+    return render_template('listings/detail.html', listing=listing)

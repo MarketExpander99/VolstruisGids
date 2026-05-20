@@ -33,19 +33,16 @@
                         <p class="card-text text-muted small">{{ listing.area }} • {{ listing.created_at.strftime('%d %b %Y') }}</p>
                         
                         <div class="mt-auto">
+                            <!-- Fixed View link -->
                             <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="btn btn-outline-primary btn-sm me-2">
-                                View
+                                👁 View
                             </a>
                             
-                            <!-- DELETE FORM -->
+                            <!-- Delete form -->
                             <form action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
-                                  method="POST" 
-                                  style="display: inline;"
-                                  onsubmit="return confirm('Delete this listing permanently? This cannot be undone.');">
-                                {{ form.hidden_tag() if form else '' }}  <!-- CSRF if needed -->
-                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                    🗑 Delete
-                                </button>
+                                  method="POST" style="display: inline;"
+                                  onsubmit="return confirm('Delete this listing permanently?');">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">🗑 Delete</button>
                             </form>
                         </div>
                     </div>

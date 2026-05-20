@@ -1,60 +1,47 @@
 {% extends "base.html" %}
 
-{% block title %}{{ listing.title }} - VolstruisGids{% endblock %}
-
 {% block content %}
-<div class="container my-5">
-    <div class="row">
-        <!-- Photo -->
-        <div class="col-lg-7">
-            {% if listing.photo_url %}
-                <img src="{{ listing.photo_url }}" class="img-fluid rounded shadow" alt="{{ listing.title }}" style="max-height: 500px; width: 100%; object-fit: cover;">
-            {% else %}
-                <div class="bg-light rounded shadow d-flex align-items-center justify-content-center" style="height: 500px;">
-                    <h4 class="text-muted">📸 Photo coming soon</h4>
-                </div>
-            {% endif %}
-        </div>
-
-        <!-- Details -->
-        <div class="col-lg-5">
-            <h2 class="fw-bold">{{ listing.title }}</h2>
-            <h3 class="text-warning">R {{ listing.price | int }}</h3>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary mb-3">← Back to Feed</a>
             
-            <p class="text-muted">
-                📍 {{ listing.area }} • {{ listing.location }}<br>
-                <small>Posted {{ listing.created_at.strftime('%d %b %Y') }}</small>
-            </p>
-
-            <hr>
-
-            <h5>Description</h5>
-            <p style="white-space: pre-line;">{{ listing.description }}</p>
-
-            <hr>
-
-            <!-- Contact Section -->
-            <div class="card border-warning mb-4">
+            <div class="card shadow">
+                {% if listing.photo_url %}
+                <img src="{{ listing.photo_url }}" class="card-img-top" alt="{{ listing.title }}" style="max-height: 500px; object-fit: cover;">
+                {% endif %}
+                
                 <div class="card-body">
-                    <h5 class="card-title">Contact the seller</h5>
+                    <h1 class="card-title">{{ listing.title }}</h1>
+                    <h3 class="text-success">R {{ listing.price | int }}</h3>
                     
-                    {% if listing.contact_phone or listing.contact_email %}
-                        <p>
-                            {% if listing.contact_phone %}<strong>📞 {{ listing.contact_phone }}</strong><br>{% endif %}
-                            {% if listing.contact_email %}<strong>✉️ {{ listing.contact_email }}</strong>{% endif %}
-                        </p>
-                    {% endif %}
+                    <p class="text-muted">
+                        📍 {{ listing.area }} • {{ listing.location }} • 
+                        {{ listing.created_at.strftime('%d %b %Y') }}
+                    </p>
 
-                    <a href="#" class="btn btn-warning btn-lg w-100 mb-3" onclick="alert('DM system coming in next step!')">💬 Message Seller (DM)</a>
-                    
-                    <a href="https://wa.me/27{{ listing.contact_phone|replace(' ', '')|replace('+', '') if listing.contact_phone else '1234567890' }}" 
-                       target="_blank" class="btn btn-success w-100">
-                        📱 Share on WhatsApp
+                    <div class="mb-4">
+                        <span class="badge bg-primary">{{ listing.category.name }}</span>
+                        {% if listing.is_business_ad %}<span class="badge bg-warning">Business Ad</span>{% endif %}
+                        {% if listing.is_promoted %}<span class="badge bg-danger">⭐ Promoted</span>{% endif %}
+                    </div>
+
+                    <h5 class="mt-4">Description</h5>
+                    <p class="lead">{{ listing.description }}</p>
+
+                    <hr>
+                    <h5>Contact the seller</h5>
+                    <p>
+                        📞 <strong>{{ listing.contact_phone or 'Not provided' }}</strong><br>
+                        ✉️ <a href="mailto:{{ listing.contact_email }}">{{ listing.contact_email or 'Not provided' }}</a>
+                    </p>
+
+                    <a href="{{ url_for('main.my_listings') if current_user.is_authenticated and listing.user_id == current_user.id else '#' }}" 
+                       class="btn btn-outline-primary">
+                        👤 View all my listings
                     </a>
                 </div>
             </div>
-
-            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">← Back to Listings</a>
         </div>
     </div>
 </div>
