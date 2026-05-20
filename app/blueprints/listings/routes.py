@@ -45,6 +45,11 @@ def create():
     if not form.category.choices:
         form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
 
+    # Pre-populate phone & email from user profile
+    if request.method == 'GET':
+        form.contact_phone.data = getattr(current_user, 'phone', '') or getattr(current_user, 'contact_phone', '')
+        form.contact_email.data = current_user.email
+
     if form.validate_on_submit():
         pref = form.contact_preference.data
         contact_phone = None
@@ -75,7 +80,6 @@ def create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        # Fix: Always pass a price (0.0 for non-sale posts)
         final_price = form.price.data if form.post_type.data == 'sale' else 0.0
 
         listing = Listing(
