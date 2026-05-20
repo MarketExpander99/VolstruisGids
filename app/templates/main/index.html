@@ -12,6 +12,36 @@
         </a>
     </div>
 
+    <!-- Search + Filters -->
+    <form method="GET" class="mb-5">
+        <div class="row g-3">
+            <div class="col-md-5">
+                <input type="text" name="q" value="{{ query or '' }}" 
+                       class="form-control form-control-lg" 
+                       placeholder="Search titles or descriptions...">
+            </div>
+            <div class="col-md-3">
+                <select name="post_type" class="form-select form-select-lg">
+                    <option value="">All Types</option>
+                    <option value="sale">🛒 For Sale</option>
+                    <option value="wanted">🔍 Looking For</option>
+                    <option value="announcement">📢 Announcement</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="town" class="form-select form-select-lg">
+                    <option value="">All Towns</option>
+                    {% for t in ['Barrydale','Calitzdorp','De Rust','Dysselsdorp','Groenfontein','Ladismith','Oudtshoorn','Van Wyksdorp','Zoar'] %}
+                        <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-success btn-lg w-100">🔍</button>
+            </div>
+        </div>
+    </form>
+
     <h2 class="mb-4">Latest Listings</h2>
 
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
@@ -19,21 +49,21 @@
         <div class="col">
             <div class="card h-100 shadow-sm">
                 {% if listing.photo_url %}
-                    <div class="position-relative">
-                        <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ listing.title }}">
-                        
-                        <!-- Post Type Badge -->
-                        {% if listing.post_type == 'wanted' %}
-                            <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2">🔍 Looking For</span>
-                        {% elif listing.post_type == 'announcement' %}
-                            <span class="badge bg-info position-absolute top-0 start-0 m-2">📢 Announcement</span>
-                        {% else %}
-                            <span class="badge bg-success position-absolute top-0 start-0 m-2">🛒 For Sale</span>
-                        {% endif %}
-                    </div>
+                    <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ listing.title }}">
                 {% endif %}
                 
                 <div class="card-body d-flex flex-column">
+                    <!-- Post Type Badge - Always visible -->
+                    <div class="mb-2">
+                        {% if listing.post_type == 'wanted' %}
+                            <span class="badge bg-warning text-dark">🔍 Looking For</span>
+                        {% elif listing.post_type == 'announcement' %}
+                            <span class="badge bg-info">📢 Announcement</span>
+                        {% else %}
+                            <span class="badge bg-success">🛒 For Sale</span>
+                        {% endif %}
+                    </div>
+
                     <h5 class="card-title">{{ listing.title }}</h5>
                     
                     {% if listing.price and listing.price > 0 %}
@@ -51,7 +81,8 @@
                         <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
                            class="btn btn-success w-100 mb-2">View Details</a>
                         <a href="https://wa.me/?text=Check this on VolstruisGids: {{ listing.title }} {{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
-                           target="_blank" class="btn btn-outline-success w-100">📲 WhatsApp</a>
+                           target="_blank" 
+                           class="btn btn-outline-success w-100">📲 WhatsApp</a>
                     </div>
                 </div>
             </div>
