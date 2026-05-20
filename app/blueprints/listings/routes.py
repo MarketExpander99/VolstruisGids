@@ -53,7 +53,9 @@ def create():
     
     return render_template('listings/create.html', form=form)
 
+
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
+    """Full listing detail page"""
     listing = Listing.query.get_or_404(listing_id)
     return render_template('listings/detail.html', listing=listing)

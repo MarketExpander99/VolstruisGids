@@ -33,15 +33,16 @@
                         <p class="card-text text-muted small">{{ listing.area }} • {{ listing.created_at.strftime('%d %b %Y') }}</p>
                         
                         <div class="mt-auto">
-                            <!-- Fixed View link -->
-                            <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="btn btn-outline-primary btn-sm me-2">
+                            <!-- ✅ Fixed: correct blueprint name -->
+                            <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
+                               class="btn btn-outline-primary btn-sm me-2">
                                 👁 View
                             </a>
                             
                             <!-- Delete form -->
                             <form action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
                                   method="POST" style="display: inline;"
-                                  onsubmit="return confirm('Delete this listing permanently?');">
+                                  onsubmit="return confirm('Delete this listing permanently? This cannot be undone.');">
                                 <button type="submit" class="btn btn-outline-danger btn-sm">🗑 Delete</button>
                             </form>
                         </div>
