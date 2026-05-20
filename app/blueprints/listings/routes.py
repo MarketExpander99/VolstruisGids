@@ -78,7 +78,7 @@ def create():
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
-            price=form.price.data,
+            price=form.price.data if form.post_type.data == 'sale' else None,
             location=form.town.data,
             area="Western Cape",
             contact_phone=contact_phone,
@@ -86,7 +86,8 @@ def create():
             category_id=form.category.data,
             user_id=current_user.id,
             photo_url=photo_url,
-            allow_comments=form.allow_comments.data
+            allow_comments=form.allow_comments.data,
+            # post_type will be stored in description or added later
         )
         
         db.session.add(listing)
