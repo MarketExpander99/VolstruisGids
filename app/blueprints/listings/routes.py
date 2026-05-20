@@ -45,7 +45,7 @@ def create():
     if not form.category.choices:
         form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
 
-    # Pre-populate phone & email from user profile
+    # Pre-populate contact fields from user profile
     if request.method == 'GET':
         form.contact_phone.data = getattr(current_user, 'phone', '') or getattr(current_user, 'contact_phone', '')
         form.contact_email.data = current_user.email
@@ -80,7 +80,7 @@ def create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        final_price = form.price.data if form.post_type.data == 'sale' else 0.0
+        final_price = form.price.data if form.post_type.data == 'sale' else None
 
         listing = Listing(
             title=form.title.data,
@@ -93,7 +93,8 @@ def create():
             category_id=form.category.data,
             user_id=current_user.id,
             photo_url=photo_url,
-            allow_comments=form.allow_comments.data
+            allow_comments=form.allow_comments.data,
+            post_type=form.post_type.data
         )
         
         db.session.add(listing)
@@ -107,5 +108,6 @@ def create():
 
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
+    """Full listing detail page"""
     listing = Listing.query.get_or_404(listing_id)
     return render_template('listings/detail.html', listing=listing)

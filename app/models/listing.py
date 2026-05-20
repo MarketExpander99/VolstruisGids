@@ -7,7 +7,7 @@ class Listing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
-    price = db.Column(db.Float, nullable=True)                    # ← Changed to nullable
+    price = db.Column(db.Float, nullable=True)
     location = db.Column(db.String(100), nullable=False, index=True)
     area = db.Column(db.String(100), nullable=False, index=True, server_default="")
     contact_phone = db.Column(db.String(20))
@@ -21,6 +21,9 @@ class Listing(db.Model):
     
     photo_url = db.Column(db.String(255))
     allow_comments = db.Column(db.Boolean, default=True, nullable=True)
+    
+    # New: Post Type
+    post_type = db.Column(db.String(20), default='sale')   # sale, wanted, announcement
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
