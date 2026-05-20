@@ -1,5 +1,6 @@
 from flask import render_template, request, abort
 from flask_login import login_required, current_user
+from app import db
 from app.models.listing import Listing
 from . import main_bp
 
@@ -8,17 +9,8 @@ def index():
     query = request.args.get('q', '')
     area = request.args.get('area', '')
     
-    listings = Listing.query.filter_by(is_active=True).order_by(Listing.created_at.desc())
+    listings = Listing.query.filter_by(is_active=True).order_by(Listing.created_at.desc()).limit(12).all()
     
-    if query:
-        listings = listings.filter(
-            Listing.title.ilike(f'%{query}%') | 
-            Listing.description.ilike(f'%{query}%')
-        )
-    if area:
-        listings = listings.filter_by(area=area)
-    
-    listings = listings.limit(20).all()
     return render_template('main/index.html', listings=listings, query=query, area=area)
 
 @main_bp.route('/listing/<int:listing_id>')
@@ -27,9 +19,8 @@ def listing_detail(listing_id):
     if not listing.is_active:
         abort(404)
     
-    # Increment views
-    listing.views += 1
-    listing.save()  # or db.session.commit() if you prefer
+    listing.views = (listing.views or 0) + 1
+    db.session.commit()
     
     return render_template('main/listing_detail.html', listing=listing)
 

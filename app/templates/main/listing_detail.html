@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}{{ listing.title }} - VolstruisGids{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <!-- Left: Photo -->
+        <div class="col-lg-7">
+            {% if listing.photo_url %}
+                <img src="{{ listing.photo_url }}" 
+                     class="img-fluid rounded shadow" 
+                     style="max-height: 550px; width: 100%; object-fit: cover;"
+                     alt="{{ listing.title }}">
+            {% else %}
+                <div class="bg-light rounded shadow d-flex align-items-center justify-content-center" style="height: 500px;">
+                    <h1 class="text-muted">📸 Photo Coming Soon</h1>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Details -->
+        <div class="col-lg-5">
+            <h2 class="fw-bold">{{ listing.title }}</h2>
+            <h3 class="text-warning mb-4">R {{ listing.price | int }}</h3>
+
+            <p class="text-muted">
+                📍 {{ listing.area }} • {{ listing.location }}<br>
+                <small>Posted {{ listing.created_at.strftime('%d %b %Y at %H:%M') }} • Views: {{ listing.views }}</small>
+            </p>
+
+            <hr>
+            <h5>Description</h5>
+            <p style="white-space: pre-line; line-height: 1.7;">{{ listing.description }}</p>
+
+            <hr>
+
+            <div class="card border-warning mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">💬 Contact the Seller</h5>
+                    <button onclick="alert('Private DM system coming in next step!')" 
+                            class="btn btn-warning btn-lg w-100 mb-3">
+                        Message Seller Privately
+                    </button>
+                    {% if listing.contact_phone %}
+                    <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','') }}" 
+                       target="_blank" class="btn btn-success w-100">
+                        📱 WhatsApp the Seller
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">← Back to Latest Listings</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
