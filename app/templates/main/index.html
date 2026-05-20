@@ -39,23 +39,19 @@
 
     <h1 class="mb-4">Latest in Klein Karoo</h1>
     
-    <div class="row">
-        {% for listing in listings %}
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">{{ listing.title }}</h5>
-                    <h6 class="text-success">R{{ listing.price | default(0) }}</h6>
-                    <p class="card-text text-muted">{{ listing.area }}</p>
-                    <small>Posted: {{ listing.created_at.strftime('%d %b') }}</small>
-                    <br><br>
-                    <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
-                </div>
-            </div>
-        </div>
-        {% else %}
-            <p>No listings found.</p>
-        {% endfor %}
+    <div id="listings-feed" class="row">
+        {% include "main/_listing_cards.html" with context %}
+    </div>
+
+    <!-- Initial Load More container (will be updated via HTMX oob) -->
+    <div id="load-more-container" class="text-center mt-4">
+        <button 
+            hx-get="/load-more?offset=20"
+            hx-target="#listings-feed"
+            hx-swap="beforeend"
+            class="btn btn-outline-primary">
+            Load More Ads
+        </button>
     </div>
 </div>
 {% endblock %}
