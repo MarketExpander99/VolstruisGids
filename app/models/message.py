@@ -18,7 +18,8 @@ class Message(db.Model):
     # Optional relationships for easier querying later
     sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
     receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
-    listing = db.relationship('Listing', backref='messages', lazy=True)
+    # listing relationship removed — automatically provided by backref='listing' from Listing.messages
+    # (this eliminates the backref conflict while keeping full functionality)
 
     def __repr__(self):
         return f'<Message {self.id}>'
