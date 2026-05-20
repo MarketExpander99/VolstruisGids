@@ -19,12 +19,14 @@ class Listing(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Photo support
-    photo_url = db.Column(db.String(255), nullable=True)   # ← Added
-
+    # New field - safe default
+    allow_comments = db.Column(db.Boolean, default=True, nullable=False)
+    
+    # Foreign keys
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
     
+    # Relationships
     promotions = db.relationship('Promotion', backref='listing', lazy='dynamic', cascade='all, delete-orphan')
     messages = db.relationship('Message', backref='listing', lazy='dynamic')
     
