@@ -19,14 +19,12 @@ class Listing(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # New field for Phase 4 photo upload (JSON list max 6 filenames)
-    photos = db.Column(db.JSON, nullable=True)
-    
-    # Foreign keys
+    # Photo support
+    photo_url = db.Column(db.String(255), nullable=True)   # ← Added
+
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
     
-    # Relationships
     promotions = db.relationship('Promotion', backref='listing', lazy='dynamic', cascade='all, delete-orphan')
     messages = db.relationship('Message', backref='listing', lazy='dynamic')
     
