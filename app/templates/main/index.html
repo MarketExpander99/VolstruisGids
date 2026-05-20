@@ -1,57 +1,44 @@
 {% extends "base.html" %}
+
+{% block title %}VolstruisGids - Klein Karoo's Marketplace{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <!-- Navigation -->
-    <nav class="mb-4">
-        <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary me-2">🏠 Home</a>
-        <a href="{{ url_for('listings.create') }}" class="btn btn-success me-2">+ Post New Ad</a>
-        
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('main.my_listings') }}" class="btn btn-outline-secondary me-2">My Ads</a>
-            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">Logout</a>
-        {% else %}
-            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary me-2">Login</a>
-            <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Register</a>
-        {% endif %}
-    </nav>
-
-    <!-- Search & Filter -->
-    <form method="GET" class="mb-4">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search ads...">
-            </div>
-            <div class="col-md-4">
-                <select name="area" class="form-select">
-                    <option value="">All Areas</option>
-                    <option value="Oudtshoorn" {% if area == 'Oudtshoorn' %}selected{% endif %}>Oudtshoorn</option>
-                    <option value="Calitzdorp" {% if area == 'Calitzdorp' %}selected{% endif %}>Calitzdorp</option>
-                    <option value="Ladismith" {% if area == 'Ladismith' %}selected{% endif %}>Ladismith</option>
-                    <option value="Van Wyksdorp" {% if area == 'Van Wyksdorp' %}selected{% endif %}>Van Wyksdorp</option>
-                    <option value="Zoar" {% if area == 'Zoar' %}selected{% endif %}>Zoar</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">Search</button>
-            </div>
+<div class="hero py-5 text-center">
+    <div class="container">
+        <h1 class="display-4 fw-bold">Welcome to the Klein Karoo</h1>
+        <p class="lead mb-4">Buy • Sell • Connect — Without the WhatsApp chaos</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('listings.create') }}" class="btn btn-warning btn-lg">Post a Free Ad</a>
+            <a href="#latest" class="btn btn-outline-light btn-lg">Browse Listings</a>
         </div>
-    </form>
-
-    <h1 class="mb-4">Latest in Klein Karoo</h1>
-    
-    <div id="listings-feed" class="row">
-        {% include "main/_listing_cards.html" with context %}
     </div>
+</div>
 
-    <!-- Initial Load More container (will be updated via HTMX oob) -->
-    <div id="load-more-container" class="text-center mt-4">
-        <button 
-            hx-get="/load-more?offset=20"
-            hx-target="#listings-feed"
-            hx-swap="beforeend"
-            class="btn btn-outline-primary">
-            Load More Ads
-        </button>
+<!-- Categories -->
+<div class="container my-5">
+    <h3 class="text-center mb-4">Popular Categories</h3>
+    <div class="row text-center">
+        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🚜 Farm Equipment</div></div>
+        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🐦 Livestock & Ostriches</div></div>
+        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🏠 Property & Rentals</div></div>
+        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🛠️ Services</div></div>
+        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">📱 Electronics</div></div>
+        <div class="col-md-2 col-6 mb-3"><div class="p-3 border rounded bg-white">🛒 General</div></div>
+    </div>
+</div>
+
+<!-- Latest Listings -->
+<div id="latest" class="container my-5">
+    <h3 class="mb-4">Latest Listings</h3>
+    {% include "main/_listing_cards.html" %}
+</div>
+
+<!-- Call to Action -->
+<div class="bg-dark text-white py-5 text-center">
+    <div class="container">
+        <h4>Are you a local business?</h4>
+        <p class="lead">Get more visibility with a Business Account — featured listings & longer duration</p>
+        <a href="#" class="btn btn-warning btn-lg">Become a Business Seller →</a>
     </div>
 </div>
 {% endblock %}
