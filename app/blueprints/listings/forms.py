@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField
+from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField, SubmitField
 from wtforms.validators import DataRequired, Length, NumberRange
 
 class ListingForm(FlaskForm):
@@ -12,3 +12,4 @@ class ListingForm(FlaskForm):
     contact_email = StringField('Contact Email')
     category = SelectField('Category', coerce=int, validators=[DataRequired()])
     photo = FileField('Photo (optional)')
+    submit = SubmitField('Create Listing')   # ← this was missing
