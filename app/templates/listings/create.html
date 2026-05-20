@@ -19,6 +19,12 @@
                         {% endif %}
                     {% endwith %}
 
+                    <!-- 7-day free ad notice -->
+                    <div class="alert alert-info">
+                        <strong>🕒 Free ads last 7 days.</strong> Your listing will automatically expire after 7 days. 
+                        Premium users can extend or promote their ads.
+                    </div>
+
                     <form method="POST" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
 
@@ -133,14 +139,12 @@
             contactDetails.style.display = 'none';
         } else {
             contactDetails.style.display = 'flex';
-            
-            // For "Any" show both, for single options we can still show both fields (user can leave blank)
             phoneField.required = (selected.value === 'phone' || selected.value === 'any');
             emailField.required = (selected.value === 'email' || selected.value === 'any');
         }
     }
 
     radios.forEach(radio => radio.addEventListener('change', toggleContactFields));
-    toggleContactFields(); // initial
+    toggleContactFields();
 </script>
 {% endblock %}

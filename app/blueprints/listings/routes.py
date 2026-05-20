@@ -51,7 +51,6 @@ def create():
         contact_phone = None
         contact_email = None
 
-        # Premium check for DM and Any
         is_premium = getattr(current_user, 'is_premium', False) or getattr(current_user, 'premium', False)
         
         if pref in ('dm', 'any') and not is_premium:
@@ -63,7 +62,7 @@ def create():
         elif pref == 'phone':
             contact_phone = form.contact_phone.data
         elif pref == 'dm':
-            pass  # no phone/email
+            pass
         else:  # 'any'
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
@@ -93,7 +92,7 @@ def create():
         db.session.add(listing)
         db.session.commit()
         
-        flash('Listing created successfully! ✅', 'success')
+        flash('✅ Listing created successfully! Your free ad will be live for 7 days.', 'success')
         return redirect(url_for('main.index'))
     
     return render_template('listings/create.html', form=form)
