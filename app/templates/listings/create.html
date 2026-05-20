@@ -1,45 +1,95 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="container mt-4">
-    <h1 class="mb-4">Post a New Ad</h1>
-    
-    <form method="POST" enctype="multipart/form-data" class="row g-3">
-        {{ form.hidden_tag() }}
-        
-        <div class="col-12">
-            {{ form.title.label(class="form-label") }}
-            {{ form.title(class="form-control") }}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">📢 Post a New Listing</h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+
+                        <!-- Title -->
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control") }}
+                            {% for error in form.title.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows=5) }}
+                            {% for error in form.description.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <!-- Price + Category row -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.price.label(class="form-label") }}
+                                {{ form.price(class="form-control") }}
+                                {% for error in form.price.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.category.label(class="form-label") }}
+                                {{ form.category(class="form-select") }}
+                                {% for error in form.category.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Location + Area row -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.location.label(class="form-label") }}
+                                {{ form.location(class="form-control") }}
+                                {% for error in form.location.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.area.label(class="form-label") }}
+                                {{ form.area(class="form-control") }}
+                                {% for error in form.area.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Contact fields -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.contact_phone.label(class="form-label") }}
+                                {{ form.contact_phone(class="form-control") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.contact_email.label(class="form-label") }}
+                                {{ form.contact_email(class="form-control") }}
+                            </div>
+                        </div>
+
+                        <!-- Photo -->
+                        <div class="mb-3">
+                            {{ form.photo.label(class="form-label") }}
+                            {{ form.photo(class="form-control") }}
+                            {% for error in form.photo.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            🚀 Post Listing
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
-        
-        <div class="col-12">
-            {{ form.description.label(class="form-label") }}
-            {{ form.description(class="form-control", rows=5) }}
-        </div>
-        
-        <div class="col-md-4">
-            {{ form.price.label(class="form-label") }}
-            {{ form.price(class="form-control") }}
-        </div>
-        
-        <div class="col-md-4">
-            {{ form.area.label(class="form-label") }}
-            {{ form.area(class="form-control") }}
-        </div>
-        
-        <div class="col-md-4">
-            {{ form.category.label(class="form-label") }}
-            {{ form.category(class="form-select") }}
-        </div>
-        
-        <div class="col-12">
-            <label class="form-label">Photos (max 6)</label>
-            <input type="file" name="photos" multiple accept="image/*" class="form-control">
-            <small class="text-muted">JPG, PNG, GIF only</small>
-        </div>
-        
-        <div class="col-12">
-            {{ form.submit(class="btn btn-success btn-lg w-100") }}
-        </div>
-    </form>
+    </div>
 </div>
 {% endblock %}
