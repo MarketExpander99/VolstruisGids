@@ -53,14 +53,14 @@
                 {% endif %}
                 
                 <div class="card-body d-flex flex-column">
-                    <!-- Post Type Badge - Always visible -->
+                    <!-- Post Type Badge - More robust -->
                     <div class="mb-2">
                         {% if listing.post_type == 'wanted' %}
-                            <span class="badge bg-warning text-dark">🔍 Looking For</span>
+                            <span class="badge bg-warning text-dark fs-6">🔍 Looking For</span>
                         {% elif listing.post_type == 'announcement' %}
-                            <span class="badge bg-info">📢 Announcement</span>
+                            <span class="badge bg-info fs-6">📢 Announcement</span>
                         {% else %}
-                            <span class="badge bg-success">🛒 For Sale</span>
+                            <span class="badge bg-success fs-6">🛒 For Sale</span>
                         {% endif %}
                     </div>
 
@@ -70,6 +70,8 @@
                         <h6 class="text-success">R{{ listing.price }}</h6>
                     {% elif listing.post_type == 'wanted' %}
                         <h6 class="text-warning">🔍 Looking For</h6>
+                    {% elif listing.post_type == 'announcement' %}
+                        <h6 class="text-info">📢 Announcement</h6>
                     {% else %}
                         <h6 class="text-muted">No price listed</h6>
                     {% endif %}
