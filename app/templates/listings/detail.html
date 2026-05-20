@@ -1,44 +1,60 @@
 {% extends "base.html" %}
+
+{% block title %}{{ listing.title }} - VolstruisGids{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary mb-3">← Back to Feed</a>
-    
+<div class="container my-5">
     <div class="row">
-        <!-- Photo Gallery -->
-        <div class="col-md-7">
-            {% if listing.photos %}
-                <div class="row g-2">
-                    {% for photo in listing.photos %}
-                    <div class="col-6 col-lg-4">
-                        <img src="/static/{{ photo }}" class="img-fluid rounded shadow-sm" alt="{{ listing.title }}">
-                    </div>
-                    {% endfor %}
-                </div>
+        <!-- Photo -->
+        <div class="col-lg-7">
+            {% if listing.photo_url %}
+                <img src="{{ listing.photo_url }}" class="img-fluid rounded shadow" alt="{{ listing.title }}" style="max-height: 500px; width: 100%; object-fit: cover;">
             {% else %}
-                <div class="bg-light border rounded p-5 text-center">
-                    <h1 class="display-1 text-muted">📸</h1>
-                    <p class="text-muted">No photos yet</p>
+                <div class="bg-light rounded shadow d-flex align-items-center justify-content-center" style="height: 500px;">
+                    <h4 class="text-muted">📸 Photo coming soon</h4>
                 </div>
             {% endif %}
         </div>
-        
+
         <!-- Details -->
-        <div class="col-md-5">
-            <h1>{{ listing.title }}</h1>
-            <h2 class="text-success">R{{ listing.price | int }}</h2>
+        <div class="col-lg-5">
+            <h2 class="fw-bold">{{ listing.title }}</h2>
+            <h3 class="text-warning">R {{ listing.price | int }}</h3>
             
-            {% if listing.is_business_ad %}
-                <span class="badge bg-success mb-3">Business Ad</span>
-            {% endif %}
-            
-            <p><strong>Area:</strong> {{ listing.area }}</p>
-            <p><strong>Posted:</strong> {{ listing.created_at.strftime('%d %b %Y') }}</p>
-            
-            <h5>Description</h5>
-            <p>{{ listing.description }}</p>
-            
+            <p class="text-muted">
+                📍 {{ listing.area }} • {{ listing.location }}<br>
+                <small>Posted {{ listing.created_at.strftime('%d %b %Y') }}</small>
+            </p>
+
             <hr>
-            <a href="{{ url_for('main.index') }}" class="btn btn-primary">Back to Latest Ads</a>
+
+            <h5>Description</h5>
+            <p style="white-space: pre-line;">{{ listing.description }}</p>
+
+            <hr>
+
+            <!-- Contact Section -->
+            <div class="card border-warning mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Contact the seller</h5>
+                    
+                    {% if listing.contact_phone or listing.contact_email %}
+                        <p>
+                            {% if listing.contact_phone %}<strong>📞 {{ listing.contact_phone }}</strong><br>{% endif %}
+                            {% if listing.contact_email %}<strong>✉️ {{ listing.contact_email }}</strong>{% endif %}
+                        </p>
+                    {% endif %}
+
+                    <a href="#" class="btn btn-warning btn-lg w-100 mb-3" onclick="alert('DM system coming in next step!')">💬 Message Seller (DM)</a>
+                    
+                    <a href="https://wa.me/27{{ listing.contact_phone|replace(' ', '')|replace('+', '') if listing.contact_phone else '1234567890' }}" 
+                       target="_blank" class="btn btn-success w-100">
+                        📱 Share on WhatsApp
+                    </a>
+                </div>
+            </div>
+
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">← Back to Listings</a>
         </div>
     </div>
 </div>
