@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, app
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
@@ -39,5 +39,8 @@ def create_app(config_class=Config):
 
     from app.blueprints.listings import listings_bp
     app.register_blueprint(listings_bp)
+
+    from app.blueprints.profile import profile_bp
+    app.register_blueprint(profile_bp, url_prefix='/profile')
 
     return app
