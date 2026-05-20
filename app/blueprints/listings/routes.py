@@ -17,8 +17,8 @@ def allowed_file(filename):
 def create():
     form = ListingForm()
     # Populate categories for select (safe fallback)
-    categories = Category.query.order_by(Category.name_en).all()
-    form.category.choices = [(c.id, c.name_en) for c in categories] if categories else [(1, 'General')]
+    categories = Category.query.order_by(Category.name).all()
+    form.category.choices = [(c.id, c.name) for c in categories] if categories else [(1, 'General')]
 
     if form.validate_on_submit():
         # Photo upload handling (max 6)
