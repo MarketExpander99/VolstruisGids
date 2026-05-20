@@ -6,22 +6,26 @@ from . import main_bp
 
 @main_bp.route('/')
 def index():
-    query = request.args.get('q', '')
-    area = request.args.get('area', '')
-    
-    listings = Listing.query.order_by(Listing.created_at.desc())
-    
+    query = request.args.get('q', '').strip()
+    area_filter = request.args.get('area', 'Western Cape')
+
+    listings_query = Listing.query.filter_by(is_active=True)
+
     if query:
-        listings = listings.filter(
-            Listing.title.ilike(f'%{query}%') | 
-            Listing.description.ilike(f'%{query}%')
+        listings_query = listings_query.filter(
+            (Listing.title.ilike(f'%{query}%')) | 
+            (Listing.description.ilike(f'%{query}%'))
         )
-    if area:
-        listings = listings.filter_by(area=area)
     
-    listings = listings.limit(20).all()
-    
-    return render_template('main/index.html', listings=listings, query=query, area=area)
+    if area_filter:
+        listings_query = listings_query.filter(Listing.area == area_filter)
+
+    listings = listings_query.order_by(Listing.created_at.desc()).limit(24).all()
+
+    return render_template('main/index.html', 
+                         listings=listings, 
+                         query=query)
+
 
 @main_bp.route('/my-listings')
 @login_required
@@ -29,6 +33,7 @@ def my_listings():
     listings = Listing.query.filter_by(user_id=current_user.id)\
         .order_by(Listing.created_at.desc()).all()
     return render_template('main/my_listings.html', listings=listings)
+
 
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])
 @login_required

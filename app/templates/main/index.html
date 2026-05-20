@@ -2,41 +2,69 @@
 
 {% block content %}
 <div class="container py-5">
-    <h2 class="mb-4 text-center">🌵 Latest Listings in Klein Karoo</h2>
-    
+
+    <!-- Hero -->
+    <div class="bg-success text-white rounded-3 p-5 mb-5 text-center">
+        <h1 class="display-4 fw-bold">🌵 VolstruisGids</h1>
+        <p class="lead mb-4">Klein Karoo's Local Classifieds Platform</p>
+        <a href="{{ url_for('listings.create') }}" class="btn btn-light btn-lg px-5 py-3 shadow-sm">
+            🚀 Post New Listing
+        </a>
+    </div>
+
+    <!-- Search -->
+    <form method="GET" class="mb-5">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <input type="text" name="q" value="{{ query or '' }}" 
+                       class="form-control form-control-lg" 
+                       placeholder="Search titles or descriptions...">
+            </div>
+            <div class="col-md-4">
+                <select name="area" class="form-select form-select-lg">
+                    <option value="Western Cape" selected>Western Cape</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success btn-lg w-100">🔍 Search</button>
+            </div>
+        </div>
+    </form>
+
+    <h2 class="mb-4">Latest Listings</h2>
+
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
         {% for listing in listings %}
         <div class="col">
-            <div class="card h-100 shadow-sm border-0">
+            <div class="card h-100 shadow-sm">
                 {% if listing.photo_url %}
-                    <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="{{ listing.title }}">
-                {% else %}
-                    <img src="/static/images/placeholder.jpg" class="card-img-top" style="height: 180px; object-fit: cover;" alt="No photo">
+                    <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ listing.title }}">
                 {% endif %}
                 
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">{{ listing.title }}</h5>
                     {% if listing.price and listing.price > 0 %}
-                        <p class="text-success fw-bold fs-5">R{{ listing.price }}</p>
+                        <h6 class="text-success">R{{ listing.price }}</h6>
                     {% else %}
-                        <p class="text-muted">No price listed</p>
+                        <h6 class="text-muted">No price</h6>
                     {% endif %}
-                    <p class="text-muted small">{{ listing.location }} • {{ listing.area }}</p>
-                    <p class="card-text flex-grow-1">{{ listing.description[:90] }}...</p>
+                    <p class="text-muted small">{{ listing.location }}</p>
+                    <p class="card-text flex-grow-1">{{ listing.description[:100] }}...</p>
                     
                     <div class="mt-auto">
                         <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
-                           class="btn btn-success btn-sm w-100 mb-2">View Full Details</a>
-                        
-                        <a href="https://wa.me/?text=Check%20this%20listing%20on%20VolstruisGids%3A%20{{ listing.title }}%20-%20{{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
+                           class="btn btn-success w-100 mb-2">View Details</a>
+                        <a href="https://wa.me/?text=Check this listing: {{ listing.title }} {{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
                            target="_blank" 
-                           class="btn btn-outline-success btn-sm w-100">
-                            📲 Share on WhatsApp
-                        </a>
+                           class="btn btn-outline-success w-100">📲 WhatsApp</a>
                     </div>
                 </div>
             </div>
         </div>
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <p class="text-muted">No listings found. Try a different search or <a href="{{ url_for('listings.create') }}">post something new</a>.</p>
+            </div>
         {% endfor %}
     </div>
 </div>
