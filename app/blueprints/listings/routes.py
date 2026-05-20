@@ -7,12 +7,38 @@ from .forms import ListingForm
 from . import listings_bp
 import os
 from werkzeug.utils import secure_filename
+from PIL import Image
 
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def resize_image_to_square(image_path, size=800):
+    """Enforce perfect 1:1 square (center crop + resize) for optimal display."""
+    try:
+        with Image.open(image_path) as img:
+            # Center crop to square
+            width, height = img.size
+            if width > height:
+                left = (width - height) // 2
+                top = 0
+                right = left + height
+                bottom = height
+            else:
+                left = 0
+                top = (height - width) // 2
+                right = width
+                bottom = top + width
+            img = img.crop((left, top, right, bottom))
+            # Resize to exact square
+            img = img.resize((size, size), Image.Resampling.LANCZOS)
+            img.save(image_path)
+        return True
+    except Exception:
+        # Graceful fallback — keep original if resize fails
+        return False
 
 @listings_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -30,6 +56,10 @@ def create():
             os.makedirs(UPLOAD_FOLDER, exist_ok=True)
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             form.photo.data.save(filepath)
+            
+            # Enforce square 800x800
+            resize_image_to_square(filepath)
+            
             photo_url = f'/static/uploads/{filename}'
 
         listing = Listing(
