@@ -1,15 +1,87 @@
 {% extends "base.html" %}
+
 {% block content %}
 <div class="container mt-5">
-    <h2>Register</h2>
-    <form method="POST">
-        {{ form.hidden_tag() }}
-        {{ form.username.label }} {{ form.username() }}<br>
-        {{ form.phone.label }} {{ form.phone() }}<br>
-        {{ form.email.label }} {{ form.email() }}<br>
-        {{ form.password.label }} {{ form.password() }}<br>
-        {{ form.password2.label }} {{ form.password2() }}<br>
-        {{ form.submit() }}
-    </form>
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Join VolstruisGids</h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control") }}
+                            {% for error in form.username.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.phone.label(class="form-label") }}
+                            {{ form.phone(class="form-control") }}
+                            {% for error in form.phone.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control") }}
+                            {% for error in form.email.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            {{ form.is_business(class="form-check-input") }}
+                            {{ form.is_business.label(class="form-check-label") }}
+                        </div>
+
+                        <div id="business-name-group" class="mb-3" style="display: none;">
+                            {{ form.business_name.label(class="form-label") }}
+                            {{ form.business_name(class="form-control") }}
+                            {% for error in form.business_name.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control") }}
+                            {% for error in form.password.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.password2.label(class="form-label") }}
+                            {{ form.password2(class="form-control") }}
+                            {% for error in form.password2.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        {{ form.submit(class="btn btn-success btn-lg w-100") }}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isBusinessCheck = document.getElementById('is_business');
+    const businessGroup = document.getElementById('business-name-group');
+    
+    function toggleBusinessName() {
+        businessGroup.style.display = isBusinessCheck.checked ? 'block' : 'none';
+    }
+    
+    isBusinessCheck.addEventListener('change', toggleBusinessName);
+    toggleBusinessName(); // initial state
+});
+</script>
 {% endblock %}

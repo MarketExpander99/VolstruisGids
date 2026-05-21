@@ -30,11 +30,13 @@ def register():
             username=form.username.data,
             phone=form.phone.data,
             email=form.email.data if form.email.data else None,
-            password_hash=generate_password_hash(form.password.data)
+            password_hash=generate_password_hash(form.password.data),
+            is_business=form.is_business.data,
+            business_name=form.business_name.data.strip() if form.is_business.data and form.business_name.data else None
         )
         db.session.add(user)
         db.session.commit()
-        flash('Registration successful! Please log in.')
+        flash('Registration successful! Please log in.', 'success')
         return redirect(url_for('auth.login'))
     return render_template('auth/register.html', form=form)
 

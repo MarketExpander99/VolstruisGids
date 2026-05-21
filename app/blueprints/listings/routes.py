@@ -41,7 +41,6 @@ def resize_image_to_square(image_path, size=800):
 def create():
     form = ListingForm()
     form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
-    
     if not form.category.choices:
         form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
 
@@ -79,7 +78,6 @@ def create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        # Safe price for all post types
         final_price = form.price.data if form.post_type.data == 'sale' else 0.0
 
         listing = Listing(
@@ -94,7 +92,8 @@ def create():
             user_id=current_user.id,
             photo_url=photo_url,
             allow_comments=form.allow_comments.data,
-            post_type=form.post_type.data
+            post_type=form.post_type.data,
+            is_business_ad=current_user.is_business
         )
         
         db.session.add(listing)
@@ -104,6 +103,80 @@ def create():
         return redirect(url_for('main.index'))
     
     return render_template('listings/create.html', form=form)
+
+
+@listings_bp.route('/quick-create', methods=['GET', 'POST'])
+@login_required
+def quick_create():
+    """Quick multi-listing entry for Business accounts only"""
+    if not current_user.is_business:
+        flash('Quick-create is only available to Business accounts.', 'warning')
+        return redirect(url_for('listings.create'))
+
+    form = ListingForm()
+    form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
+    if not form.category.choices:
+        form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
+
+    if request.method == 'GET':
+        form.contact_phone.data = current_user.phone
+        form.contact_email.data = current_user.email or ''
+
+    if form.validate_on_submit():
+        pref = form.contact_preference.data
+        contact_phone = None
+        contact_email = None
+
+        is_premium = getattr(current_user, 'is_premium', False) or getattr(current_user, 'premium', False)
+        
+        if pref in ('dm', 'any') and not is_premium:
+            flash('📩 DM and Any options are premium features.', 'danger')
+            return render_template('listings/quick_create.html', form=form)
+
+        if pref == 'email':
+            contact_email = form.contact_email.data
+        elif pref == 'phone':
+            contact_phone = form.contact_phone.data
+        elif pref == 'dm':
+            pass
+        else:  # any
+            contact_phone = form.contact_phone.data
+            contact_email = form.contact_email.data
+
+        photo_url = None
+        if form.photo.data and allowed_file(form.photo.data.filename):
+            filename = secure_filename(form.photo.data.filename)
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            form.photo.data.save(filepath)
+            resize_image_to_square(filepath)
+            photo_url = f'/static/uploads/{filename}'
+
+        final_price = form.price.data if form.post_type.data == 'sale' else 0.0
+
+        listing = Listing(
+            title=form.title.data,
+            description=form.description.data,
+            price=final_price,
+            location=form.town.data,
+            area="Western Cape",
+            contact_phone=contact_phone,
+            contact_email=contact_email,
+            category_id=form.category.data,
+            user_id=current_user.id,
+            photo_url=photo_url,
+            allow_comments=form.allow_comments.data,
+            post_type=form.post_type.data,
+            is_business_ad=True
+        )
+        
+        db.session.add(listing)
+        db.session.commit()
+        
+        flash('✅ Listing saved! Add another one below 👇', 'success')
+        return redirect(url_for('listings.quick_create'))
+    
+    return render_template('listings/quick_create.html', form=form)
 
 
 @listings_bp.route('/listing/<int:listing_id>')

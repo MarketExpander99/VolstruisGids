@@ -14,4 +14,6 @@ class RegistrationForm(FlaskForm):
     email = StringField('Email (optional)', validators=[Optional(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
     password2 = PasswordField('Repeat Password', validators=[DataRequired(), EqualTo('password')])
+    is_business = BooleanField('Register as Business Account')
+    business_name = StringField('Business / Company Name', validators=[Optional()])
     submit = SubmitField('Register')

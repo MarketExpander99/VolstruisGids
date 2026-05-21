@@ -33,7 +33,6 @@ def api_listings():
 
     listings = listings_query.order_by(Listing.created_at.desc()).limit(24).all()
 
-    # Return JSON for AJAX
     listings_data = [{
         'id': l.id,
         'title': l.title,
@@ -48,6 +47,15 @@ def api_listings():
     return jsonify({'listings': listings_data})
 
 
+@main_bp.route('/profile')
+@login_required
+def profile():
+    """Business / Personal Profile Page"""
+    listings = Listing.query.filter_by(user_id=current_user.id)\
+        .order_by(Listing.created_at.desc()).all()
+    return render_template('main/profile.html', listings=listings)
+
+
 @main_bp.route('/my-listings')
 @login_required
 def my_listings():
@@ -60,14 +68,10 @@ def my_listings():
 @login_required
 def delete_listing(listing_id):
     listing = Listing.query.get_or_404(listing_id)
-    
-    # Security: only owner can delete
     if listing.user_id != current_user.id:
         flash('You can only delete your own listings.', 'danger')
         return redirect(url_for('main.my_listings'))
-    
     db.session.delete(listing)
     db.session.commit()
-    
     flash('Listing deleted successfully ✅', 'success')
     return redirect(url_for('main.my_listings'))

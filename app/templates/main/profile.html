@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Profile Header -->
+        <div class="col-lg-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        {% if current_user.is_business and current_user.profile_pic %}
+                            <img src="{{ current_user.profile_pic }}" alt="Company Logo" class="rounded-circle me-4" style="width: 90px; height: 90px; object-fit: cover;">
+                        {% elif current_user.is_business %}
+                            <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-4" style="width: 90px; height: 90px; font-size: 2rem;">
+                                🏪
+                            </div>
+                        {% endif %}
+                        
+                        <div class="flex-grow-1">
+                            <h1 class="mb-1">
+                                {% if current_user.is_business and current_user.business_name %}
+                                    {{ current_user.business_name }}
+                                {% else %}
+                                    {{ current_user.username }}
+                                {% endif %}
+                            </h1>
+                            {% if current_user.is_business %}<span class="badge bg-success fs-6">Business Account</span>{% endif %}
+                            {% if current_user.bio %}<p class="text-muted mb-0">{{ current_user.bio }}</p>{% endif %}
+                            <p class="text-muted small">📍 {{ current_user.location or 'Klein Karoo' }}</p>
+                        </div>
+                        
+                        <div>
+                            <a href="{{ url_for('listings.quick_create') if current_user.is_business else url_for('listings.create') }}" 
+                               class="btn btn-success btn-lg">
+                                {% if current_user.is_business %}⚡ Quick Add Listing{% else %}Post New Listing{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Listings -->
+        <div class="col-lg-12">
+            <h4 class="mb-3">📋 My Listings ({{ listings|length }})</h4>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for listing in listings %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        {% if listing.photo_url %}
+                            <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="{{ listing.title }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <span class="badge bg-{{ 'success' if listing.post_type == 'sale' else 'warning' if listing.post_type == 'wanted' else 'info' }}">
+                                {{ listing.post_type|title }}
+                            </span>
+                            <h5 class="card-title mt-2">{{ listing.title }}</h5>
+                            {% if listing.price and listing.price > 0 %}
+                                <h6 class="text-success">R{{ listing.price }}</h6>
+                            {% endif %}
+                            <p class="card-text text-muted small">{{ listing.location }}</p>
+                            <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="btn btn-outline-success btn-sm w-100">View Details</a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">No listings yet. Start posting!</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
