@@ -39,13 +39,13 @@ def resize_image_to_square(image_path, size=400):
 def index():
     return render_template('main/index.html')
 
-
 @main_bp.route('/api/listings')
 def api_listings():
-    """AJAX endpoint for dynamic feed + infinite scroll + business branding"""
+    """AJAX endpoint for dynamic feed + infinite scroll + business vs personal branding"""
     query = request.args.get('q', '').strip()
-    post_type = request.args.get('post_type', '')
-    town = request.args.get('town', '')
+    post_type = request.args.get('post_type', '')          # business / personal
+    town = request.args.get('town', '').strip()
+    user_id = request.args.get('user_id')                  # NEW: filter by poster (for @username clicks)
     page = int(request.args.get('page', 1))
     per_page = 12
 
@@ -63,6 +63,12 @@ def api_listings():
     if town:
         listings_query = listings_query.filter(Listing.location == town)
 
+    if user_id:
+        try:
+            listings_query = listings_query.filter(Listing.user_id == int(user_id))
+        except ValueError:
+            pass  # ignore invalid user_id
+
     listings = listings_query.order_by(Listing.created_at.desc())\
         .paginate(page=page, per_page=per_page, error_out=False)
 
@@ -77,7 +83,9 @@ def api_listings():
         'detail_url': url_for('listings.detail', listing_id=l.id),
         'is_business_ad': l.is_business_ad,
         'business_name': l.user.business_name if l.is_business_ad and l.user and l.user.business_name else None,
-        'business_logo': l.user.profile_pic if l.is_business_ad and l.user and l.user.profile_pic else None
+        'business_logo': l.user.profile_pic if l.is_business_ad and l.user and l.user.profile_pic else None,
+        'username': l.user.username if l.user else 'unknown',   # for personal listings
+        'user_id': l.user_id
     } for l in listings.items]
 
     return jsonify({
@@ -86,14 +94,12 @@ def api_listings():
         'next_page': page + 1 if listings.has_next else None
     })
 
-
 @main_bp.route('/profile')
 @login_required
 def profile():
     listings = Listing.query.filter_by(user_id=current_user.id)\
         .order_by(Listing.created_at.desc()).all()
     return render_template('main/profile.html', listings=listings)
-
 
 @main_bp.route('/profile/edit', methods=['GET', 'POST'])
 @login_required
@@ -122,14 +128,12 @@ def edit_profile():
 
     return render_template('main/profile.html', listings=[], edit_mode=True)
 
-
 @main_bp.route('/my-listings')
 @login_required
 def my_listings():
     listings = Listing.query.filter_by(user_id=current_user.id)\
         .order_by(Listing.created_at.desc()).all()
     return render_template('main/my_listings.html', listings=listings)
-
 
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])
 @login_required
