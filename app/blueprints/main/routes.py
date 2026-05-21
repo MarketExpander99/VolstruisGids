@@ -76,7 +76,7 @@ def api_listings():
         'photo_url': l.photo_url,
         'detail_url': url_for('listings.detail', listing_id=l.id),
         'is_business_ad': l.is_business_ad,
-        'business_name': l.user.business_name if l.is_business_ad and l.user else None,
+        'business_name': l.user.business_name if l.is_business_ad and l.user and l.user.business_name else None,
         'business_logo': l.user.profile_pic if l.is_business_ad and l.user and l.user.profile_pic else None
     } for l in listings.items]
 

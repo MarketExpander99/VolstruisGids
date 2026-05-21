@@ -31,5 +31,8 @@ class Listing(db.Model):
     promotions = db.relationship('Promotion', backref='listing', lazy='dynamic', cascade='all, delete-orphan')
     messages = db.relationship('Message', backref='listing', lazy='dynamic')
     
+    # ✅ Fixed: relationship needed for business branding in feed
+    user = db.relationship('User', backref='listings', lazy=True)
+    
     def __repr__(self):
         return f'<Listing {self.title}>'
