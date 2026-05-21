@@ -37,7 +37,7 @@
                 </select>
             </div>
             <div class="col-md-1">
-                <button onclick="loadListings()" class="btn btn-success btn-lg w-100">🔍</button>
+                <button onclick="loadListings(1)" class="btn btn-success btn-lg w-100">🔍</button>
             </div>
         </div>
     </div>
@@ -47,10 +47,28 @@
     <div id="listings-container" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
         <!-- Populated by JS -->
     </div>
+
+    <!-- Loading indicator for infinite scroll -->
+    <div id="loading" class="text-center py-4 d-none">
+        <div class="spinner-border text-success" role="status"></div>
+        <p class="mt-2 text-muted">Loading more listings...</p>
+    </div>
+
+    <div id="no-more" class="text-center py-4 text-muted d-none">
+        🎉 You've reached the end — no more listings.
+    </div>
 </div>
 
 <script>
-function loadListings() {
+let currentPage = 1;
+let isLoading = false;
+let hasMore = true;
+
+function loadListings(page = 1, reset = false) {
+    if (isLoading) return;
+    isLoading = true;
+    document.getElementById('loading').classList.remove('d-none');
+
     const query = document.getElementById('search-input').value;
     const postType = document.getElementById('post-type-filter').value;
     const town = document.getElementById('town-filter').value;
@@ -59,15 +77,18 @@ function loadListings() {
     if (query) params.append('q', query);
     if (postType) params.append('post_type', postType);
     if (town) params.append('town', town);
+    params.append('page', page);
 
     fetch(`/api/listings?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById('listings-container');
-            container.innerHTML = '';
+            
+            if (reset) container.innerHTML = '';
 
-            if (data.listings.length === 0) {
+            if (data.listings.length === 0 && page === 1) {
                 container.innerHTML = `<div class="col-12"><div class="alert alert-info">No listings match your filters.</div></div>`;
+                hasMore = false;
                 return;
             }
 
@@ -92,30 +113,63 @@ function loadListings() {
                                 <div class="mt-auto">
                                     <a href="${listing.detail_url}" class="btn btn-success w-100 mb-2">View Details</a>
                                     <a href="https://wa.me/?text=Check this on VolstruisGids: ${encodeURIComponent(listing.title)} ${window.location.origin}${listing.detail_url}" 
-                                       target="_blank" class="btn btn-outline-success w-100">📲 WhatsApp</a>
+                                       target="_blank" class="btn btn-success w-100">
+                                        <i class="bi bi-whatsapp"></i> Share
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     </div>`;
                 container.innerHTML += cardHTML;
             });
+
+            hasMore = data.has_more;
+            currentPage = data.next_page || currentPage;
+
+            if (!hasMore) {
+                document.getElementById('no-more').classList.remove('d-none');
+            }
+            document.getElementById('loading').classList.add('d-none');
+            isLoading = false;
         })
-        .catch(err => console.error('Error loading listings:', err));
+        .catch(err => {
+            console.error('Error loading listings:', err);
+            isLoading = false;
+            document.getElementById('loading').classList.add('d-none');
+        });
+}
+
+// Infinite scroll with Intersection Observer
+function setupInfiniteScroll() {
+    const sentinel = document.createElement('div');
+    sentinel.id = 'sentinel';
+    document.getElementById('listings-container').after(sentinel);
+
+    const observer = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+            loadListings(currentPage);
+        }
+    }, { rootMargin: '300px' });
+
+    observer.observe(sentinel);
 }
 
 // Auto-load on page load + live filtering
 document.addEventListener('DOMContentLoaded', () => {
-    loadListings();
+    loadListings(1, true);
+    setupInfiniteScroll();
     
     // Live search on input (debounced)
     let timeout;
     document.getElementById('search-input').addEventListener('input', () => {
         clearTimeout(timeout);
-        timeout = setTimeout(loadListings, 400);
+        timeout = setTimeout(() => {
+            loadListings(1, true);
+        }, 400);
     });
     
-    document.getElementById('post-type-filter').addEventListener('change', loadListings);
-    document.getElementById('town-filter').addEventListener('change', loadListings);
+    document.getElementById('post-type-filter').addEventListener('change', () => loadListings(1, true));
+    document.getElementById('town-filter').addEventListener('change', () => loadListings(1, true));
 });
 </script>
 {% endblock %}

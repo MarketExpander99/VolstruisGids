@@ -12,10 +12,12 @@ def index():
 
 @main_bp.route('/api/listings')
 def api_listings():
-    """AJAX endpoint for dynamic feed"""
+    """AJAX endpoint for dynamic feed + infinite scroll"""
     query = request.args.get('q', '').strip()
     post_type = request.args.get('post_type', '')
     town = request.args.get('town', '')
+    page = int(request.args.get('page', 1))
+    per_page = 12  # smooth infinite scroll
 
     listings_query = Listing.query.filter_by(is_active=True)
 
@@ -31,7 +33,8 @@ def api_listings():
     if town:
         listings_query = listings_query.filter(Listing.location == town)
 
-    listings = listings_query.order_by(Listing.created_at.desc()).limit(24).all()
+    listings = listings_query.order_by(Listing.created_at.desc())\
+        .paginate(page=page, per_page=per_page, error_out=False)
 
     listings_data = [{
         'id': l.id,
@@ -42,15 +45,18 @@ def api_listings():
         'post_type': l.post_type,
         'photo_url': l.photo_url,
         'detail_url': url_for('listings.detail', listing_id=l.id)
-    } for l in listings]
+    } for l in listings.items]
 
-    return jsonify({'listings': listings_data})
+    return jsonify({
+        'listings': listings_data,
+        'has_more': listings.has_next,
+        'next_page': page + 1 if listings.has_next else None
+    })
 
 
 @main_bp.route('/profile')
 @login_required
 def profile():
-    """Business / Personal Profile Page"""
     listings = Listing.query.filter_by(user_id=current_user.id)\
         .order_by(Listing.created_at.desc()).all()
     return render_template('main/profile.html', listings=listings)
