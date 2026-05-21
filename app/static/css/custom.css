@@ -5,23 +5,27 @@
   --navy: #1E2A44;
 }
 
-/* Phase 1: Hero */
+/* Hero Background - CORRECT PATH for app/static layout */
 .hero-bg {
   background: linear-gradient(135deg, var(--terracotta) 0%, var(--sandstone) 100%);
-  background-image: url('/app/static/img/hero-karoo-sunset.jpg');
+  background-image: url('/static/img/hero-karoo-sunset.jpg');
   background-size: cover;
   background-position: center;
   position: relative;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
 }
 
-/* Phase 2: Colour system & cards */
+/* Rest of brand styles */
 .btn-primary {
   background-color: var(--terracotta);
   border-color: var(--terracotta);
 }
-.btn-primary:hover {
-  background-color: #A67E55;
-}
+.btn-primary:hover { background-color: #A67E55; }
+
 .listing-card {
   background: var(--sandstone);
   border: 1px solid #E5D9C8;
@@ -31,20 +35,8 @@
   transform: translateY(-4px);
   box-shadow: 0 10px 25px rgba(193,154,107,0.15);
 }
-h1, .display-4 {
-  font-family: 'Playfair Display', serif;
-  color: var(--navy);
-}
-body {
-  font-family: system-ui, -apple-system, sans-serif;
-}
+h1, .display-4 { font-family: 'Playfair Display', serif; color: var(--navy); }
+body { font-family: system-ui, -apple-system, sans-serif; }
 
-/* Phase 3: Badge polish */
-.badge-terracotta {
-  background-color: var(--terracotta);
-  color: white;
-}
-.badge-karoo-green {
-  background-color: var(--karoo-green);
-  color: white;
-}
+.badge-terracotta { background-color: var(--terracotta); color: white; }
+.badge-karoo-green { background-color: var(--karoo-green); color: white; }
