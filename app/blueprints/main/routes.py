@@ -41,11 +41,11 @@ def index():
 
 @main_bp.route('/api/listings')
 def api_listings():
-    """AJAX endpoint for dynamic feed + infinite scroll + business vs personal branding"""
+    """AJAX endpoint for dynamic feed + business vs personal + NEW ad_type labels"""
     query = request.args.get('q', '').strip()
     post_type = request.args.get('post_type', '')          # business / personal
     town = request.args.get('town', '').strip()
-    user_id = request.args.get('user_id')                  # NEW: filter by poster (for @username clicks)
+    user_id = request.args.get('user_id')
     page = int(request.args.get('page', 1))
     per_page = 12
 
@@ -67,7 +67,7 @@ def api_listings():
         try:
             listings_query = listings_query.filter(Listing.user_id == int(user_id))
         except ValueError:
-            pass  # ignore invalid user_id
+            pass
 
     listings = listings_query.order_by(Listing.created_at.desc())\
         .paginate(page=page, per_page=per_page, error_out=False)
@@ -84,8 +84,9 @@ def api_listings():
         'is_business_ad': l.is_business_ad,
         'business_name': l.user.business_name if l.is_business_ad and l.user and l.user.business_name else None,
         'business_logo': l.user.profile_pic if l.is_business_ad and l.user and l.user.profile_pic else None,
-        'username': l.user.username if l.user else 'unknown',   # for personal listings
-        'user_id': l.user_id
+        'username': l.user.username if l.user else 'unknown',
+        'user_id': l.user_id,
+        'ad_type': l.ad_type   # ← NEW: For Sale / Looking For / Announcement
     } for l in listings.items]
 
     return jsonify({
@@ -94,6 +95,7 @@ def api_listings():
         'next_page': page + 1 if listings.has_next else None
     })
 
+# ... (rest of your routes unchanged - profile, edit_profile, my_listings, delete_listing)
 @main_bp.route('/profile')
 @login_required
 def profile():
@@ -104,14 +106,10 @@ def profile():
 @main_bp.route('/profile/edit', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
-    """Business + Personal Profile Edit with logo upload"""
     if request.method == 'POST':
-        # Update text fields
         current_user.business_name = request.form.get('business_name') if current_user.is_business else None
         current_user.bio = request.form.get('bio')
         current_user.location = request.form.get('location')
-
-        # Logo upload
         if 'profile_pic' in request.files:
             file = request.files['profile_pic']
             if file and file.filename and allowed_file(file.filename):
@@ -121,11 +119,9 @@ def edit_profile():
                 file.save(filepath)
                 resize_image_to_square(filepath)
                 current_user.profile_pic = f'/static/uploads/{filename}'
-
         db.session.commit()
         flash('✅ Profile updated successfully!', 'success')
         return redirect(url_for('main.profile'))
-
     return render_template('main/profile.html', listings=[], edit_mode=True)
 
 @main_bp.route('/my-listings')

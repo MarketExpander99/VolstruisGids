@@ -2,16 +2,14 @@
 
 {% block content %}
 <div class="container mt-4">
-    <!-- HERO BANNER (kept from your original structure) -->
+    <!-- HERO BANNER -->
     <div class="bg-primary text-white rounded-3 p-5 mb-5 text-center">
         <h1 class="display-4 fw-bold">Welkom by VolstruisGids</h1>
         <p class="lead">Klein Karoo Classifieds – van Oudtshoorn tot Ladismith</p>
         <p class="mb-0">Business &amp; Personal listings • Free to browse • Post your ad today</p>
     </div>
-
-    <h1 class="mb-4">VolstruisGids - Klein Karoo Classifieds</h1>
-
-    <!-- Filters (your original filter layout preserved + new post_type) -->
+    
+    <!-- Filters -->
     <div class="row g-3 mb-4" id="filter-form">
         <div class="col-md-3">
             <input type="text" id="q" class="form-control" placeholder="Search title or description..." value="">
@@ -23,7 +21,6 @@
                 <option value="Ladismith">Ladismith</option>
                 <option value="Calitzdorp">Calitzdorp</option>
                 <option value="George">George</option>
-                <!-- Add more towns here if you had them in your original 242-line file -->
             </select>
         </div>
         <div class="col-md-2">
@@ -41,16 +38,14 @@
         </div>
     </div>
 
-    <!-- Popular Categories (common in your original homepage) -->
+    <!-- Popular Categories -->
     <div class="mb-4">
         <h5 class="text-muted">Popular Categories</h5>
         <div class="d-flex flex-wrap gap-2">
-            <!-- JS will populate or you can hardcode if preferred -->
             <span class="badge bg-secondary fs-6 px-3 py-2">Vehicles</span>
             <span class="badge bg-secondary fs-6 px-3 py-2">Property</span>
             <span class="badge bg-secondary fs-6 px-3 py-2">Farm &amp; Garden</span>
             <span class="badge bg-secondary fs-6 px-3 py-2">Services</span>
-            <!-- Add any extra categories you had in your 242-line version here -->
         </div>
     </div>
 
@@ -66,7 +61,6 @@
         </button>
     </div>
 
-    <!-- Footer note / disclaimer (kept from typical original structure) -->
     <div class="text-center text-muted small mt-5">
         VolstruisGids © 2026 • All listings are user posted • Business listings marked with logo
     </div>
@@ -120,6 +114,16 @@
                             </div>`;
                     }
 
+                    // NEW: Ad type badge
+                    let typeBadge = '';
+                    if (listing.ad_type === 'sale') {
+                        typeBadge = '<span class="badge bg-success mb-2">FOR SALE</span>';
+                    } else if (listing.ad_type === 'wanted') {
+                        typeBadge = '<span class="badge bg-warning text-dark mb-2">LOOKING FOR</span>';
+                    } else if (listing.ad_type === 'announcement') {
+                        typeBadge = '<span class="badge bg-info mb-2">ANNOUNCEMENT</span>';
+                    }
+
                     const cardHTML = `
                         <div class="col-md-4 mb-4">
                             <div class="card h-100">
@@ -127,6 +131,7 @@
                                     ? `<img src="${listing.photo_url}" class="card-img-top" alt="Photo" style="height:200px; object-fit:cover;">`
                                     : `<div class="bg-light d-flex align-items-center justify-content-center" style="height:200px;"><span class="text-muted">No photo yet</span></div>`}
                                 <div class="card-body">
+                                    ${typeBadge}
                                     <h5 class="card-title">${listing.title}</h5>
                                     <p class="card-text text-truncate">${listing.description}</p>
                                     ${listing.price ? `<p class="fw-bold text-success">${listing.price}</p>` : ''}
@@ -173,7 +178,6 @@
         fetchListings(currentPage, true);
     }
 
-    // Initial load + support for direct ?user_id= in URL
     window.onload = function() {
         fetchListings(1, false);
     };
