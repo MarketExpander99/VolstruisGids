@@ -93,12 +93,21 @@ function loadListings(page = 1, reset = false) {
             }
 
             data.listings.forEach(listing => {
+                const businessHeader = listing.is_business_ad && listing.business_name ? `
+                    <div class="d-flex align-items-center mb-2">
+                        ${listing.business_logo ? 
+                            `<img src="${listing.business_logo}" alt="${listing.business_name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">` : 
+                            `<span class="me-2">🏪</span>`}
+                        <strong class="small text-success">${listing.business_name}</strong>
+                    </div>` : '';
+
                 const cardHTML = `
                     <div class="col">
                         <div class="card h-100 shadow-sm">
                             ${listing.photo_url ? 
                                 `<img src="${listing.photo_url}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${listing.title}">` : ''}
                             <div class="card-body d-flex flex-column">
+                                ${businessHeader}
                                 <div class="mb-2">
                                     ${listing.post_type === 'wanted' ? 
                                         '<span class="badge bg-warning text-dark fs-6">🔍 Looking For</span>' : 

@@ -5,6 +5,23 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow">
+                <!-- Business Header -->
+                {% if listing.is_business_ad and listing.user and listing.user.business_name %}
+                <div class="card-header bg-light d-flex align-items-center py-3">
+                    {% if listing.user.profile_pic %}
+                        <img src="{{ listing.user.profile_pic }}" alt="Company Logo" class="rounded-circle me-3" style="width: 48px; height: 48px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; font-size: 1.5rem;">
+                            🏪
+                        </div>
+                    {% endif %}
+                    <div>
+                        <h5 class="mb-0">{{ listing.user.business_name }}</h5>
+                        <small class="text-success">Verified Business</small>
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">{{ listing.title }}</h4>
                     {% if listing.post_type == 'wanted' %}
