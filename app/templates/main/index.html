@@ -12,16 +12,16 @@
         </a>
     </div>
 
-    <!-- Search + Filters -->
-    <form method="GET" class="mb-5">
+    <!-- Search + Filters (AJAX) -->
+    <div class="mb-5">
         <div class="row g-3">
             <div class="col-md-5">
-                <input type="text" name="q" value="{{ query or '' }}" 
+                <input type="text" id="search-input" 
                        class="form-control form-control-lg" 
                        placeholder="Search titles or descriptions...">
             </div>
             <div class="col-md-3">
-                <select name="post_type" class="form-select form-select-lg">
+                <select id="post-type-filter" class="form-select form-select-lg">
                     <option value="">All Types</option>
                     <option value="sale">🛒 For Sale</option>
                     <option value="wanted">🔍 Looking For</option>
@@ -29,7 +29,7 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <select name="town" class="form-select form-select-lg">
+                <select id="town-filter" class="form-select form-select-lg">
                     <option value="">All Towns</option>
                     {% for t in ['Barrydale','Calitzdorp','De Rust','Dysselsdorp','Groenfontein','Ladismith','Oudtshoorn','Van Wyksdorp','Zoar'] %}
                         <option value="{{ t }}">{{ t }}</option>
@@ -37,59 +37,85 @@
                 </select>
             </div>
             <div class="col-md-1">
-                <button type="submit" class="btn btn-success btn-lg w-100">🔍</button>
+                <button onclick="loadListings()" class="btn btn-success btn-lg w-100">🔍</button>
             </div>
         </div>
-    </form>
+    </div>
 
     <h2 class="mb-4">Latest Listings</h2>
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
-        {% for listing in listings %}
-        <div class="col">
-            <div class="card h-100 shadow-sm">
-                {% if listing.photo_url %}
-                    <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ listing.title }}">
-                {% endif %}
-                
-                <div class="card-body d-flex flex-column">
-                    <!-- Post Type Badge - More robust -->
-                    <div class="mb-2">
-                        {% if listing.post_type == 'wanted' %}
-                            <span class="badge bg-warning text-dark fs-6">🔍 Looking For</span>
-                        {% elif listing.post_type == 'announcement' %}
-                            <span class="badge bg-info fs-6">📢 Announcement</span>
-                        {% else %}
-                            <span class="badge bg-success fs-6">🛒 For Sale</span>
-                        {% endif %}
-                    </div>
-
-                    <h5 class="card-title">{{ listing.title }}</h5>
-                    
-                    {% if listing.price and listing.price > 0 %}
-                        <h6 class="text-success">R{{ listing.price }}</h6>
-                    {% elif listing.post_type == 'wanted' %}
-                        <h6 class="text-warning">🔍 Looking For</h6>
-                    {% elif listing.post_type == 'announcement' %}
-                        <h6 class="text-info">📢 Announcement</h6>
-                    {% else %}
-                        <h6 class="text-muted">No price listed</h6>
-                    {% endif %}
-                    
-                    <p class="text-muted small">{{ listing.location }}</p>
-                    <p class="card-text flex-grow-1">{{ listing.description[:100] }}...</p>
-                    
-                    <div class="mt-auto">
-                        <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
-                           class="btn btn-success w-100 mb-2">View Details</a>
-                        <a href="https://wa.me/?text=Check this on VolstruisGids: {{ listing.title }} {{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
-                           target="_blank" 
-                           class="btn btn-outline-success w-100">📲 WhatsApp</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
+    <div id="listings-container" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        <!-- Populated by JS -->
     </div>
 </div>
+
+<script>
+function loadListings() {
+    const query = document.getElementById('search-input').value;
+    const postType = document.getElementById('post-type-filter').value;
+    const town = document.getElementById('town-filter').value;
+
+    const params = new URLSearchParams();
+    if (query) params.append('q', query);
+    if (postType) params.append('post_type', postType);
+    if (town) params.append('town', town);
+
+    fetch(`/api/listings?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('listings-container');
+            container.innerHTML = '';
+
+            if (data.listings.length === 0) {
+                container.innerHTML = `<div class="col-12"><div class="alert alert-info">No listings match your filters.</div></div>`;
+                return;
+            }
+
+            data.listings.forEach(listing => {
+                const cardHTML = `
+                    <div class="col">
+                        <div class="card h-100 shadow-sm">
+                            ${listing.photo_url ? 
+                                `<img src="${listing.photo_url}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${listing.title}">` : ''}
+                            <div class="card-body d-flex flex-column">
+                                <div class="mb-2">
+                                    ${listing.post_type === 'wanted' ? 
+                                        '<span class="badge bg-warning text-dark fs-6">🔍 Looking For</span>' : 
+                                        listing.post_type === 'announcement' ? 
+                                        '<span class="badge bg-info fs-6">📢 Announcement</span>' : 
+                                        '<span class="badge bg-success fs-6">🛒 For Sale</span>'}
+                                </div>
+                                <h5 class="card-title">${listing.title}</h5>
+                                ${listing.price ? `<h6 class="text-success">${listing.price}</h6>` : ''}
+                                <p class="text-muted small">${listing.location}</p>
+                                <p class="card-text flex-grow-1">${listing.description}</p>
+                                <div class="mt-auto">
+                                    <a href="${listing.detail_url}" class="btn btn-success w-100 mb-2">View Details</a>
+                                    <a href="https://wa.me/?text=Check this on VolstruisGids: ${encodeURIComponent(listing.title)} ${window.location.origin}${listing.detail_url}" 
+                                       target="_blank" class="btn btn-outline-success w-100">📲 WhatsApp</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                container.innerHTML += cardHTML;
+            });
+        })
+        .catch(err => console.error('Error loading listings:', err));
+}
+
+// Auto-load on page load + live filtering
+document.addEventListener('DOMContentLoaded', () => {
+    loadListings();
+    
+    // Live search on input (debounced)
+    let timeout;
+    document.getElementById('search-input').addEventListener('input', () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(loadListings, 400);
+    });
+    
+    document.getElementById('post-type-filter').addEventListener('change', loadListings);
+    document.getElementById('town-filter').addEventListener('change', loadListings);
+});
+</script>
 {% endblock %}
