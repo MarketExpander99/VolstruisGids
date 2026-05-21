@@ -37,9 +37,14 @@
                 </select>
             </div>
             <div class="col-md-1">
-                <button onclick="loadListings(1)" class="btn btn-success btn-lg w-100">🔍</button>
+                <button onclick="loadListings(1, true)" class="btn btn-success btn-lg w-100">🔍</button>
             </div>
         </div>
+        <!-- Show All button (appears when any filter is active) -->
+        <button id="show-all-btn" onclick="resetAllFilters()" 
+                class="btn btn-outline-success d-none mt-3">
+            🔄 Show All Listings
+        </button>
     </div>
 
     <h2 class="mb-4">Latest Listings</h2>
@@ -63,6 +68,8 @@
 let currentPage = 1;
 let isLoading = false;
 let hasMore = true;
+let currentBusinessName = '';
+let currentUsername = '';
 
 function loadListings(page = 1, reset = false) {
     if (isLoading) return;
@@ -77,6 +84,8 @@ function loadListings(page = 1, reset = false) {
     if (query) params.append('q', query);
     if (postType) params.append('post_type', postType);
     if (town) params.append('town', town);
+    if (currentBusinessName) params.append('business_name', currentBusinessName);
+    if (currentUsername) params.append('username', currentUsername);
     params.append('page', page);
 
     fetch(`/api/listings?${params.toString()}`)
@@ -89,25 +98,39 @@ function loadListings(page = 1, reset = false) {
             if (data.listings.length === 0 && page === 1) {
                 container.innerHTML = `<div class="col-12"><div class="alert alert-info">No listings match your filters.</div></div>`;
                 hasMore = false;
+                updateShowAllButton();
                 return;
             }
 
             data.listings.forEach(listing => {
-                const businessHeader = listing.is_business_ad && listing.business_name ? `
-                    <div class="d-flex align-items-center mb-2">
-                        ${listing.business_logo ? 
-                            `<img src="${listing.business_logo}" alt="${listing.business_name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">` : 
-                            `<span class="me-2">🏪</span>`}
-                        <strong class="small text-success">${listing.business_name}</strong>
-                    </div>` : '';
+                // Display header: clickable company OR username
+                let displayHeader = '';
+                if (listing.is_business_ad && listing.business_name) {
+                    displayHeader = `
+                        <div class="d-flex align-items-center mb-2">
+                            ${listing.business_logo ? 
+                                `<img src="${listing.business_logo}" alt="${listing.business_name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">` : 
+                                `<span class="me-2">🏪</span>`}
+                            <a href="#" onclick="filterByBusiness('${listing.business_name}'); event.preventDefault();" 
+                               class="small text-success text-decoration-none fw-bold">${listing.business_name}</a>
+                        </div>`;
+                } else if (listing.username) {
+                    displayHeader = `
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="me-2">👤</span>
+                            <a href="#" onclick="filterByUser('${listing.username}'); event.preventDefault();" 
+                               class="small text-success text-decoration-none fw-bold">${listing.username}</a>
+                        </div>`;
+                }
 
                 const cardHTML = `
                     <div class="col">
                         <div class="card h-100 shadow-sm">
                             ${listing.photo_url ? 
-                                `<img src="${listing.photo_url}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${listing.title}">` : ''}
+                                `<img src="${listing.photo_url}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${listing.title}">` : 
+                                `<img src="/static/images/placeholder.jpg" class="card-img-top" style="height: 200px; object-fit: cover;" alt="No image available">`}
                             <div class="card-body d-flex flex-column">
-                                ${businessHeader}
+                                ${displayHeader}
                                 <div class="mb-2">
                                     ${listing.post_type === 'wanted' ? 
                                         '<span class="badge bg-warning text-dark fs-6">🔍 Looking For</span>' : 
@@ -140,12 +163,50 @@ function loadListings(page = 1, reset = false) {
             }
             document.getElementById('loading').classList.add('d-none');
             isLoading = false;
+            updateShowAllButton();
         })
         .catch(err => {
             console.error('Error loading listings:', err);
             isLoading = false;
             document.getElementById('loading').classList.add('d-none');
         });
+}
+
+function filterByBusiness(name) {
+    currentBusinessName = name;
+    currentUsername = '';
+    loadListings(1, true);
+}
+
+function filterByUser(name) {
+    currentUsername = name;
+    currentBusinessName = '';
+    loadListings(1, true);
+}
+
+function resetAllFilters() {
+    currentBusinessName = '';
+    currentUsername = '';
+    document.getElementById('search-input').value = '';
+    document.getElementById('post-type-filter').value = '';
+    document.getElementById('town-filter').value = '';
+    loadListings(1, true);
+}
+
+function updateShowAllButton() {
+    const hasFilter = 
+        document.getElementById('search-input').value.trim() ||
+        document.getElementById('post-type-filter').value ||
+        document.getElementById('town-filter').value ||
+        currentBusinessName ||
+        currentUsername;
+    
+    const btn = document.getElementById('show-all-btn');
+    if (hasFilter) {
+        btn.classList.remove('d-none');
+    } else {
+        btn.classList.add('d-none');
+    }
 }
 
 // Infinite scroll with Intersection Observer
@@ -163,22 +224,19 @@ function setupInfiniteScroll() {
     observer.observe(sentinel);
 }
 
-// Auto-load on page load + live filtering
+// Auto-load + live filtering + Show All logic
 document.addEventListener('DOMContentLoaded', () => {
     loadListings(1, true);
     setupInfiniteScroll();
-    
-    // Live search on input (debounced)
-    let timeout;
-    document.getElementById('search-input').addEventListener('input', () => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            loadListings(1, true);
-        }, 400);
-    });
-    
-    document.getElementById('post-type-filter').addEventListener('change', () => loadListings(1, true));
-    document.getElementById('town-filter').addEventListener('change', () => loadListings(1, true));
+
+    // Live update for Show All button
+    const searchInput = document.getElementById('search-input');
+    const postTypeSelect = document.getElementById('post-type-filter');
+    const townSelect = document.getElementById('town-filter');
+
+    searchInput.addEventListener('input', updateShowAllButton);
+    postTypeSelect.addEventListener('change', updateShowAllButton);
+    townSelect.addEventListener('change', updateShowAllButton);
 });
 </script>
 {% endblock %}
