@@ -8,7 +8,9 @@
         <p class="lead">Klein Karoo Classifieds – van Oudtshoorn tot Ladismith</p>
         <p class="mb-0">Business &amp; Personal listings • Free to browse • Post your ad today</p>
     </div>
-    
+
+    <h1 class="mb-4">VolstruisGids - Klein Karoo Classifieds</h1>
+
     <!-- Filters -->
     <div class="row g-3 mb-4" id="filter-form">
         <div class="col-md-3">
@@ -99,7 +101,13 @@
                         posterHTML = `
                             <div class="d-flex align-items-center mb-3">
                                 ${logo}
-                                <strong>${listing.business_name || 'Business'}</strong>
+                                <strong>
+                                    <a href="?user_id=${listing.user_id}" 
+                                       onclick="event.preventDefault(); filterByUser(${listing.user_id});" 
+                                       class="text-decoration-none text-primary">
+                                        ${listing.business_name || 'Business'}
+                                    </a>
+                                </strong>
                             </div>`;
                     } else {
                         posterHTML = `
@@ -114,7 +122,6 @@
                             </div>`;
                     }
 
-                    // NEW: Ad type badge
                     let typeBadge = '';
                     if (listing.ad_type === 'sale') {
                         typeBadge = '<span class="badge bg-success mb-2">FOR SALE</span>';
@@ -161,6 +168,10 @@
         document.getElementById('q').value = '';
         document.getElementById('town').value = '';
         document.getElementById('post_type').value = '';
+        // FIXED: clear user filter from URL
+        const url = new URL(window.location);
+        url.searchParams.delete('user_id');
+        window.history.pushState({}, '', url);
         currentPage = 1;
         fetchListings(1, false);
     }

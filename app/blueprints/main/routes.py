@@ -41,9 +41,9 @@ def index():
 
 @main_bp.route('/api/listings')
 def api_listings():
-    """AJAX endpoint for dynamic feed + business vs personal + NEW ad_type labels"""
+    """AJAX endpoint — fixed no-listings crash + business filter + user filter"""
     query = request.args.get('q', '').strip()
-    post_type = request.args.get('post_type', '')          # business / personal
+    post_type = request.args.get('post_type', '').strip()   # business / personal (dropdown)
     town = request.args.get('town', '').strip()
     user_id = request.args.get('user_id')
     page = int(request.args.get('page', 1))
@@ -57,8 +57,11 @@ def api_listings():
             (Listing.description.ilike(f'%{query}%'))
         )
 
-    if post_type:
-        listings_query = listings_query.filter(Listing.post_type == post_type)
+    # FIXED: business/personal uses is_business_ad (not post_type)
+    if post_type == 'business':
+        listings_query = listings_query.filter(Listing.is_business_ad == True)
+    elif post_type == 'personal':
+        listings_query = listings_query.filter(Listing.is_business_ad == False)
 
     if town:
         listings_query = listings_query.filter(Listing.location == town)
@@ -86,7 +89,7 @@ def api_listings():
         'business_logo': l.user.profile_pic if l.is_business_ad and l.user and l.user.profile_pic else None,
         'username': l.user.username if l.user else 'unknown',
         'user_id': l.user_id,
-        'ad_type': l.ad_type   # ← NEW: For Sale / Looking For / Announcement
+        'ad_type': l.post_type   # ← fixed: uses existing model field for FOR SALE / LOOKING FOR / ANNOUNCEMENT
     } for l in listings.items]
 
     return jsonify({
@@ -95,7 +98,6 @@ def api_listings():
         'next_page': page + 1 if listings.has_next else None
     })
 
-# ... (rest of your routes unchanged - profile, edit_profile, my_listings, delete_listing)
 @main_bp.route('/profile')
 @login_required
 def profile():
