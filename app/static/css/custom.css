@@ -5,38 +5,43 @@
   --navy: #1E2A44;
 }
 
-/* Hero Background - CORRECT PATH for app/static layout */
+/* Hero with dark overlay for text readability */
 .hero-bg {
   background: linear-gradient(135deg, var(--terracotta) 0%, var(--sandstone) 100%);
   background-image: url('/static/img/hero-karoo-sunset.jpg');
   background-size: cover;
   background-position: center;
-  position: relative;
   min-height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   border-radius: 0.5rem;
 }
 
-/* Rest of brand styles */
-.btn-primary {
-  background-color: var(--terracotta);
-  border-color: var(--terracotta);
+/* Dark overlay */
+.hero-bg::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30, 42, 68, 0.55);   /* navy with opacity */
+  border-radius: 0.5rem;
+  z-index: 1;
 }
-.btn-primary:hover { background-color: #A67E55; }
 
-.listing-card {
-  background: var(--sandstone);
-  border: 1px solid #E5D9C8;
-  transition: all 0.3s ease;
+/* Text on top of overlay */
+.hero-bg > * {
+  position: relative;
+  z-index: 2;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);   /* extra readability */
 }
-.listing-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(193,154,107,0.15);
-}
-h1, .display-4 { font-family: 'Playfair Display', serif; color: var(--navy); }
-body { font-family: system-ui, -apple-system, sans-serif; }
 
-.badge-terracotta { background-color: var(--terracotta); color: white; }
-.badge-karoo-green { background-color: var(--karoo-green); color: white; }
+.hero-bg h1, .hero-bg .display-4 {
+  color: white !important;
+  text-shadow: 0 3px 10px rgba(0,0,0,0.7);
+}
+
+.hero-bg p {
+  color: white !important;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}

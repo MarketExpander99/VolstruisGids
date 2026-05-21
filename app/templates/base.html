@@ -32,7 +32,7 @@
 </head>
 <body>
     <!-- Top Navbar - Sticky + hide on scroll down -->
-    <nav id="top-navbar" class="navbar sticky-top navbar-expand-lg navbar-dark bg-success shadow-sm">
+    <nav id="top-navbar" class="navbar sticky-top navbar-expand-lg navbar-dark shadow-sm" style="background-color: #C19A6B;">
         <div class="container">
             <a class="navbar-brand fw-bold" href="{{ url_for('main.index') }}">🌵 VolstruisGids</a>
             
@@ -85,7 +85,7 @@
     {% block content %}{% endblock %}
 
     <!-- Mobile Bottom Navigation (hide on scroll down, show on scroll up) -->
-    <div id="bottom-nav" class="fixed-bottom d-md-none bg-success text-white shadow-lg py-2">
+    <div id="bottom-nav" class="fixed-bottom d-md-none text-white shadow-lg py-2" style="background-color: #C19A6B;">
         <div class="container px-0">
             <div class="row text-center gx-0">
                 <div class="col">
