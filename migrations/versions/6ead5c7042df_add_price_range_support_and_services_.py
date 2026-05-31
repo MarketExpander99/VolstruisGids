@@ -22,7 +22,7 @@ def upgrade():
         batch_op.add_column(sa.Column('price_type', sa.String(length=10), nullable=False))
         batch_op.add_column(sa.Column('min_price', sa.Float(), nullable=True))
         batch_op.add_column(sa.Column('max_price', sa.Float(), nullable=True))
-        batch_op.add_column(sa.Column('post_type', sa.String(length=20), nullable=True))
+        batch_op.add_column(sa.Column('post_type', sa.String(length=20), nullable=True, server_default='sale'))
         batch_op.alter_column('price',
                existing_type=sa.FLOAT(),
                nullable=True)
