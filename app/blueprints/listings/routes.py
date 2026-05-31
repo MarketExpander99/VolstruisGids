@@ -78,12 +78,19 @@ def create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        final_price = form.price.data if form.post_type.data == 'sale' else 0.0
+        # New pricing logic
+        price_type = form.price_type.data
+        price = form.price.data if price_type == 'fixed' else None
+        min_price = form.min_price.data if price_type == 'range' else None
+        max_price = form.max_price.data if price_type == 'range' else None
 
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
-            price=final_price,
+            price=price,
+            price_type=price_type,
+            min_price=min_price,
+            max_price=max_price,
             location=form.town.data,
             area="Western Cape",
             contact_phone=contact_phone,
@@ -104,11 +111,10 @@ def create():
     
     return render_template('listings/create.html', form=form)
 
-
+# quick_create route updated identically (same pricing logic applied)
 @listings_bp.route('/quick-create', methods=['GET', 'POST'])
 @login_required
 def quick_create():
-    """Quick multi-listing entry for Business accounts only"""
     if not current_user.is_business:
         flash('Quick-create is only available to Business accounts.', 'warning')
         return redirect(url_for('listings.create'))
@@ -152,12 +158,19 @@ def quick_create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        final_price = form.price.data if form.post_type.data == 'sale' else 0.0
+        # New pricing logic
+        price_type = form.price_type.data
+        price = form.price.data if price_type == 'fixed' else None
+        min_price = form.min_price.data if price_type == 'range' else None
+        max_price = form.max_price.data if price_type == 'range' else None
 
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
-            price=final_price,
+            price=price,
+            price_type=price_type,
+            min_price=min_price,
+            max_price=max_price,
             location=form.town.data,
             area="Western Cape",
             contact_phone=contact_phone,
@@ -177,7 +190,6 @@ def quick_create():
         return redirect(url_for('listings.quick_create'))
     
     return render_template('listings/quick_create.html', form=form)
-
 
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):

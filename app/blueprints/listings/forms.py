@@ -5,13 +5,22 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional
 class ListingForm(FlaskForm):
     post_type = RadioField('Post Type', validators=[DataRequired()], choices=[
         ('sale', '🛒 Items for Sale'),
-        ('wanted', '🔍 Looking for:'),
+        ('wanted', '🔍 Looking for'),
+        ('services', '🛠 Services Offered'),
         ('announcement', '📢 General Announcement')
     ], default='sale')
 
     title = StringField('Title', validators=[DataRequired(), Length(max=200)])
     description = TextAreaField('Description', validators=[DataRequired(), Length(max=2000)])
+    
+    price_type = RadioField('Pricing', validators=[DataRequired()], choices=[
+        ('fixed', '💰 Set Price'),
+        ('range', '📏 Price Range')
+    ], default='fixed')
+    
     price = FloatField('Price (R)', validators=[Optional(), NumberRange(min=0)])
+    min_price = FloatField('From (R)', validators=[Optional(), NumberRange(min=0)])
+    max_price = FloatField('To (R)', validators=[Optional(), NumberRange(min=0)])
     
     town = SelectField('Town', coerce=str, validators=[DataRequired()], choices=[
         ('', 'Select a town...'),

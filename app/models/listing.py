@@ -7,7 +7,10 @@ class Listing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
-    price = db.Column(db.Float, nullable=True)
+    price = db.Column(db.Float, nullable=True)                    # kept for legacy fixed price
+    price_type = db.Column(db.String(10), default='fixed', nullable=False)  # 'fixed' or 'range'
+    min_price = db.Column(db.Float, nullable=True)
+    max_price = db.Column(db.Float, nullable=True)
     location = db.Column(db.String(100), nullable=False, index=True)
     area = db.Column(db.String(100), nullable=False, index=True, server_default="")
     contact_phone = db.Column(db.String(20))
@@ -23,7 +26,7 @@ class Listing(db.Model):
     allow_comments = db.Column(db.Boolean, default=True, nullable=True)
     
     # Post Type
-    post_type = db.Column(db.String(20), default='sale')   # sale, wanted, announcement
+    post_type = db.Column(db.String(20), default='sale')   # sale, wanted, announcement, services
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
