@@ -28,6 +28,8 @@
                         <span class="badge bg-warning text-dark fs-6">🔍 Looking For</span>
                     {% elif listing.post_type == 'announcement' %}
                         <span class="badge bg-info fs-6">📢 Announcement</span>
+                    {% elif listing.post_type == 'services' %}
+                        <span class="badge bg-primary fs-6">🛠 Services</span>
                     {% else %}
                         <span class="badge bg-success fs-6">🛒 For Sale</span>
                     {% endif %}
@@ -38,12 +40,15 @@
                 {% endif %}
 
                 <div class="card-body">
-                    {% if listing.price and listing.price > 0 %}
-                        <h3 class="text-success">R{{ listing.price }}</h3>
+                    <!-- Improved price display supporting fixed + range -->
+                    {% if listing.price_type == 'fixed' and listing.price is not none and listing.price > 0 %}
+                        <h3 class="text-success fw-bold">R{{ listing.price | round(0) }}</h3>
+                    {% elif listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
+                        <h3 class="text-success fw-bold">R{{ listing.min_price | round(0) }} – R{{ listing.max_price | round(0) }}</h3>
                     {% elif listing.post_type == 'wanted' %}
-                        <h5 class="text-warning">🔍 Looking For</h5>
+                        <h5 class="text-warning">🔍 Looking For (price flexible)</h5>
                     {% else %}
-                        <h5 class="text-muted">No price listed</h5>
+                        <h5 class="text-muted">Price on request</h5>
                     {% endif %}
                     
                     <p class="lead">{{ listing.description }}</p>
