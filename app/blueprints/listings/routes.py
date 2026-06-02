@@ -12,8 +12,10 @@ from PIL import Image
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 def resize_image_to_square(image_path, size=800):
     try:
@@ -35,6 +37,7 @@ def resize_image_to_square(image_path, size=800):
         return True
     except Exception:
         return False
+
 
 @listings_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -90,13 +93,13 @@ def create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        # Clean pricing logic — range now uses None for legacy price field (model allows nullable=True)
-        price_type = form.price_type.data
+        # === ROBUST PRICING LOGIC (fixed + range support) ===
+        price_type = form.price_type.data or 'fixed'
         if price_type == 'fixed':
             price = form.price.data or 0.0
             min_price = None
             max_price = None
-        else:  # range
+        else:  # range (or future types)
             price = None
             min_price = form.min_price.data
             max_price = form.max_price.data
@@ -119,14 +122,20 @@ def create():
             post_type=form.post_type.data,
             is_business_ad=current_user.is_business
         )
-        
-        db.session.add(listing)
-        db.session.commit()
-        
-        flash('Listing created successfully! Your free ad will be live for 7 days.', 'success')
-        return redirect(url_for('main.index'))
-    
+
+        try:
+            db.session.add(listing)
+            db.session.commit()
+            flash('Listing created successfully! Your free ad will be live for 7 days.', 'success')
+            return redirect(url_for('main.index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error saving your listing: {str(e)}', 'danger')
+            # Re-render form so user can correct and retry
+            return render_template('listings/create.html', form=form)
+
     return render_template('listings/create.html', form=form)
+
 
 @listings_bp.route('/quick-create', methods=['GET', 'POST'])
 @login_required
@@ -186,13 +195,13 @@ def quick_create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        # Clean pricing logic — range now uses None for legacy price field (model allows nullable=True)
-        price_type = form.price_type.data
+        # === ROBUST PRICING LOGIC (fixed + range support) ===
+        price_type = form.price_type.data or 'fixed'
         if price_type == 'fixed':
             price = form.price.data or 0.0
             min_price = None
             max_price = None
-        else:  # range
+        else:  # range (or future types)
             price = None
             min_price = form.min_price.data
             max_price = form.max_price.data
@@ -215,14 +224,19 @@ def quick_create():
             post_type=form.post_type.data,
             is_business_ad=True
         )
-        
-        db.session.add(listing)
-        db.session.commit()
-        
-        flash('Listing saved! Add another one below', 'success')
-        return redirect(url_for('listings.quick_create'))
-    
+
+        try:
+            db.session.add(listing)
+            db.session.commit()
+            flash('Listing saved! Add another one below', 'success')
+            return redirect(url_for('listings.quick_create'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error saving your listing: {str(e)}', 'danger')
+            return render_template('listings/quick_create.html', form=form)
+
     return render_template('listings/quick_create.html', form=form)
+
 
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
