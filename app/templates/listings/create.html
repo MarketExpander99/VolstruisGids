@@ -152,7 +152,7 @@
 </div>
 
 <script>
-    // Live Photo Preview (updated to match new fit behaviour)
+    // Live Photo Preview
     const photoInput = document.getElementById('photo');
     if (photoInput) {
         photoInput.addEventListener('change', function(e) {
@@ -170,22 +170,36 @@
         });
     }
 
-    // Hide DM contact option + clean remaining "DM" reference from 'any' label
-    // (frontend-only — restore when DM system is ready)
-    const dmRadio = document.querySelector('input[name="contact_preference"][value="dm"]');
-    if (dmRadio) {
-        const dmLabel = dmRadio.closest('label.list-group-item');
-        if (dmLabel) dmLabel.style.display = 'none';
-    }
+    // Hide DM + clean "any" label text (frontend-only). Wrapped in DOMContentLoaded for reliability.
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('%c[VolstruisGids] Contact preference JS running...', 'color:#0d6efd');
 
-    const anyRadio = document.querySelector('input[name="contact_preference"][value="any"]');
-    if (anyRadio) {
-        const anyLabel = anyRadio.closest('label.list-group-item');
-        const anySpan = anyLabel ? anyLabel.querySelector('span') : null;
-        if (anySpan) anySpan.textContent = '🌐 Any (Phone + Email)';
-    }
+        // Hide DM option
+        const dmRadio = document.querySelector('input[name="contact_preference"][value="dm"]');
+        if (dmRadio) {
+            const dmLabel = dmRadio.parentElement; // direct parent is the label
+            if (dmLabel) {
+                dmLabel.style.display = 'none';
+                console.log('%c[VolstruisGids] DM option hidden', 'color:#198754');
+            }
+        } else {
+            console.log('%c[VolstruisGids] No DM radio found (already removed?)', 'color:#dc3545');
+        }
 
-    // Pricing visibility logic
+        // Sanitize "any" option text (remove DM reference)
+        const anyRadio = document.querySelector('input[name="contact_preference"][value="any"]');
+        if (anyRadio) {
+            const anySpan = anyRadio.parentElement.querySelector('span');
+            if (anySpan) {
+                anySpan.textContent = '🌐 Any (Phone + Email)';
+                console.log('%c[VolstruisGids] Any option text cleaned', 'color:#198754');
+            }
+        }
+
+        console.log('%c[VolstruisGids] Contact preference JS finished', 'color:#0d6efd');
+    });
+
+    // Pricing visibility logic (unchanged)
     const postRadios = document.querySelectorAll('input[name="post_type"]');
     const priceTypeRadios = document.querySelectorAll('input[name="price_type"]');
     const priceDetails = document.getElementById('price-details');
