@@ -104,7 +104,7 @@
                         <!-- Contact Preference -->
                         <div class="mb-4">
                             {{ form.contact_preference.label(class="form-label fw-bold") }}
-                            <div class="list-group" id="contact-preference-group">
+                            <div class="list-group">
                                 {% for subfield in form.contact_preference %}
                                     <label class="list-group-item list-group-item-action d-flex align-items-center">
                                         {{ subfield(class="form-check-input me-2") }}
@@ -170,46 +170,7 @@
         });
     }
 
-    // === STRONGER DM HIDE LOGIC (multiple attempts) ===
-    function hideDMOptions() {
-        console.log('%c[VolstruisGids] Contact preference hide running...', 'color:#0d6efd');
-
-        // Try 1: Direct selector
-        const dmRadio = document.querySelector('input[name="contact_preference"][value="dm"]');
-        if (dmRadio) {
-            const label = dmRadio.closest('label') || dmRadio.parentElement;
-            if (label) {
-                label.style.display = 'none';
-                console.log('%c[VolstruisGids] DM option hidden (success)', 'color:#198754');
-            }
-        }
-
-        // Try 2: Hide by text content (backup)
-        const labels = document.querySelectorAll('#contact-preference-group label');
-        labels.forEach(label => {
-            const text = label.textContent.trim();
-            if (text.includes('DM only') || text.includes('dm')) {
-                label.style.display = 'none';
-                console.log('%c[VolstruisGids] DM hidden via text match', 'color:#198754');
-            }
-            if (text.includes('Any (Phone + Email + DM)')) {
-                const span = label.querySelector('span');
-                if (span) span.textContent = '🌐 Any (Phone + Email)';
-                console.log('%c[VolstruisGids] Any label cleaned', 'color:#198754');
-            }
-        });
-
-        console.log('%c[VolstruisGids] DM hide finished', 'color:#0d6efd');
-    }
-
-    // Run immediately + delayed + on load
-    hideDMOptions();
-    document.addEventListener('DOMContentLoaded', hideDMOptions);
-    window.addEventListener('load', hideDMOptions);
-    setTimeout(hideDMOptions, 300);
-    setTimeout(hideDMOptions, 800);
-
-    // Pricing logic (unchanged)
+    // Pricing visibility logic
     const postRadios = document.querySelectorAll('input[name="post_type"]');
     const priceTypeRadios = document.querySelectorAll('input[name="price_type"]');
     const priceDetails = document.getElementById('price-details');
@@ -237,6 +198,7 @@
     postRadios.forEach(radio => radio.addEventListener('change', updatePriceVisibility));
     priceTypeRadios.forEach(radio => radio.addEventListener('change', updatePriceType));
 
+    // Initial state
     updatePriceVisibility();
     updatePriceType();
 </script>
