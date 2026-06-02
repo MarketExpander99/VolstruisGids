@@ -41,6 +41,7 @@ def resize_image_to_square(image_path, size=800):
 def create():
     form = ListingForm()
 
+    # Auto-seed categories if table is empty (prevents "categories disappeared" issue)
     if Category.query.count() == 0:
         seed_data = [
             ("Farm Equipment", "Listings for Farm Equipment"),
@@ -76,7 +77,7 @@ def create():
             contact_email = form.contact_email.data
         elif pref == 'phone':
             contact_phone = form.contact_phone.data
-        else:
+        else:  # any
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
 
@@ -89,15 +90,16 @@ def create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
+        # Clean pricing logic — range now uses None for legacy price field (model allows nullable=True)
         price_type = form.price_type.data
         if price_type == 'fixed':
             price = form.price.data or 0.0
             min_price = None
             max_price = None
-        else:
-            price = 0.0
-            min_price = form.min_price.data or 0.0
-            max_price = form.max_price.data or 0.0
+        else:  # range
+            price = None
+            min_price = form.min_price.data
+            max_price = form.max_price.data
 
         listing = Listing(
             title=form.title.data,
@@ -135,6 +137,7 @@ def quick_create():
 
     form = ListingForm()
 
+    # Auto-seed categories if table is empty (prevents "categories disappeared" issue)
     if Category.query.count() == 0:
         seed_data = [
             ("Farm Equipment", "Listings for Farm Equipment"),
@@ -170,7 +173,7 @@ def quick_create():
             contact_email = form.contact_email.data
         elif pref == 'phone':
             contact_phone = form.contact_phone.data
-        else:
+        else:  # any
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
 
@@ -183,15 +186,16 @@ def quick_create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
+        # Clean pricing logic — range now uses None for legacy price field (model allows nullable=True)
         price_type = form.price_type.data
         if price_type == 'fixed':
             price = form.price.data or 0.0
             min_price = None
             max_price = None
-        else:
-            price = 0.0
-            min_price = form.min_price.data or 0.0
-            max_price = form.max_price.data or 0.0
+        else:  # range
+            price = None
+            min_price = form.min_price.data
+            max_price = form.max_price.data
 
         listing = Listing(
             title=form.title.data,
@@ -220,14 +224,7 @@ def quick_create():
     
     return render_template('listings/quick_create.html', form=form)
 
-
-@listings_bp.route('/<int:listing_id>')
+@listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
-    """Public listing detail page — increments view count safely."""
     listing = Listing.query.get_or_404(listing_id)
-
-    # Increment views (simple & safe for dev; production can use atomic update later)
-    listing.views = (listing.views or 0) + 1
-    db.session.commit()
-
-    return render_template('main/listing_detail.html', listing=listing)
+    return render_template('listings/detail.html', listing=listing)

@@ -147,6 +147,19 @@
                         typeBadge = '<span class="badge bg-info mb-2">ANNOUNCEMENT</span>';
                     }
 
+                    // NEW: robust price display supporting fixed + range (matches detail.html logic)
+                    let priceHTML = '';
+                    const pt = listing.price_type || 'fixed';
+                    if (pt === 'fixed' && listing.price) {
+                        priceHTML = `<p class="fw-bold text-success">${listing.price}</p>`;
+                    } else if (pt === 'range' && listing.min_price != null && listing.max_price != null) {
+                        priceHTML = `<p class="fw-bold text-success">R${listing.min_price} – R${listing.max_price}</p>`;
+                    } else if (listing.post_type === 'wanted' || listing.ad_type === 'wanted') {
+                        priceHTML = `<p class="text-warning small">Looking For — price flexible</p>`;
+                    } else if (!listing.price) {
+                        priceHTML = `<p class="text-muted small">Price on request</p>`;
+                    }
+
                     const cardHTML = `
                         <div class="col-md-4 mb-4">
                             <div class="card h-100">
@@ -157,7 +170,7 @@
                                     ${typeBadge}
                                     <h5 class="card-title">${listing.title}</h5>
                                     <p class="card-text text-truncate">${listing.description}</p>
-                                    ${listing.price ? `<p class="fw-bold text-success">${listing.price}</p>` : ''}
+                                    ${priceHTML}
                                     ${posterHTML}
                                     <small class="text-muted">${listing.location}</small>
                                 </div>
