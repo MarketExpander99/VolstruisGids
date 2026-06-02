@@ -135,7 +135,7 @@
                         <!-- Photo Upload with Live Preview -->
                         <div class="mb-3">
                             {{ form.photo.label(class="form-label") }}
-                            <small class="text-muted">(Square images recommended — will be automatically resized to 800×800)</small>
+                            <small class="text-muted">(Photos will be automatically fitted into an 800×800 square — full image preserved, no cropping)</small>
                             {{ form.photo(class="form-control", id="photo") }}
                             {% for error in form.photo.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                             <div id="image-preview" class="mt-3 text-center"></div>
@@ -152,7 +152,7 @@
 </div>
 
 <script>
-    // Live Photo Preview
+    // Live Photo Preview (updated to match new fit behaviour)
     const photoInput = document.getElementById('photo');
     if (photoInput) {
         photoInput.addEventListener('change', function(e) {
@@ -162,12 +162,19 @@
                 reader.onload = function(ev) {
                     document.getElementById('image-preview').innerHTML = `
                         <img src="${ev.target.result}" class="img-fluid rounded border shadow-sm" 
-                             style="max-width: 320px; max-height: 320px; object-fit: cover; aspect-ratio: 1 / 1;" alt="Preview">
-                        <p class="text-muted mt-1 small">Preview (will be squared on upload)</p>`;
+                             style="max-width: 320px; max-height: 320px; object-fit: contain; background-color: #f8f9fa; aspect-ratio: 1 / 1; border: 1px solid #dee2e6;" alt="Preview">
+                        <p class="text-muted mt-1 small">Preview (fitted into square on upload — no cropping)</p>`;
                 };
                 reader.readAsDataURL(file);
             }
         });
+    }
+
+    // Hide DM contact option (frontend-only — restore when DM system is ready)
+    const dmRadio = document.querySelector('input[name="contact_preference"][value="dm"]');
+    if (dmRadio) {
+        const dmLabel = dmRadio.closest('label.list-group-item');
+        if (dmLabel) dmLabel.style.display = 'none';
     }
 
     // Pricing visibility logic
