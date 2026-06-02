@@ -40,6 +40,26 @@ def resize_image_to_square(image_path, size=800):
 @login_required
 def create():
     form = ListingForm()
+
+    # Auto-seed categories if table is empty (prevents "categories disappeared" issue)
+    if Category.query.count() == 0:
+        seed_data = [
+            ("Farm Equipment", "Listings for Farm Equipment"),
+            ("Livestock & Ostriches", "Listings for Livestock & Ostriches"),
+            ("Property & Rentals", "Listings for Property & Rentals"),
+            ("Services", "Listings for Services"),
+            ("Electronics", "Listings for Electronics"),
+            ("Vehicles", "Listings for Vehicles"),
+            ("General", "Listings for General"),
+            ("Building Materials", "Listings for Building Materials"),
+            ("Furniture", "Listings for Furniture"),
+            ("Jobs", "Listings for Jobs"),
+        ]
+        for name, desc in seed_data:
+            if not Category.query.filter_by(name=name).first():
+                db.session.add(Category(name=name, description=desc))
+        db.session.commit()
+
     form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
     if not form.category.choices:
         form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
@@ -53,18 +73,10 @@ def create():
         contact_phone = None
         contact_email = None
 
-        is_premium = getattr(current_user, 'is_premium', False) or getattr(current_user, 'premium', False)
-        
-        if pref in ('dm', 'any') and not is_premium:
-            flash('📩 DM and Any options are premium features.', 'danger')
-            return render_template('listings/create.html', form=form)
-
         if pref == 'email':
             contact_email = form.contact_email.data
         elif pref == 'phone':
             contact_phone = form.contact_phone.data
-        elif pref == 'dm':
-            pass
         else:  # any
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
@@ -78,11 +90,16 @@ def create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        # New pricing logic
+        # Pricing logic (range uses sentinel 0.0 for price to satisfy DB constraint)
         price_type = form.price_type.data
-        price = form.price.data if price_type == 'fixed' else None
-        min_price = form.min_price.data if price_type == 'range' else None
-        max_price = form.max_price.data if price_type == 'range' else None
+        if price_type == 'fixed':
+            price = form.price.data or 0.0
+            min_price = None
+            max_price = None
+        else:  # range
+            price = 0.0
+            min_price = form.min_price.data or 0.0
+            max_price = form.max_price.data or 0.0
 
         listing = Listing(
             title=form.title.data,
@@ -106,12 +123,11 @@ def create():
         db.session.add(listing)
         db.session.commit()
         
-        flash('✅ Listing created successfully! Your free ad will be live for 7 days.', 'success')
+        flash('Listing created successfully! Your free ad will be live for 7 days.', 'success')
         return redirect(url_for('main.index'))
     
     return render_template('listings/create.html', form=form)
 
-# quick_create route updated identically (same pricing logic applied)
 @listings_bp.route('/quick-create', methods=['GET', 'POST'])
 @login_required
 def quick_create():
@@ -120,6 +136,26 @@ def quick_create():
         return redirect(url_for('listings.create'))
 
     form = ListingForm()
+
+    # Auto-seed categories if table is empty (prevents "categories disappeared" issue)
+    if Category.query.count() == 0:
+        seed_data = [
+            ("Farm Equipment", "Listings for Farm Equipment"),
+            ("Livestock & Ostriches", "Listings for Livestock & Ostriches"),
+            ("Property & Rentals", "Listings for Property & Rentals"),
+            ("Services", "Listings for Services"),
+            ("Electronics", "Listings for Electronics"),
+            ("Vehicles", "Listings for Vehicles"),
+            ("General", "Listings for General"),
+            ("Building Materials", "Listings for Building Materials"),
+            ("Furniture", "Listings for Furniture"),
+            ("Jobs", "Listings for Jobs"),
+        ]
+        for name, desc in seed_data:
+            if not Category.query.filter_by(name=name).first():
+                db.session.add(Category(name=name, description=desc))
+        db.session.commit()
+
     form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
     if not form.category.choices:
         form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
@@ -133,18 +169,10 @@ def quick_create():
         contact_phone = None
         contact_email = None
 
-        is_premium = getattr(current_user, 'is_premium', False) or getattr(current_user, 'premium', False)
-        
-        if pref in ('dm', 'any') and not is_premium:
-            flash('📩 DM and Any options are premium features.', 'danger')
-            return render_template('listings/quick_create.html', form=form)
-
         if pref == 'email':
             contact_email = form.contact_email.data
         elif pref == 'phone':
             contact_phone = form.contact_phone.data
-        elif pref == 'dm':
-            pass
         else:  # any
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
@@ -158,11 +186,16 @@ def quick_create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        # New pricing logic
+        # Pricing logic (range uses sentinel 0.0 for price to satisfy DB constraint)
         price_type = form.price_type.data
-        price = form.price.data if price_type == 'fixed' else None
-        min_price = form.min_price.data if price_type == 'range' else None
-        max_price = form.max_price.data if price_type == 'range' else None
+        if price_type == 'fixed':
+            price = form.price.data or 0.0
+            min_price = None
+            max_price = None
+        else:  # range
+            price = 0.0
+            min_price = form.min_price.data or 0.0
+            max_price = form.max_price.data or 0.0
 
         listing = Listing(
             title=form.title.data,
@@ -186,7 +219,7 @@ def quick_create():
         db.session.add(listing)
         db.session.commit()
         
-        flash('✅ Listing saved! Add another one below 👇', 'success')
+        flash('Listing saved! Add another one below', 'success')
         return redirect(url_for('listings.quick_create'))
     
     return render_template('listings/quick_create.html', form=form)

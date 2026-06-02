@@ -12,7 +12,7 @@
     <h1 class="mb-4">VolstruisGids - Klein Karoo Classifieds</h1>
 
     <!-- Filters -->
-    <div class="row g-3 mb-4" id="filter-form">
+    <div class="row g-3 mb-4 align-items-end" id="filter-form">
         <div class="col-md-3">
             <input type="text" id="q" class="form-control" placeholder="Search title or description..." value="">
         </div>
@@ -40,8 +40,10 @@
         <div class="col-md-2">
             <select id="post_type" class="form-select">
                 <option value="">All Types</option>
-                <option value="business">Business Only</option>
-                <option value="personal">Personal Only</option>
+                <option value="sale">For Sale</option>
+                <option value="wanted">Looking For</option>
+                <option value="services">Services Offered</option>
+                <option value="announcement">Announcement</option>
             </select>
         </div>
         <div class="col-md-2">
@@ -139,6 +141,8 @@
                         typeBadge = '<span class="badge bg-success mb-2">FOR SALE</span>';
                     } else if (listing.ad_type === 'wanted') {
                         typeBadge = '<span class="badge bg-warning text-dark mb-2">LOOKING FOR</span>';
+                    } else if (listing.ad_type === 'services') {
+                        typeBadge = '<span class="badge bg-primary mb-2">SERVICES OFFERED</span>';
                     } else if (listing.ad_type === 'announcement') {
                         typeBadge = '<span class="badge bg-info mb-2">ANNOUNCEMENT</span>';
                     }
@@ -180,7 +184,6 @@
         document.getElementById('q').value = '';
         document.getElementById('town').value = '';
         document.getElementById('post_type').value = '';
-        // FIXED: clear user filter from URL
         const url = new URL(window.location);
         url.searchParams.delete('user_id');
         window.history.pushState({}, '', url);
