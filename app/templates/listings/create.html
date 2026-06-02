@@ -170,11 +170,19 @@
         });
     }
 
-    // Hide DM contact option (frontend-only — restore when DM system is ready)
+    // Hide DM contact option + clean remaining "DM" reference from 'any' label
+    // (frontend-only — restore when DM system is ready)
     const dmRadio = document.querySelector('input[name="contact_preference"][value="dm"]');
     if (dmRadio) {
         const dmLabel = dmRadio.closest('label.list-group-item');
         if (dmLabel) dmLabel.style.display = 'none';
+    }
+
+    const anyRadio = document.querySelector('input[name="contact_preference"][value="any"]');
+    if (anyRadio) {
+        const anyLabel = anyRadio.closest('label.list-group-item');
+        const anySpan = anyLabel ? anyLabel.querySelector('span') : null;
+        if (anySpan) anySpan.textContent = '🌐 Any (Phone + Email)';
     }
 
     // Pricing visibility logic
