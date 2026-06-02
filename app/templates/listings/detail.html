@@ -1,73 +1,130 @@
 {% extends "base.html" %}
 
+{% block title %}{{ listing.title }} - VolstruisGids{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow">
-                <!-- Business Header -->
-                {% if listing.is_business_ad and listing.user and listing.user.business_name %}
-                <div class="card-header bg-light d-flex align-items-center py-3">
+<div class="container my-5">
+    <!-- Back buttons -->
+    <div class="mb-4 d-flex flex-wrap gap-2">
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+            ← Back to all listings
+        </a>
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary">
+            🏠 Back to Home
+        </a>
+    </div>
+
+    <div class="row g-5">
+        <!-- Left column: Photo -->
+        <div class="col-lg-7">
+            {% if listing.photo_url %}
+                <img src="{{ listing.photo_url }}" 
+                     class="img-fluid rounded-3 shadow-sm w-100" 
+                     style="max-height: 620px; object-fit: cover;"
+                     alt="{{ listing.title }}">
+            {% else %}
+                <div class="bg-light rounded-3 shadow-sm d-flex align-items-center justify-content-center" 
+                     style="height: 500px;">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-image fs-1"></i>
+                        <p class="mt-2">No photo uploaded yet</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right column: Details -->
+        <div class="col-lg-5">
+            <!-- Type badge -->
+            {% if listing.post_type == 'sale' %}
+                <span class="badge bg-success fs-6 mb-2">FOR SALE</span>
+            {% elif listing.post_type == 'wanted' %}
+                <span class="badge bg-warning text-dark fs-6 mb-2">LOOKING FOR</span>
+            {% elif listing.post_type == 'services' %}
+                <span class="badge bg-primary fs-6 mb-2">SERVICES OFFERED</span>
+            {% elif listing.post_type == 'announcement' %}
+                <span class="badge bg-info fs-6 mb-2">ANNOUNCEMENT</span>
+            {% endif %}
+
+            <h1 class="fw-bold mb-2">{{ listing.title }}</h1>
+
+            <!-- Business branding -->
+            {% if listing.is_business_ad and listing.user %}
+                <div class="d-flex align-items-center mb-3">
                     {% if listing.user.profile_pic %}
-                        <img src="{{ listing.user.profile_pic }}" alt="Company Logo" class="rounded-circle me-3" style="width: 48px; height: 48px; object-fit: cover;">
-                    {% else %}
-                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; font-size: 1.5rem;">
-                            🏪
-                        </div>
+                        <img src="{{ listing.user.profile_pic }}" 
+                             class="rounded-circle me-2" width="42" height="42" 
+                             style="object-fit: cover; border: 2px solid #C19A6B;">
                     {% endif %}
                     <div>
-                        <h5 class="mb-0">{{ listing.user.business_name }}</h5>
-                        <small class="text-success">Verified Business</small>
+                        <strong class="text-primary">{{ listing.user.business_name or 'Business' }}</strong>
+                        <div class="small text-muted">Verified Business</div>
                     </div>
                 </div>
-                {% endif %}
+            {% endif %}
 
-                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">{{ listing.title }}</h4>
-                    {% if listing.post_type == 'wanted' %}
-                        <span class="badge bg-warning text-dark fs-6">🔍 Looking For</span>
-                    {% elif listing.post_type == 'announcement' %}
-                        <span class="badge bg-info fs-6">📢 Announcement</span>
-                    {% elif listing.post_type == 'services' %}
-                        <span class="badge bg-primary fs-6">🛠 Services</span>
-                    {% else %}
-                        <span class="badge bg-success fs-6">🛒 For Sale</span>
-                    {% endif %}
-                </div>
-                
-                {% if listing.photo_url %}
-                    <img src="{{ listing.photo_url }}" class="card-img-top" style="height: 420px; object-fit: cover;" alt="{{ listing.title }}">
+            <!-- Price (robust handling for fixed + range) -->
+            <div class="mb-4">
+                {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
+                    <h2 class="fw-bold text-success">
+                        R {{ listing.min_price | int }} — R {{ listing.max_price | int }}
+                    </h2>
+                    <small class="text-muted">Price range</small>
+                {% elif listing.price and listing.price > 0 %}
+                    <h2 class="fw-bold text-success">R {{ listing.price | int }}</h2>
+                {% else %}
+                    <h2 class="fw-bold text-muted">Price on request</h2>
                 {% endif %}
+            </div>
 
+            <div class="text-muted mb-4">
+                <i class="bi bi-geo-alt"></i> {{ listing.location }}<br>
+                <small>Posted {{ listing.created_at.strftime('%d %b %Y') }} • {{ listing.views }} views</small>
+            </div>
+
+            <hr>
+
+            <h5 class="fw-semibold">Description</h5>
+            <p style="white-space: pre-line; line-height: 1.75; font-size: 1.05rem;">
+                {{ listing.description }}
+            </p>
+
+            <hr class="my-4">
+
+            <!-- Contact section (only shows what the poster actually selected) -->
+            <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">
-                    <!-- Improved price display supporting fixed + range -->
-                    {% if listing.price_type == 'fixed' and listing.price is not none and listing.price > 0 %}
-                        <h3 class="text-success fw-bold">R{{ listing.price | round(0) }}</h3>
-                    {% elif listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
-                        <h3 class="text-success fw-bold">R{{ listing.min_price | round(0) }} – R{{ listing.max_price | round(0) }}</h3>
-                    {% elif listing.post_type == 'wanted' %}
-                        <h5 class="text-warning">🔍 Looking For (price flexible)</h5>
-                    {% else %}
-                        <h5 class="text-muted">Price on request</h5>
+                    <h5 class="card-title mb-3">
+                        Contact the {{ 'Business' if listing.is_business_ad else 'Seller' }}
+                    </h5>
+
+                    {% if listing.contact_phone %}
+                        <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','')|replace('-','') }}" 
+                           target="_blank" 
+                           class="btn btn-success w-100 mb-2">
+                            <i class="bi bi-whatsapp"></i> WhatsApp 
+                            <span class="small">({{ listing.contact_phone }})</span>
+                        </a>
                     {% endif %}
-                    
-                    <p class="lead">{{ listing.description }}</p>
 
-                    <div class="my-4">
-                        {% if listing.contact_phone %}
-                            <p><strong>📞 {{ listing.contact_phone }}</strong></p>
-                        {% endif %}
-                        {% if listing.contact_email %}
-                            <p><strong>📧 {{ listing.contact_email }}</strong></p>
-                        {% endif %}
-                    </div>
+                    {% if listing.contact_email %}
+                        <a href="mailto:{{ listing.contact_email }}" 
+                           class="btn btn-outline-primary w-100">
+                            ✉️ Email 
+                            <span class="small">({{ listing.contact_email }})</span>
+                        </a>
+                    {% endif %}
 
-                    <a href="https://wa.me/?text=Check this listing on VolstruisGids: {{ listing.title }} {{ url_for('listings.detail', listing_id=listing.id, _external=True) }}" 
-                       target="_blank" 
-                       class="btn btn-success btn-lg w-100 mb-3">
-                        📲 Share on WhatsApp
-                    </a>
+                    {% if not listing.contact_phone and not listing.contact_email %}
+                        <p class="text-muted small mb-0">No contact details provided for this listing.</p>
+                    {% endif %}
                 </div>
+            </div>
+
+            <div class="d-grid">
+                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-lg">
+                    ← Back to all listings
+                </a>
             </div>
         </div>
     </div>
