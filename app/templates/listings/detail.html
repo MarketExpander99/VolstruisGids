@@ -4,129 +4,160 @@
 
 {% block content %}
 <div class="container my-5">
-    <!-- Back buttons -->
+    <!-- Navigation -->
     <div class="mb-4 d-flex flex-wrap gap-2">
         <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
-            ← Back to all listings
+            ← Back to listings
         </a>
         <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary">
-            🏠 Back to Home
+            🏠 Home
         </a>
     </div>
 
     <div class="row g-5">
-        <!-- Left column: Photo -->
+        <!-- Photo Column -->
         <div class="col-lg-7">
             {% if listing.photo_url %}
-                <img src="{{ listing.photo_url }}" 
-                     class="img-fluid rounded-3 shadow-sm w-100" 
-                     style="max-height: 620px; object-fit: cover;"
-                     alt="{{ listing.title }}">
+                <div class="position-relative">
+                    <img src="{{ listing.photo_url }}" 
+                         class="img-fluid rounded-4 shadow-lg w-100 listing-hero-img"
+                         style="max-height: 620px; object-fit: cover; border: 1px solid #eee;"
+                         alt="{{ listing.title }}">
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-dark bg-opacity-75 px-3 py-2 fs-6">
+                            {{ listing.post_type|title if listing.post_type else 'Listing' }}
+                        </span>
+                    </div>
+                </div>
             {% else %}
-                <div class="bg-light rounded-3 shadow-sm d-flex align-items-center justify-content-center" 
-                     style="height: 500px;">
+                <div class="bg-light rounded-4 shadow-sm d-flex align-items-center justify-content-center border"
+                     style="height: 520px; background: linear-gradient(145deg, #FAF4EB, #f1e9d9);">
                     <div class="text-center text-muted">
                         <i class="bi bi-image fs-1"></i>
-                        <p class="mt-2">No photo uploaded yet</p>
+                        <p class="mt-3 mb-0">No photo for this listing</p>
                     </div>
                 </div>
             {% endif %}
         </div>
 
-        <!-- Right column: Details -->
+        <!-- Details Column -->
         <div class="col-lg-5">
-            <!-- Type badge -->
-            {% if listing.post_type == 'sale' %}
-                <span class="badge bg-success fs-6 mb-2">FOR SALE</span>
-            {% elif listing.post_type == 'wanted' %}
-                <span class="badge bg-warning text-dark fs-6 mb-2">LOOKING FOR</span>
-            {% elif listing.post_type == 'services' %}
-                <span class="badge bg-primary fs-6 mb-2">SERVICES OFFERED</span>
-            {% elif listing.post_type == 'announcement' %}
-                <span class="badge bg-info fs-6 mb-2">ANNOUNCEMENT</span>
-            {% endif %}
+            <!-- Type Badge -->
+            {% set type_colors = {
+                'sale': 'bg-success',
+                'wanted': 'bg-warning text-dark',
+                'services': 'bg-primary',
+                'announcement': 'bg-info text-dark'
+            } %}
+            <span class="badge {{ type_colors.get(listing.post_type, 'bg-secondary') }} fs-6 px-3 py-2 mb-3">
+                {{ listing.post_type|upper if listing.post_type else 'LISTING' }}
+            </span>
 
-            <h1 class="fw-bold mb-2">{{ listing.title }}</h1>
+            <h1 class="fw-bold mb-2" style="line-height: 1.1;">{{ listing.title }}</h1>
 
-            <!-- Business branding -->
+            <!-- Business / Seller Info -->
             {% if listing.is_business_ad and listing.user %}
-                <div class="d-flex align-items-center mb-3">
+                <div class="d-flex align-items-center mb-3 p-2 rounded-3" style="background: #f8f4eb;">
                     {% if listing.user.profile_pic %}
                         <img src="{{ listing.user.profile_pic }}" 
-                             class="rounded-circle me-2" width="42" height="42" 
-                             style="object-fit: cover; border: 2px solid #C19A6B;">
+                             class="rounded-circle me-3" width="48" height="48" 
+                             style="object-fit: cover; border: 3px solid #E6B800;">
+                    {% else %}
+                        <div class="rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                             style="width:48px; height:48px; background:#2C3E50; color:white; font-weight:700;">
+                            {{ (listing.user.business_name or 'B')[0] }}
+                        </div>
                     {% endif %}
                     <div>
-                        <strong class="text-primary">{{ listing.user.business_name or 'Business' }}</strong>
-                        <div class="small text-muted">Verified Business</div>
+                        <strong class="text-primary">{{ listing.user.business_name or listing.user.username }}</strong>
+                        <div class="small text-muted">Verified Business • Klein Karoo</div>
                     </div>
+                </div>
+            {% else %}
+                <div class="text-muted small mb-3">
+                    Posted by <strong>{{ listing.user.username if listing.user else 'Seller' }}</strong>
                 </div>
             {% endif %}
 
-            <!-- Price (robust handling for fixed + range) -->
+            <!-- Price -->
             <div class="mb-4">
                 {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
-                    <h2 class="fw-bold text-success">
-                        R {{ listing.min_price | int }} — R {{ listing.max_price | int }}
-                    </h2>
+                    <div>
+                        <span class="display-6 fw-bold" style="color: #2C3E50;">R{{ listing.min_price|int }}</span>
+                        <span class="text-muted mx-2">—</span>
+                        <span class="display-6 fw-bold" style="color: #2C3E50;">R{{ listing.max_price|int }}</span>
+                    </div>
                     <small class="text-muted">Price range</small>
                 {% elif listing.price and listing.price > 0 %}
-                    <h2 class="fw-bold text-success">R {{ listing.price | int }}</h2>
+                    <h2 class="fw-bold mb-0" style="color: #2C3E50;">R{{ listing.price|int }}</h2>
                 {% else %}
-                    <h2 class="fw-bold text-muted">Price on request</h2>
+                    <h4 class="fw-semibold text-muted">Price on request</h4>
                 {% endif %}
             </div>
 
-            <div class="text-muted mb-4">
-                <i class="bi bi-geo-alt"></i> {{ listing.location }}<br>
-                <small>Posted {{ listing.created_at.strftime('%d %b %Y') }} • {{ listing.views }} views</small>
+            <!-- Meta -->
+            <div class="d-flex flex-wrap gap-3 text-muted mb-4 small">
+                <div><i class="bi bi-geo-alt-fill me-1"></i> {{ listing.location }}</div>
+                <div><i class="bi bi-clock me-1"></i> {{ listing.created_at.strftime('%d %b %Y') }}</div>
+                <div><i class="bi bi-eye me-1"></i> {{ listing.views or 0 }} views</div>
             </div>
-
-            <hr>
-
-            <h5 class="fw-semibold">Description</h5>
-            <p style="white-space: pre-line; line-height: 1.75; font-size: 1.05rem;">
-                {{ listing.description }}
-            </p>
 
             <hr class="my-4">
 
-            <!-- Contact section (only shows what the poster actually selected) -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
+            <!-- Description -->
+            <h5 class="fw-semibold mb-3">Description</h5>
+            <div class="mb-4" style="white-space: pre-line; line-height: 1.8; font-size: 1.05rem; color: #333;">
+                {{ listing.description }}
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Contact Card -->
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3">
                         Contact the {{ 'Business' if listing.is_business_ad else 'Seller' }}
-                    </h5>
+                    </h6>
 
                     {% if listing.contact_phone %}
-                        <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','')|replace('-','') }}" 
+                        <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','')|replace('-','')|replace('(','')|replace(')','') }}" 
                            target="_blank" 
-                           class="btn btn-success w-100 mb-2">
-                            <i class="bi bi-whatsapp"></i> WhatsApp 
-                            <span class="small">({{ listing.contact_phone }})</span>
+                           class="btn btn-success w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-whatsapp fs-5"></i> 
+                            <span>WhatsApp <small class="opacity-75">({{ listing.contact_phone }})</small></span>
                         </a>
                     {% endif %}
 
                     {% if listing.contact_email %}
                         <a href="mailto:{{ listing.contact_email }}" 
-                           class="btn btn-outline-primary w-100">
-                            ✉️ Email 
-                            <span class="small">({{ listing.contact_email }})</span>
+                           class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-envelope fs-5"></i> 
+                            <span>Email <small class="opacity-75">({{ listing.contact_email }})</small></span>
                         </a>
                     {% endif %}
 
                     {% if not listing.contact_phone and not listing.contact_email %}
-                        <p class="text-muted small mb-0">No contact details provided for this listing.</p>
+                        <p class="text-muted small mb-0">No direct contact details provided.</p>
                     {% endif %}
                 </div>
             </div>
 
-            <div class="d-grid">
-                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-lg">
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('main.index') }}" class="btn btn-lg btn-outline-secondary">
                     ← Back to all listings
                 </a>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+/* Page-specific polish */
+.listing-hero-img {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.listing-hero-img:hover {
+    transform: scale(1.015);
+}
+</style>
 {% endblock %}

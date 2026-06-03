@@ -313,4 +313,9 @@ def quick_create():
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
     listing = Listing.query.get_or_404(listing_id)
+    
+    # Safe view counter increment
+    listing.views = (listing.views or 0) + 1
+    db.session.commit()
+    
     return render_template('listings/detail.html', listing=listing)
