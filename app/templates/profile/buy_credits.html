@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <h2 class="fw-bold">Buy Credits</h2>
+                <p class="text-muted">Pay-as-you-use • 1 free listing per day for personal accounts • Credits never expire</p>
+            </div>
+
+            <!-- Current Balance Card -->
+            <div class="card shadow-sm mb-4 border-success">
+                <div class="card-body text-center py-4">
+                    <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
+                        <div>
+                            <span class="fs-6 text-muted">Current Balance</span>
+                            <h1 class="display-4 fw-bold text-success mb-0">{{ current_balance }}</h1>
+                            <span class="text-muted">credits</span>
+                        </div>
+                        <div class="vr d-none d-md-block" style="height: 60px;"></div>
+                        <div class="text-start">
+                            <span class="badge bg-{{ 'success' if is_business else 'primary' }} fs-6">
+                                {{ account_type_label }} Account
+                            </span>
+                            <div class="mt-2 small text-muted">{{ max_note }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Packages -->
+            <h5 class="mb-3">Choose a Package</h5>
+            <div class="row g-4">
+                {% for pkg in packages %}
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header bg-light text-center">
+                            <h5 class="mb-0 fw-semibold">{{ pkg.name }}</h5>
+                            {% if pkg.level %}
+                                <span class="badge bg-info mt-1">{{ pkg.level }} Discount</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body text-center d-flex flex-column">
+                            <div class="my-3">
+                                <span class="display-6 fw-bold text-primary">{{ pkg.credits }}</span>
+                                <span class="text-muted">credits</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <span class="h4 fw-bold">R{{ pkg.price }}</span>
+                                <div class="small text-muted">R{{ "%.2f"|format(pkg.price / pkg.credits) }} per credit</div>
+                            </div>
+                            
+                            <p class="text-muted small flex-grow-1">{{ pkg.note }}</p>
+                            
+                            <form method="POST" class="mt-auto">
+                                <input type="hidden" name="package_id" value="{{ pkg.id }}">
+                                <button type="submit" class="btn btn-success w-100 fw-semibold">
+                                    Buy Now
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Info Footer -->
+            <div class="mt-5 text-center">
+                <div class="alert alert-light border small">
+                    <strong>How credits work (v1.0):</strong><br>
+                    • 1 free listing per day for Personal accounts (resets at midnight SAST)<br>
+                    • Normal listing = 1 credit &nbsp;&nbsp;• Super/Business listing = 2 credits<br>
+                    • Repost (bump visibility) = 1 credit<br>
+                    <span class="text-muted">This page uses simulated purchases for testing. Real Yoco hosted checkout + webhook will be added next.</span>
+                </div>
+                <a href="{{ url_for('profile.profile') }}" class="btn btn-outline-secondary btn-sm">← Back to Profile</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

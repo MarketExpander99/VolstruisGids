@@ -8,6 +8,8 @@ from . import listings_bp
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image
+from datetime import datetime
+from app.models.credit_transaction import CreditTransaction
 
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -104,6 +106,44 @@ def create():
             min_price = form.min_price.data
             max_price = form.max_price.data
 
+        # === CREDIT DEDUCTION LOGIC (v1.0 spec) ===
+        posts_today = getattr(current_user, 'posts_today', 0) or 0
+        is_business = current_user.account_type == 'business' or current_user.is_business
+
+        if current_user.account_type == 'personal' and posts_today < 1:
+            # Free daily quota for personal accounts
+            required_credits = 0
+            listing_type = 'normal'
+            current_user.posts_today = posts_today + 1
+            txn = CreditTransaction(
+                user_id=current_user.id,
+                amount=0,
+                transaction_type='free_quota',
+                reference=f'free_quota_{datetime.utcnow().isoformat()}'
+            )
+            db.session.add(txn)
+        else:
+            # Paid listing
+            required_credits = 2 if is_business else 1
+            listing_type = 'super' if is_business else 'normal'
+
+            if current_user.credit_balance < required_credits:
+                flash(
+                    f'Not enough credits. This {"super/business" if is_business else "normal"} listing requires {required_credits} credit(s). '
+                    'Please buy more credits to continue.',
+                    'warning'
+                )
+                return render_template('listings/create.html', form=form)
+
+            current_user.credit_balance -= required_credits
+            txn = CreditTransaction(
+                user_id=current_user.id,
+                amount=-required_credits,
+                transaction_type='listing',
+                reference=f'listing_create_{datetime.utcnow().isoformat()}'
+            )
+            db.session.add(txn)
+
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
@@ -120,13 +160,22 @@ def create():
             photo_url=photo_url,
             allow_comments=form.allow_comments.data,
             post_type=form.post_type.data,
-            is_business_ad=current_user.is_business
+            is_business_ad=current_user.is_business,
+            listing_type=listing_type
         )
 
         try:
             db.session.add(listing)
             db.session.commit()
-            flash('Listing created successfully! Your free ad will be live for 7 days.', 'success')
+
+            if required_credits == 0:
+                flash('Listing created successfully using your free daily quota! It will be live for 7 days.', 'success')
+            else:
+                flash(
+                    f'Listing created successfully! {required_credits} credit(s) deducted. '
+                    f'New balance: {current_user.credit_balance}',
+                    'success'
+                )
             return redirect(url_for('main.index'))
         except Exception as e:
             db.session.rollback()
@@ -206,6 +255,25 @@ def quick_create():
             min_price = form.min_price.data
             max_price = form.max_price.data
 
+        # === CREDIT DEDUCTION LOGIC for Business/Quick-create (always 2 credits) ===
+        required_credits = 2
+        if current_user.credit_balance < required_credits:
+            flash(
+                f'Not enough credits. Quick-create (super/business) listings require {required_credits} credits. '
+                'Please buy more credits.',
+                'warning'
+            )
+            return render_template('listings/quick_create.html', form=form)
+
+        current_user.credit_balance -= required_credits
+        txn = CreditTransaction(
+            user_id=current_user.id,
+            amount=-required_credits,
+            transaction_type='listing',
+            reference=f'quick_listing_{datetime.utcnow().isoformat()}'
+        )
+        db.session.add(txn)
+
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
@@ -222,13 +290,17 @@ def quick_create():
             photo_url=photo_url,
             allow_comments=form.allow_comments.data,
             post_type=form.post_type.data,
-            is_business_ad=True
+            is_business_ad=True,
+            listing_type='super'
         )
 
         try:
             db.session.add(listing)
             db.session.commit()
-            flash('Listing saved! Add another one below', 'success')
+            flash(
+                f'Listing saved! 2 credits deducted. New balance: {current_user.credit_balance}. Add another one below.',
+                'success'
+            )
             return redirect(url_for('listings.quick_create'))
         except Exception as e:
             db.session.rollback()
