@@ -25,6 +25,10 @@ class Listing(db.Model):
     is_promoted = db.Column(db.Boolean, default=False)
     views = db.Column(db.Integer, default=0)
     
+    # === Credit System v1.0 additions (added only - no existing columns removed) ===
+    listing_type = db.Column(db.String(20), default='normal')  # normal / super
+    last_reposted_at = db.Column(db.DateTime, nullable=True)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -41,7 +45,7 @@ class Listing(db.Model):
     promotions = db.relationship('Promotion', backref='listing', lazy='dynamic', cascade='all, delete-orphan')
     messages = db.relationship('Message', backref='listing', lazy='dynamic')
     
-    # ✅ Fixed: relationship needed for business branding in feed
+    # Fixed: relationship needed for business branding in feed
     user = db.relationship('User', backref='listings', lazy=True)
     
     def __repr__(self):

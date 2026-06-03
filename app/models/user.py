@@ -20,6 +20,10 @@ class User(UserMixin, db.Model):
     location = db.Column(db.String(100), nullable=True)
     posts_today = db.Column(db.Integer, default=0)
     
+    # === Credit System v1.0 additions (added only - no existing columns removed) ===
+    account_type = db.Column(db.String(20), default='personal')  # personal / business
+    credit_balance = db.Column(db.Integer, default=0)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
