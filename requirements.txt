@@ -7,5 +7,4 @@ Werkzeug==3.0.3
 python-dotenv==1.0.1
 WTForms==3.1.2
 bootstrap-flask==2.4.0
-paystack==1.0.2
 requests==2.32.3

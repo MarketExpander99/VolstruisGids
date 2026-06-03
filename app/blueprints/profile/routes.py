@@ -1,46 +1,19 @@
-from flask import render_template, redirect, url_for, flash, request, current_app
+import os
+import json
+import urllib.request
+from datetime import datetime
+from flask import render_template, redirect, url_for, request, flash, current_app
 from flask_login import login_required, current_user
 from app import db
-from .forms import ProfileForm
-from . import profile_bp
-from datetime import datetime
-from app.models.credit_transaction import CreditTransaction
 from app.models.user import User
-import urllib.request
-import urllib.error
-import json
-import os
-
-
-@profile_bp.route('/profile', methods=['GET', 'POST'])
-@login_required
-def profile():
-    form = ProfileForm(obj=current_user)
-
-    credit_balance = current_user.credit_balance or 0
-    is_business = current_user.account_type == 'business' or current_user.is_business
-    account_type_label = 'Business' if is_business else 'Personal'
-
-    if form.validate_on_submit():
-        current_user.phone = form.phone.data
-        current_user.email = form.email.data
-        db.session.commit()
-        flash('Profile updated successfully!', 'success')
-        return redirect(url_for('profile.profile'))
-
-    return render_template(
-        'profile/profile.html',
-        form=form,
-        credit_balance=credit_balance,
-        is_business=is_business,
-        account_type_label=account_type_label
-    )
-
+from app.models.credit_transaction import CreditTransaction
+import requests  # for Paystack
+from app.blueprints.profile import profile_bp
 
 @profile_bp.route('/buy-credits', methods=['GET', 'POST'])
 @login_required
 def buy_credits():
-    """Buy Credits page with real Yoco + simulation fallback (PythonAnywhere friendly)"""
+    """Buy Credits page - now powered by Paystack"""
 
     personal_packages = [
         {"id": "small", "name": "Small", "credits": 5, "price": 55, "note": "Easy entry"},
@@ -69,41 +42,32 @@ def buy_credits():
             return redirect(url_for('profile.buy_credits'))
 
         credits_to_add = selected['credits']
-        amount_cents = int(selected['price'] * 100)
+        amount = selected['price']  # in Rands
 
-        # === IMPROVED CHECK FOR PYTHONANYWHERE ===
-        yoco_key = current_app.config.get('YOCO_SECRET_KEY') or os.environ.get('YOCO_SECRET_KEY')
-        test_mode = current_app.config.get('YOCO_TEST_MODE')
+        # Create a pending credit transaction
+        reference = f"credits_{current_user.id}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        txn = CreditTransaction(
+            user_id=current_user.id,
+            amount=credits_to_add,
+            transaction_type='purchase',
+            reference=reference,
+            status='pending'
+        )
+        db.session.add(txn)
+        db.session.commit()
 
-        if test_mode is None:
-            test_mode = os.environ.get('YOCO_TEST_MODE', 'true').lower() == 'true'
-
-        if not yoco_key or test_mode:
-            # === SIMULATION MODE ===
-            current_user.credit_balance = (current_user.credit_balance or 0) + credits_to_add
-            txn = CreditTransaction(
-                user_id=current_user.id,
-                amount=credits_to_add,
-                transaction_type='purchase',
-                reference=f'sim_{package_id}_{datetime.utcnow().strftime("%Y%m%d%H%M%S")}'
-            )
-            db.session.add(txn)
-            try:
-                db.session.commit()
-                flash(f'✅ [SIM] Purchased {credits_to_add} credits for R{selected["price"]}! New balance: {current_user.credit_balance}', 'success')
-            except Exception as e:
-                db.session.rollback()
-                flash(f'Error: {str(e)}', 'danger')
-            return redirect(url_for('profile.buy_credits'))
-
-        # === REAL YOCO CHECKOUT ===
+        # === PAYSTACK INTEGRATION ===
         try:
-            checkout_payload = {
-                "amount": amount_cents,
-                "currency": "ZAR",
-                "successUrl": url_for('profile.payment_success', _external=True),
-                "cancelUrl": url_for('profile.payment_cancel', _external=True),
-                "notifyUrl": url_for('profile.yoco_webhook', _external=True),
+            url = "https://api.paystack.co/transaction/initialize"
+            headers = {
+                "Authorization": f"Bearer {current_app.config.get('PAYSTACK_SECRET_KEY')}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "email": current_user.email,
+                "amount": int(amount * 100),  # convert to cents
+                "reference": reference,
+                "callback_url": url_for('profile.payment_success', _external=True),
                 "metadata": {
                     "user_id": current_user.id,
                     "credits": credits_to_add,
@@ -111,31 +75,21 @@ def buy_credits():
                 }
             }
 
-            req = urllib.request.Request(
-                'https://api.yoco.com/v1/checkouts',
-                data=json.dumps(checkout_payload).encode('utf-8'),
-                headers={
-                    'Authorization': f'Bearer {yoco_key}',
-                    'Content-Type': 'application/json'
-                },
-                method='POST'
-            )
+            response = requests.post(url, json=payload, headers=headers, timeout=15)
+            result = response.json()
 
-            with urllib.request.urlopen(req, timeout=15) as response:
-                result = json.loads(response.read().decode())
-
-            redirect_url = result.get('redirectUrl') or result.get('url')
-            if redirect_url:
-                return redirect(redirect_url)
+            if result.get('status') and result['data'].get('authorization_url'):
+                # Redirect user to Paystack checkout
+                return redirect(result['data']['authorization_url'])
             else:
-                flash('Could not start Yoco checkout.', 'danger')
+                flash('Could not start Paystack payment.', 'danger')
+                return redirect(url_for('profile.buy_credits'))
 
         except Exception as e:
-            flash(f'Yoco error: {str(e)}', 'danger')
+            flash(f'Paystack error: {str(e)}', 'danger')
+            return redirect(url_for('profile.buy_credits'))
 
-        return redirect(url_for('profile.buy_credits'))
-
-    # GET
+    # GET request - show the page
     return render_template(
         'profile/buy_credits.html',
         packages=packages,
@@ -146,12 +100,11 @@ def buy_credits():
     )
 
 
-# ==================== MISSING ROUTES ADDED ====================
-
 @profile_bp.route('/payment-success')
 @login_required
 def payment_success():
-    flash('Payment successful! Your credits will be added shortly via webhook.', 'success')
+    """Paystack redirects here after successful payment (we verify via webhook for security)"""
+    flash('Payment successful! Your credits will be added shortly.', 'success')
     return redirect(url_for('profile.buy_credits'))
 
 
@@ -162,34 +115,27 @@ def payment_cancel():
     return redirect(url_for('profile.buy_credits'))
 
 
-@profile_bp.route('/yoco-webhook', methods=['POST'])
-def yoco_webhook():
-    """Handles successful payments from Yoco"""
+@profile_bp.route('/paystack-webhook', methods=['POST'])
+def paystack_webhook():
+    """Verify Paystack payment and credit the user"""
     try:
-        payload = request.get_json(silent=True) or request.form.to_dict()
+        payload = request.get_json()
+        event = payload.get('event')
 
-        status = payload.get('status') or (payload.get('payment') or {}).get('status')
-        metadata = payload.get('metadata', {})
-        checkout_id = payload.get('id') or payload.get('checkoutId')
+        if event == 'charge.success':
+            data = payload.get('data', {})
+            reference = data.get('reference')
+            metadata = data.get('metadata', {})
 
-        if status in ['successful', 'succeeded', 'paid'] and metadata:
-            user_id = metadata.get('user_id')
-            credits = int(metadata.get('credits', 0))
-
-            if user_id and credits > 0:
-                user = User.query.get(user_id)
-                if user:
-                    # Prevent double crediting
-                    existing = CreditTransaction.query.filter_by(reference=checkout_id).first()
-                    if not existing:
+            if reference:
+                txn = CreditTransaction.query.filter_by(reference=reference).first()
+                if txn and txn.status != 'success':
+                    credits = int(metadata.get('credits', 0))
+                    user = User.query.get(txn.user_id)
+                    if user and credits > 0:
                         user.credit_balance = (user.credit_balance or 0) + credits
-                        txn = CreditTransaction(
-                            user_id=user.id,
-                            amount=credits,
-                            transaction_type='purchase',
-                            reference=checkout_id or f'yoco_{datetime.utcnow().strftime("%Y%m%d%H%M%S")}'
-                        )
-                        db.session.add(txn)
+                        txn.status = 'success'
+                        txn.transaction_type = 'purchase'
                         db.session.commit()
 
         return '', 200
