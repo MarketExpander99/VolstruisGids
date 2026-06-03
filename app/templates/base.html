@@ -41,7 +41,7 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('main.index') }}">Home</a>
                     </li>
@@ -54,14 +54,29 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('main.profile') }}">👤 Profile</a>
                     </li>
+
                     {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="{{ url_for('auth.logout') }}">Logout ({{ current_user.username }})</a>
-                    </li>
+                        <!-- Credit Balance -->
+                        <li class="nav-item">
+                            <span class="nav-link text-light d-flex align-items-center">
+                                <i class="bi bi-coin me-1"></i>
+                                <strong>{{ current_user.credit_balance or 0 }}</strong>
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-warning fw-semibold" href="{{ url_for('profile.buy_credits') }}">
+                                Buy Credits
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="{{ url_for('auth.logout') }}">
+                                Logout ({{ current_user.username }})
+                            </a>
+                        </li>
                     {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
-                    </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+                        </li>
                     {% endif %}
                 </ul>
             </div>
