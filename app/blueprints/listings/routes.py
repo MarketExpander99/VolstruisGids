@@ -19,25 +19,26 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def resize_image_to_square(image_path, size=800):
+def resize_image_to_square(image_path, size=800, bg_color=(250, 244, 235)):
+    """
+    Resize image to fit inside a square canvas WITHOUT cropping.
+    Adds letterboxing (whitespace) so the full original image is always visible.
+    """
     try:
         with Image.open(image_path) as img:
-            width, height = img.size
-            if width > height:
-                left = (width - height) // 2
-                top = 0
-                right = left + height
-                bottom = height
-            else:
-                left = 0
-                top = (height - width) // 2
-                right = width
-                bottom = top + width
-            img = img.crop((left, top, right, bottom))
-            img = img.resize((size, size), Image.Resampling.LANCZOS)
-            img.save(image_path)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            img.thumbnail((size, size), Image.Resampling.LANCZOS)
+
+            new_img = Image.new("RGB", (size, size), bg_color)
+            offset = ((size - img.width) // 2, (size - img.height) // 2)
+            new_img.paste(img, offset)
+
+            new_img.save(image_path, quality=92)
         return True
-    except Exception:
+    except Exception as e:
+        print(f"Image resize error: {e}")
         return False
 
 
@@ -46,7 +47,7 @@ def resize_image_to_square(image_path, size=800):
 def create():
     form = ListingForm()
 
-    # Auto-seed categories if table is empty (prevents "categories disappeared" issue)
+    # Auto-seed categories if table is empty
     if Category.query.count() == 0:
         seed_data = [
             ("Farm Equipment", "Listings for Farm Equipment"),
@@ -82,10 +83,11 @@ def create():
             contact_email = form.contact_email.data
         elif pref == 'phone':
             contact_phone = form.contact_phone.data
-        else:  # any
+        else:
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
 
+        # === PHOTO UPLOAD (now correctly inside the function) ===
         photo_url = None
         if form.photo.data and allowed_file(form.photo.data.filename):
             filename = secure_filename(form.photo.data.filename)
@@ -95,23 +97,22 @@ def create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        # === ROBUST PRICING LOGIC (fixed + range support) ===
+        # Pricing logic
         price_type = form.price_type.data or 'fixed'
         if price_type == 'fixed':
             price = form.price.data or 0.0
             min_price = None
             max_price = None
-        else:  # range (or future types)
+        else:
             price = None
             min_price = form.min_price.data
             max_price = form.max_price.data
 
-        # === CREDIT DEDUCTION LOGIC (v1.0 spec) ===
+        # Credit logic
         posts_today = getattr(current_user, 'posts_today', 0) or 0
         is_business = current_user.account_type == 'business' or current_user.is_business
 
         if current_user.account_type == 'personal' and posts_today < 1:
-            # Free daily quota for personal accounts
             required_credits = 0
             listing_type = 'normal'
             current_user.posts_today = posts_today + 1
@@ -123,7 +124,6 @@ def create():
             )
             db.session.add(txn)
         else:
-            # Paid listing
             required_credits = 2 if is_business else 1
             listing_type = 'super' if is_business else 'normal'
 
@@ -180,7 +180,6 @@ def create():
         except Exception as e:
             db.session.rollback()
             flash(f'Error saving your listing: {str(e)}', 'danger')
-            # Re-render form so user can correct and retry
             return render_template('listings/create.html', form=form)
 
     return render_template('listings/create.html', form=form)
@@ -195,7 +194,6 @@ def quick_create():
 
     form = ListingForm()
 
-    # Auto-seed categories if table is empty (prevents "categories disappeared" issue)
     if Category.query.count() == 0:
         seed_data = [
             ("Farm Equipment", "Listings for Farm Equipment"),
@@ -231,7 +229,7 @@ def quick_create():
             contact_email = form.contact_email.data
         elif pref == 'phone':
             contact_phone = form.contact_phone.data
-        else:  # any
+        else:
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
 
@@ -244,18 +242,16 @@ def quick_create():
             resize_image_to_square(filepath)
             photo_url = f'/static/uploads/{filename}'
 
-        # === ROBUST PRICING LOGIC (fixed + range support) ===
         price_type = form.price_type.data or 'fixed'
         if price_type == 'fixed':
             price = form.price.data or 0.0
             min_price = None
             max_price = None
-        else:  # range (or future types)
+        else:
             price = None
             min_price = form.min_price.data
             max_price = form.max_price.data
 
-        # === CREDIT DEDUCTION LOGIC for Business/Quick-create (always 2 credits) ===
         required_credits = 2
         if current_user.credit_balance < required_credits:
             flash(
@@ -313,9 +309,6 @@ def quick_create():
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
     listing = Listing.query.get_or_404(listing_id)
-    
-    # Safe view counter increment
     listing.views = (listing.views or 0) + 1
     db.session.commit()
-    
     return render_template('listings/detail.html', listing=listing)
