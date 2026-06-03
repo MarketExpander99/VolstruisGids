@@ -40,7 +40,7 @@ def profile():
 @profile_bp.route('/buy-credits', methods=['GET', 'POST'])
 @login_required
 def buy_credits():
-    """Buy Credits page with real Yoco + better PythonAnywhere support"""
+    """Buy Credits page with real Yoco + simulation fallback (PythonAnywhere friendly)"""
 
     personal_packages = [
         {"id": "small", "name": "Small", "credits": 5, "price": 55, "note": "Easy entry"},
@@ -79,7 +79,7 @@ def buy_credits():
             test_mode = os.environ.get('YOCO_TEST_MODE', 'true').lower() == 'true'
 
         if not yoco_key or test_mode:
-            # Simulation mode
+            # === SIMULATION MODE ===
             current_user.credit_balance = (current_user.credit_balance or 0) + credits_to_add
             txn = CreditTransaction(
                 user_id=current_user.id,
@@ -96,7 +96,7 @@ def buy_credits():
                 flash(f'Error: {str(e)}', 'danger')
             return redirect(url_for('profile.buy_credits'))
 
-        # === REAL YOCO ===
+        # === REAL YOCO CHECKOUT ===
         try:
             checkout_payload = {
                 "amount": amount_cents,
@@ -144,102 +144,54 @@ def buy_credits():
         is_business=is_business,
         account_type_label='Business' if is_business else 'Personal'
     )
-    """Buy Credits page with real Yoco integration + simulation fallback"""
 
-    personal_packages = [
-        {"id": "small", "name": "Small", "credits": 5, "price": 55, "note": "Easy entry"},
-        {"id": "standard", "name": "Standard", "credits": 10, "price": 99, "note": "Best value for personal"},
-    ]
 
-    business_packages = [
-        {"id": "starter", "name": "Starter", "credits": 25, "price": 225, "note": "Light", "level": "Light"},
-        {"id": "growth", "name": "Growth", "credits": 50, "price": 420, "note": "Medium", "level": "Medium"},
-        {"id": "pro", "name": "Pro", "credits": 100, "price": 790, "note": "Good", "level": "Good"},
-        {"id": "enterprise", "name": "Enterprise", "credits": 250, "price": 1750, "note": "Best", "level": "Best"},
-    ]
+# ==================== MISSING ROUTES ADDED ====================
 
-    is_business = current_user.account_type == 'business' or current_user.is_business
-    packages = business_packages if is_business else personal_packages
-    max_note = ("Business accounts enjoy volume discounts and higher limits."
-                if is_business else
-                "Personal accounts: maximum 10 credits per purchase (v1).")
+@profile_bp.route('/payment-success')
+@login_required
+def payment_success():
+    flash('Payment successful! Your credits will be added shortly via webhook.', 'success')
+    return redirect(url_for('profile.buy_credits'))
 
-    if request.method == 'POST':
-        package_id = request.form.get('package_id')
-        selected = next((p for p in packages if p['id'] == package_id), None)
 
-        if not selected:
-            flash('Invalid package selected.', 'danger')
-            return redirect(url_for('profile.buy_credits'))
+@profile_bp.route('/payment-cancel')
+@login_required
+def payment_cancel():
+    flash('Payment was cancelled.', 'info')
+    return redirect(url_for('profile.buy_credits'))
 
-        credits_to_add = selected['credits']
-        amount_cents = int(selected['price'] * 100)
 
-        # === SIMULATION MODE (no key or test mode) ===
-        if not current_app.config.get('YOCO_SECRET_KEY') or current_app.config.get('YOCO_TEST_MODE'):
-            current_user.credit_balance = (current_user.credit_balance or 0) + credits_to_add
-            txn = CreditTransaction(
-                user_id=current_user.id,
-                amount=credits_to_add,
-                transaction_type='purchase',
-                reference=f'sim_{package_id}_{datetime.utcnow().strftime("%Y%m%d%H%M%S")}'
-            )
-            db.session.add(txn)
-            try:
-                db.session.commit()
-                flash(f'✅ [SIM] Purchased {credits_to_add} credits for R{selected["price"]}! New balance: {current_user.credit_balance}', 'success')
-            except Exception as e:
-                db.session.rollback()
-                flash(f'Error: {str(e)}', 'danger')
-            return redirect(url_for('profile.buy_credits'))
+@profile_bp.route('/yoco-webhook', methods=['POST'])
+def yoco_webhook():
+    """Handles successful payments from Yoco"""
+    try:
+        payload = request.get_json(silent=True) or request.form.to_dict()
 
-        # === REAL YOCO CHECKOUT ===
-        try:
-            checkout_payload = {
-                "amount": amount_cents,
-                "currency": "ZAR",
-                "successUrl": url_for('profile.payment_success', _external=True),
-                "cancelUrl": url_for('profile.payment_cancel', _external=True),
-                "notifyUrl": url_for('profile.yoco_webhook', _external=True),
-                "metadata": {
-                    "user_id": current_user.id,
-                    "credits": credits_to_add,
-                    "package_id": package_id
-                }
-            }
+        status = payload.get('status') or (payload.get('payment') or {}).get('status')
+        metadata = payload.get('metadata', {})
+        checkout_id = payload.get('id') or payload.get('checkoutId')
 
-            req = urllib.request.Request(
-                'https://api.yoco.com/v1/checkouts',
-                data=json.dumps(checkout_payload).encode('utf-8'),
-                headers={
-                    'Authorization': f'Bearer {current_app.config["YOCO_SECRET_KEY"]}',
-                    'Content-Type': 'application/json'
-                },
-                method='POST'
-            )
+        if status in ['successful', 'succeeded', 'paid'] and metadata:
+            user_id = metadata.get('user_id')
+            credits = int(metadata.get('credits', 0))
 
-            with urllib.request.urlopen(req, timeout=15) as response:
-                result = json.loads(response.read().decode())
+            if user_id and credits > 0:
+                user = User.query.get(user_id)
+                if user:
+                    # Prevent double crediting
+                    existing = CreditTransaction.query.filter_by(reference=checkout_id).first()
+                    if not existing:
+                        user.credit_balance = (user.credit_balance or 0) + credits
+                        txn = CreditTransaction(
+                            user_id=user.id,
+                            amount=credits,
+                            transaction_type='purchase',
+                            reference=checkout_id or f'yoco_{datetime.utcnow().strftime("%Y%m%d%H%M%S")}'
+                        )
+                        db.session.add(txn)
+                        db.session.commit()
 
-            redirect_url = result.get('redirectUrl') or result.get('url')
-            if redirect_url:
-                return redirect(redirect_url)
-            else:
-                flash('Could not start Yoco payment.', 'danger')
-
-        except urllib.error.HTTPError as e:
-            flash(f'Yoco error: {e.read().decode()}', 'danger')
-        except Exception as e:
-            flash(f'Payment failed: {str(e)}', 'danger')
-
-        return redirect(url_for('profile.buy_credits'))
-
-    # GET
-    return render_template(
-        'profile/buy_credits.html',
-        packages=packages,
-        max_note=max_note,
-        current_balance=current_user.credit_balance or 0,
-        is_business=is_business,
-        account_type_label='Business' if is_business else 'Personal'
-    )
+        return '', 200
+    except Exception:
+        return '', 200
