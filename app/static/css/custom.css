@@ -137,6 +137,24 @@ footer {
     font-weight: 700;
 }
 
+/* Navbar logo + icon polish */
+.navbar-brand {
+    font-size: 1.25rem;
+    letter-spacing: -0.2px;
+}
+
+.navbar-brand img {
+    height: 28px;
+    width: auto;
+    vertical-align: middle;
+    margin-top: -3px;
+}
+
+.nav-link i {
+    font-size: 0.95em;
+    vertical-align: -0.1em;
+}
+
 /* ============================================================
    BUSINESS vs BOOSTED VISUAL HIERARCHY
    ============================================================ */

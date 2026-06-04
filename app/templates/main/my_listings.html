@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>My Listings</h2>
         <a href="{{ url_for('listings.create') }}" class="btn btn-success">
-            🚀 Post New Listing
+            <i class="bi bi-plus-circle me-1"></i>Post New Listing
         </a>
     </div>
 
@@ -48,7 +48,7 @@
                                class="btn btn-success btn-sm w-100 mb-2">View Details</a>
                             <form method="POST" action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
                                   onsubmit="return confirm('Delete this listing?');" class="d-inline">
-                                <button type="submit" class="btn btn-outline-danger btn-sm w-100">🗑 Delete</button>
+                                <button type="submit" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash me-1"></i>Delete</button>
                             </form>
                         </div>
                     </div>
