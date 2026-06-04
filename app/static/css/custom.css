@@ -232,44 +232,74 @@ footer {
     box-shadow: 0 14px 35px rgba(230, 184, 0, 0.25);
 }
 
-/* Boosted / Sparkle effect (moving light highlight) */
+/* Boosted / Sparkle effect (moving light highlight) - enhanced for more visibility while staying elegant */
 .boosted {
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 18px rgba(255, 193, 7, 0.12);
 }
 
 .boosted::after {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 60%;
-    height: 300%;
+    top: -80%;
+    left: -80%;
+    width: 70%;
+    height: 280%;
     background: linear-gradient(
-        120deg,
-        transparent 30%,
-        rgba(255, 255, 255, 0.65) 50%,
-        transparent 70%
+        135deg,
+        transparent 25%,
+        rgba(255, 255, 255, 0.78) 48%,
+        transparent 72%
     );
-    animation: sparkle-sweep 2.8s infinite linear;
+    animation: sparkle-sweep 1.55s infinite linear;
     pointer-events: none;
     z-index: 2;
-    transform: rotate(25deg);
+    transform: rotate(22deg);
+    opacity: 0.9;
 }
 
 @keyframes sparkle-sweep {
     0% {
-        transform: translateX(-120%) translateY(-60%) rotate(25deg);
-    }
-    25% {
-        transform: translateX(380%) translateY(-60%) rotate(25deg);
+        transform: translateX(-160%) translateY(-70%) rotate(22deg);
     }
     100% {
-        transform: translateX(380%) translateY(-60%) rotate(25deg);
+        transform: translateX(420%) translateY(-70%) rotate(22deg);
     }
 }
 
 /* Business + Boosted combination looks premium (gold border + white sparkle) */
 .business-listing.boosted {
     border-color: #E6B800 !important;
+}
+
+/* Small clean PROMOTED banner/ribbon at top-right for boosted cards on homepage */
+.promoted-banner {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: linear-gradient(135deg, #ffc107, #ffca2c);
+    color: #212529;
+    font-size: 0.58rem;
+    font-weight: 700;
+    padding: 2px 5px 2px 6px;
+    border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+    z-index: 3;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    line-height: 1;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* Subtle left fold for ribbon effect */
+.promoted-banner::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 3px solid #d39e00;
 }

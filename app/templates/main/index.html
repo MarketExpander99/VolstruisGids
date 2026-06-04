@@ -123,7 +123,7 @@
 
                 data.listings.forEach(listing => {
                     const isBusiness = listing.is_business_ad;
-                    const isBoosted = listing.listing_type === 'super' || listing.last_reposted_at;
+                    const isBoosted = listing.is_promoted || listing.last_reposted_at;
 
                     let cardExtraClasses = 'card h-100';
                     if (isBusiness) cardExtraClasses += ' business-listing';
@@ -207,6 +207,7 @@
                     const cardHTML = `
                         <div class="col-md-4 mb-4">
                             <div class="${cardExtraClasses}">
+                                ${isBoosted ? '<div class="promoted-banner">PROMOTED</div>' : ''}
                                 ${photoHTML}
                                 <div class="card-body">
                                     ${typeBadge}

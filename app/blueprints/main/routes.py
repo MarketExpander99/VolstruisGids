@@ -102,7 +102,10 @@ def api_listings():
         'ad_type': l.post_type,
         'category': l.category.name if l.category else '',
         'rental_duration': l.rental_duration,
-        'rental_duration_unit': l.rental_duration_unit
+        'rental_duration_unit': l.rental_duration_unit,
+        'is_promoted': l.is_promoted,
+        'last_reposted_at': l.last_reposted_at,
+        'listing_type': l.listing_type
     } for l in listings.items]
 
     return jsonify({
