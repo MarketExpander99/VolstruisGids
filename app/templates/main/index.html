@@ -116,7 +116,12 @@
         if (user_id) url += `&user_id=${user_id}`;
 
         fetch(url)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 const container = document.getElementById('listings-container');
                 if (!append) container.innerHTML = '';
@@ -294,7 +299,12 @@
         if (params.length > 0) url += `?${params.join('&')}`;
 
         fetch(url)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 const container = document.getElementById('popular-categories');
                 if (!container) return;

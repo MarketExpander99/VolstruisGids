@@ -48,7 +48,10 @@ def api_listings():
     town = request.args.get('town', '').strip()
     user_id = request.args.get('user_id')
     category = request.args.get('category', '').strip()
-    page = int(request.args.get('page', 1))
+    try:
+        page = int(request.args.get('page', 1))
+    except (ValueError, TypeError):
+        page = 1
     per_page = 12
 
     listings_query = Listing.query.options(joinedload(Listing.user)).filter_by(is_active=True)
@@ -104,7 +107,7 @@ def api_listings():
         'rental_duration': l.rental_duration,
         'rental_duration_unit': l.rental_duration_unit,
         'is_promoted': l.is_promoted,
-        'last_reposted_at': l.last_reposted_at,
+        'last_reposted_at': l.last_reposted_at.isoformat() if l.last_reposted_at else None,
         'listing_type': l.listing_type
     } for l in listings.items]
 
