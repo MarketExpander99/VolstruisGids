@@ -431,6 +431,26 @@ def quick_create():
     return render_template('listings/quick_create.html', form=form)
 
 
+@listings_bp.route('/boost/<int:listing_id>', methods=['POST'])
+@login_required
+def boost(listing_id):
+    listing = Listing.query.get_or_404(listing_id)
+    if current_user.id != listing.user_id:
+        flash('You can only boost your own listings.', 'danger')
+        return redirect(url_for('listings.detail', listing_id=listing.id))
+
+    try:
+        listing.is_promoted = True
+        listing.last_reposted_at = datetime.utcnow()
+        db.session.commit()
+        flash('Listing boosted for 7 days! It now has a PROMOTED badge and extra visibility.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error boosting your listing: {str(e)}', 'danger')
+
+    return redirect(url_for('listings.detail', listing_id=listing.id))
+
+
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
     listing = Listing.query.get_or_404(listing_id)

@@ -28,6 +28,11 @@
                         <span class="badge bg-dark bg-opacity-75 px-3 py-2 fs-6">
                             {{ listing.post_type|title if listing.post_type else 'Listing' }}
                         </span>
+                        {% if listing.is_promoted or listing.last_reposted_at %}
+                        <span class="badge bg-warning text-dark px-3 py-2 fs-6 ms-1">
+                            <i class="bi bi-rocket-takeoff me-1"></i>PROMOTED
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
             {% else %}
@@ -41,6 +46,11 @@
                         <span class="badge bg-dark bg-opacity-75 px-3 py-2 fs-6">
                             {{ listing.post_type|title if listing.post_type else 'Listing' }}
                         </span>
+                        {% if listing.is_promoted or listing.last_reposted_at %}
+                        <span class="badge bg-warning text-dark px-3 py-2 fs-6 ms-1">
+                            <i class="bi bi-rocket-takeoff me-1"></i>PROMOTED
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}
@@ -130,6 +140,32 @@
             <div class="mb-4" style="white-space: pre-line; line-height: 1.8; font-size: 1.05rem; color: #333;">
                 {{ listing.description }}
             </div>
+
+            <!-- Boost Section (only visible to owner) -->
+            {% if current_user.is_authenticated and current_user.id == listing.user_id %}
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background-color: #f8f4eb;">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-2">
+                            <i class="bi bi-rocket-takeoff me-2"></i> Boost this listing
+                        </h6>
+                        <p class="small text-muted mb-3">
+                            Boosted listings get more visibility and a special badge.
+                        </p>
+
+                        {% if listing.is_promoted or listing.last_reposted_at %}
+                            <div class="alert alert-success py-2 px-3 mb-3 small">
+                                This listing is currently promoted.
+                            </div>
+                        {% endif %}
+
+                        <form method="POST" action="{{ url_for('listings.boost', listing_id=listing.id) }}">
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-rocket me-2"></i> Boost for 7 days
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
 
             <hr class="my-4">
 
