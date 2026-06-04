@@ -136,3 +136,59 @@ footer {
     color: var(--primary-color);
     font-weight: 700;
 }
+
+/* ============================================================
+   BUSINESS vs BOOSTED VISUAL HIERARCHY
+   ============================================================ */
+
+/* Business listings - elegant gold border that stands out */
+.business-listing {
+    border: 3px solid #E6B800 !important;
+    box-shadow: 0 6px 25px rgba(230, 184, 0, 0.18);
+}
+
+.business-listing:hover {
+    box-shadow: 0 14px 35px rgba(230, 184, 0, 0.25);
+}
+
+/* Boosted / Sparkle effect (moving light highlight) */
+.boosted {
+    position: relative;
+    overflow: hidden;
+}
+
+.boosted::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 60%;
+    height: 300%;
+    background: linear-gradient(
+        120deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.65) 50%,
+        transparent 70%
+    );
+    animation: sparkle-sweep 2.8s infinite linear;
+    pointer-events: none;
+    z-index: 2;
+    transform: rotate(25deg);
+}
+
+@keyframes sparkle-sweep {
+    0% {
+        transform: translateX(-120%) translateY(-60%) rotate(25deg);
+    }
+    25% {
+        transform: translateX(380%) translateY(-60%) rotate(25deg);
+    }
+    100% {
+        transform: translateX(380%) translateY(-60%) rotate(25deg);
+    }
+}
+
+/* Business + Boosted combination looks premium (gold border + white sparkle) */
+.business-listing.boosted {
+    border-color: #E6B800 !important;
+}

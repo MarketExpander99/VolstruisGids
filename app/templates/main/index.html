@@ -2,8 +2,8 @@
 
 {% block content %}
 <div class="container mt-4">
-    <!-- HERO BANNER - with .hero-bg -->
-<div class="hero-bg position-relative text-white rounded-3 p-5 mb-5 text-center">
+    <!-- HERO BANNER -->
+    <div class="hero-bg position-relative text-white rounded-3 p-5 mb-5 text-center">
         <h1 class="display-4 fw-bold">Welkom by VolstruisGids</h1>
         <p class="lead">Klein Karoo Classifieds – van Oudtshoorn tot Ladismith</p>
         <p class="mb-0">Business &amp; Personal listings • Free to browse • Post your ad today</p>
@@ -106,6 +106,13 @@
 
                 data.listings.forEach(listing => {
                     const isBusiness = listing.is_business_ad;
+                    const isBoosted = listing.listing_type === 'super' || listing.last_reposted_at;
+
+                    // Apply visual hierarchy classes
+                    let cardExtraClasses = 'card h-100';
+                    if (isBusiness) cardExtraClasses += ' business-listing';
+                    if (isBoosted) cardExtraClasses += ' boosted';
+
                     let posterHTML = '';
 
                     if (isBusiness) {
@@ -147,7 +154,6 @@
                         typeBadge = '<span class="badge bg-info mb-2">ANNOUNCEMENT</span>';
                     }
 
-                    // NEW: robust price display supporting fixed + range (matches detail.html logic)
                     let priceHTML = '';
                     const pt = listing.price_type || 'fixed';
                     if (pt === 'fixed' && listing.price) {
@@ -162,7 +168,7 @@
 
                     const cardHTML = `
                         <div class="col-md-4 mb-4">
-                            <div class="card h-100">
+                            <div class="${cardExtraClasses}">
                                 ${listing.photo_url 
                                     ? `<div style="height:200px; background-color:#f8f9fa; display:flex; align-items:center; justify-content:center; overflow:hidden;">
                                          <img src="${listing.photo_url}" alt="Photo" 

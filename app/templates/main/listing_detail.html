@@ -4,54 +4,110 @@
 
 {% block content %}
 <div class="container my-5">
-    <div class="row">
+    <div class="row g-5">
         <!-- Left: Photo -->
         <div class="col-lg-7">
+            {% set isBusiness = listing.is_business_ad %}
+            {% set isBoosted = listing.listing_type == 'super' or listing.last_reposted_at %}
+
+            {% set photoContainerClasses = 'position-relative rounded-4 shadow-sm overflow-hidden border' %}
+            {% if isBusiness %}
+                {% set photoContainerClasses = photoContainerClasses ~ ' business-listing' %}
+            {% endif %}
+            {% if isBoosted %}
+                {% set photoContainerClasses = photoContainerClasses ~ ' boosted' %}
+            {% endif %}
+
             {% if listing.photo_url %}
-                <img src="{{ listing.photo_url }}" 
-                     class="img-fluid rounded shadow" 
-                     style="max-height: 550px; width: 100%; object-fit: cover;"
-                     alt="{{ listing.title }}">
+                <div class="{{ photoContainerClasses }}" style="background-color: #FAF4EB; max-height: 620px;">
+                    <img src="{{ listing.photo_url }}" 
+                         class="img-fluid w-100"
+                         style="max-height: 620px; object-fit: contain; padding: 12px;"
+                         alt="{{ listing.title }}">
+                </div>
             {% else %}
-                <div class="bg-light rounded shadow d-flex align-items-center justify-content-center" style="height: 500px;">
-                    <h1 class="text-muted">📸 Photo Coming Soon</h1>
+                <div class="bg-light rounded-4 shadow-sm d-flex align-items-center justify-content-center border" 
+                     style="height: 520px; background: linear-gradient(145deg, #FAF4EB, #f1e9d9);">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-image fs-1"></i>
+                        <p class="mt-3 mb-0">No photo uploaded yet</p>
+                    </div>
                 </div>
             {% endif %}
         </div>
 
         <!-- Right: Details -->
         <div class="col-lg-5">
-            <h2 class="fw-bold">{{ listing.title }}</h2>
-            <h3 class="text-warning mb-4">R {{ listing.price | int }}</h3>
+            <!-- Business Badge -->
+            {% if listing.is_business_ad %}
+                <span class="badge bg-warning text-dark fs-6 px-3 py-2 mb-2">
+                    <i class="bi bi-building me-1"></i> BUSINESS LISTING
+                </span>
+            {% endif %}
 
-            <p class="text-muted">
-                📍 {{ listing.area }} • {{ listing.location }}<br>
-                <small>Posted {{ listing.created_at.strftime('%d %b %Y at %H:%M') }} • Views: {{ listing.views }}</small>
+            <!-- Boosted Badge -->
+            {% if listing.listing_type == 'super' or listing.last_reposted_at %}
+                <span class="badge bg-info text-white fs-6 px-3 py-2 mb-2 ms-2">
+                    <i class="bi bi-rocket-takeoff me-1"></i> BOOSTED
+                </span>
+            {% endif %}
+
+            <h1 class="fw-bold mb-2">{{ listing.title }}</h1>
+
+            <!-- Price -->
+            {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
+                <h2 class="fw-bold mb-4" style="color: #2C3E50;">
+                    R{{ listing.min_price | int }} — R{{ listing.max_price | int }}
+                </h2>
+            {% elif listing.price and listing.price > 0 %}
+                <h2 class="fw-bold mb-4" style="color: #2C3E50;">R{{ listing.price | int }}</h2>
+            {% else %}
+                <h4 class="text-muted mb-4">Price on request</h4>
+            {% endif %}
+
+            <p class="text-muted mb-4">
+                <i class="bi bi-geo-alt-fill me-1"></i> {{ listing.location }}<br>
+                <small>
+                    Posted {{ listing.created_at.strftime('%d %b %Y at %H:%M') }} 
+                    • {{ listing.views or 0 }} views
+                </small>
             </p>
 
             <hr>
-            <h5>Description</h5>
-            <p style="white-space: pre-line; line-height: 1.7;">{{ listing.description }}</p>
 
-            <hr>
+            <h5 class="fw-semibold">Description</h5>
+            <p style="white-space: pre-line; line-height: 1.8; font-size: 1.05rem;">
+                {{ listing.description }}
+            </p>
 
-            <div class="card border-warning mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">💬 Contact the Seller</h5>
-                    <button onclick="alert('Private DM system coming in next step!')" 
+            <hr class="my-4">
+
+            <!-- Contact Section -->
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">
+                        Contact the {{ 'Business' if listing.is_business_ad else 'Seller' }}
+                    </h5>
+
+                    <button onclick="alert('Private DM system coming soon!')" 
                             class="btn btn-warning btn-lg w-100 mb-3">
-                        Message Seller Privately
+                        <i class="bi bi-chat-dots me-2"></i> Message Privately
                     </button>
+
                     {% if listing.contact_phone %}
-                    <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','') }}" 
-                       target="_blank" class="btn btn-success w-100">
-                        📱 WhatsApp the Seller
-                    </a>
+                        <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','')|replace('-','') }}" 
+                           target="_blank" 
+                           class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-whatsapp fs-5"></i> 
+                            <span>WhatsApp <small class="opacity-75">({{ listing.contact_phone }})</small></span>
+                        </a>
                     {% endif %}
                 </div>
             </div>
 
-            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">← Back to Latest Listings</a>
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                ← Back to listings
+            </a>
         </div>
     </div>
 </div>
