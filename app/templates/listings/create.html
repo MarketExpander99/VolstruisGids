@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Post a New Listing - Volstruis Gids{% endblock %}
+{% block title %}{% if editing %}Edit Listing{% else %}Post a New Listing{% endif %} - Volstruis Gids{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -8,7 +8,7 @@
         <div class="col-lg-8">
             <div class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
                 <div class="card-header text-white" style="background-color: #2C3E50;">
-                    <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Post a New Listing</h4>
+                    <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>{% if editing is defined and editing %}Edit Listing{% else %}Post a New Listing{% endif %}</h4>
                 </div>
                 <div class="card-body p-4 p-md-5">
 
@@ -170,6 +170,17 @@
                             <small class="text-muted d-block mb-2">
                                 First photo free with listing. Additional photos cost 1 extra credit each. Photos auto-fitted to 800×800 square.
                             </small>
+
+                            {% if editing is defined and editing and listing is defined and listing and listing.photo_url %}
+                            <div class="mb-2">
+                                <small class="text-muted">Current main photo:</small><br>
+                                <img src="{{ listing.photo_url }}" style="max-width:100px; max-height:100px; object-fit:cover; border-radius:4px;">
+                                {% if listing.photo_urls %}
+                                <small class="text-muted d-block">+ {{ listing.photo_urls.split(',') | length }} more photo(s)</small>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted d-block">Upload new photo(s) to replace the current ones (first will be main).</small>
+                            {% endif %}
                             
                             {{ form.photo(class="form-control", id="photo", multiple=True) }}
                             
@@ -181,7 +192,11 @@
                         </div>
 
                         <button type="submit" class="btn btn-success btn-lg w-100 py-3 fw-semibold">
-                            <i class="bi bi-plus-circle me-1"></i>Post Listing
+                            {% if editing is defined and editing %}
+                                <i class="bi bi-save me-1"></i>Update Listing
+                            {% else %}
+                                <i class="bi bi-plus-circle me-1"></i>Post Listing
+                            {% endif %}
                         </button>
                     </form>
                 </div>

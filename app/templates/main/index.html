@@ -179,7 +179,7 @@
                         const unit = listing.rental_duration_unit || 'day';
                         priceHTML = `<p class="fw-bold text-success">R${listing.price} / ${unit}${dur ? ' (min ' + dur + ')' : ''}</p>`;
                     } else if (pt === 'fixed' && listing.price) {
-                        priceHTML = `<p class="fw-bold text-success">${listing.price}</p>`;
+                        priceHTML = `<p class="fw-bold text-success">R${listing.price}</p>`;
                     } else if (pt === 'range' && listing.min_price != null && listing.max_price != null) {
                         priceHTML = `<p class="fw-bold text-success">R${listing.min_price} – R${listing.max_price}</p>`;
                     } else if (listing.post_type === 'wanted' || listing.ad_type === 'wanted') {

@@ -135,7 +135,7 @@ def create():
                 else:
                     msg = f'Not enough credits. This {"super/business" if is_business else "normal"} listing requires {required_credits} credit(s). Please buy more credits to continue.'
                 flash(msg, 'warning')
-                return render_template('listings/create.html', form=form)
+                return render_template('listings/create.html', form=form, editing=False)
 
             current_user.credit_balance -= required_credits
             txn = CreditTransaction(
@@ -185,9 +185,125 @@ def create():
         except Exception as e:
             db.session.rollback()
             flash(f'Error saving your listing: {str(e)}', 'danger')
-            return render_template('listings/create.html', form=form)
+            return render_template('listings/create.html', form=form, editing=False)
 
     return render_template('listings/create.html', form=form)
+
+
+@listings_bp.route('/listing/<int:listing_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_listing(listing_id):
+    listing = Listing.query.get_or_404(listing_id)
+    if listing.user_id != current_user.id:
+        flash('You can only edit your own listings.', 'danger')
+        return redirect(url_for('main.my_listings'))
+
+    form = ListingForm(obj=listing)
+
+    seed_categories()
+
+    form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
+    if not form.category.choices:
+        form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
+
+    if request.method == 'GET':
+        # Prefill fields that don't map directly via obj=
+        form.town.data = listing.location
+        form.category.data = listing.category_id
+        form.post_type.data = listing.post_type
+        form.price_type.data = listing.price_type or 'fixed'
+        if listing.price_type == 'fixed':
+            form.price.data = listing.price
+        else:
+            form.min_price.data = listing.min_price
+            form.max_price.data = listing.max_price
+        if listing.post_type == 'rental':
+            form.rental_duration.data = listing.rental_duration
+            form.rental_duration_unit.data = listing.rental_duration_unit or 'day'
+        form.contact_phone.data = listing.contact_phone or ''
+        form.contact_email.data = listing.contact_email or ''
+        form.allow_comments.data = listing.allow_comments if listing.allow_comments is not None else True
+        if listing.contact_email and not listing.contact_phone:
+            form.contact_preference.data = 'email'
+        elif listing.contact_phone and not listing.contact_email:
+            form.contact_preference.data = 'phone'
+        else:
+            form.contact_preference.data = 'any'
+
+    if form.validate_on_submit():
+        pref = form.contact_preference.data
+        contact_phone = None
+        contact_email = None
+        if pref == 'email':
+            contact_email = form.contact_email.data
+        elif pref == 'phone':
+            contact_phone = form.contact_phone.data
+        else:
+            contact_phone = form.contact_phone.data
+            contact_email = form.contact_email.data
+
+        # Photo: only replace if new files uploaded
+        photo_url = listing.photo_url
+        photo_urls = listing.photo_urls
+        if form.photo.data:
+            files = form.photo.data if isinstance(form.photo.data, (list, tuple)) else [form.photo.data]
+            new_photos = []
+            for f in files:
+                if f and getattr(f, 'filename', None) and allowed_file(f.filename):
+                    filename = secure_filename(f.filename)
+                    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                    filepath = os.path.join(UPLOAD_FOLDER, filename)
+                    f.save(filepath)
+                    resize_image_to_square(filepath)
+                    new_photos.append(f'/static/uploads/{filename}')
+            if new_photos:
+                photo_url = new_photos[0]
+                photo_urls = ','.join(new_photos[1:]) if len(new_photos) > 1 else None
+
+        # Pricing
+        price_type = form.price_type.data or 'fixed'
+        if price_type == 'fixed':
+            price = form.price.data or 0.0
+            min_price = None
+            max_price = None
+        else:
+            price = 0.0
+            min_price = form.min_price.data
+            max_price = form.max_price.data
+
+        # Rental
+        rental_duration = form.rental_duration.data if form.post_type.data == 'rental' else None
+        rental_duration_unit = form.rental_duration_unit.data if form.post_type.data == 'rental' else None
+
+        # Update listing (no credit changes on edit)
+        listing.title = form.title.data
+        listing.description = form.description.data
+        listing.price = price
+        listing.price_type = price_type
+        listing.min_price = min_price
+        listing.max_price = max_price
+        listing.location = form.town.data
+        listing.area = "Western Cape"
+        listing.contact_phone = contact_phone
+        listing.contact_email = contact_email
+        listing.category_id = form.category.data
+        listing.photo_url = photo_url
+        listing.photo_urls = photo_urls
+        listing.allow_comments = form.allow_comments.data
+        listing.post_type = form.post_type.data
+        listing.rental_duration = rental_duration
+        listing.rental_duration_unit = rental_duration_unit
+
+        try:
+            db.session.commit()
+            flash('Listing updated successfully!', 'success')
+            return redirect(url_for('main.my_listings'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating your listing: {str(e)}', 'danger')
+            return render_template('listings/create.html', form=form, listing=listing, editing=True)
+
+    return render_template('listings/create.html', form=form, listing=listing, editing=True)
 
 
 @listings_bp.route('/quick-create', methods=['GET', 'POST'])

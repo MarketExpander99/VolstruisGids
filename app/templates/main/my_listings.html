@@ -48,6 +48,8 @@
                         <p class="card-text flex-grow-1">{{ listing.description[:100] }}...</p>
                         
                         <div class="mt-auto">
+                            <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" 
+                               class="btn btn-outline-primary btn-sm w-100 mb-1">✏️ Edit</a>
                             <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
                                class="btn btn-success btn-sm w-100 mb-2">View Details</a>
                             <form method="POST" action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
