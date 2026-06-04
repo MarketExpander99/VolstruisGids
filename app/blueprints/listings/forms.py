@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField, SubmitField, RadioField, BooleanField, IntegerField
+from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField, SubmitField, RadioField, BooleanField, IntegerField, SelectMultipleField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 
@@ -37,12 +37,18 @@ class ListingForm(FlaskForm):
         ('Zoar', 'Zoar')
     ])
 
-    # Contact preference - DM removed for now (frontend only)
-    contact_preference = RadioField('How would you like to be contacted?', validators=[DataRequired()], choices=[
-        ('email', '📧 Email only'),
-        ('phone', '📞 Phone only'),
-        ('any', '🌐 Any (Phone + Email)')
-    ], default='any')
+    # Multi-select contact methods (checkboxes). Sellers can choose any combination.
+    # 'dm' = in-app private messaging, 'email', 'phone' = WhatsApp
+    contact_methods = SelectMultipleField(
+        'How would you like to be contacted? (select all that apply)',
+        choices=[
+            ('dm', '💬 DM (Private Message via the platform)'),
+            ('email', '📧 Email'),
+            ('phone', '📞 Phone (WhatsApp)')
+        ],
+        validators=[DataRequired(message="Please select at least one contact method.")],
+        default=['dm', 'email', 'phone']
+    )
 
     allow_comments = BooleanField('Allow comments on this listing', default=True)
 

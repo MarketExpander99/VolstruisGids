@@ -79,7 +79,7 @@
     <!-- Reply Form -->
     <div class="card shadow-sm">
         <div class="card-body p-3">
-            <form method="POST" action="{{ url_for('messages.send') }}" class="d-flex flex-column flex-md-row gap-2 align-items-stretch">
+            <form method="POST" action="{{ url_for('messages.send_message') }}" class="d-flex flex-column flex-md-row gap-2 align-items-stretch">
                 {{ form.hidden_tag() }}
 
                 <div class="flex-grow-1">

@@ -133,17 +133,25 @@
                             </div>
                         </div>
 
-                        <!-- Contact Preference -->
+                        <!-- Contact Methods (multi-select checkboxes) -->
                         <div class="mb-4">
-                            {{ form.contact_preference.label(class="form-label fw-bold") }}
+                            {{ form.contact_methods.label(class="form-label fw-bold") }}
                             <div class="list-group">
-                                {% for subfield in form.contact_preference %}
+                                {% for value, label_text in form.contact_methods.choices %}
+                                    {% set is_checked = value in (form.contact_methods.data or []) %}
                                     <label class="list-group-item list-group-item-action d-flex align-items-center">
-                                        {{ subfield(class="form-check-input me-2") }}
-                                        <span>{{ subfield.label.text }}</span>
+                                        <input type="checkbox" 
+                                               class="form-check-input me-2" 
+                                               name="{{ form.contact_methods.name }}" 
+                                               value="{{ value }}"
+                                               {% if is_checked %}checked{% endif %}>
+                                        <span>{{ label_text }}</span>
                                     </label>
                                 {% endfor %}
                             </div>
+                            {% for error in form.contact_methods.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
                         </div>
 
                         <!-- Conditional Contact Fields -->

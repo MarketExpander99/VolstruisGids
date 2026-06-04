@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from app.config import Config
 
 db = SQLAlchemy()
@@ -46,5 +46,17 @@ def create_app(config_class=Config):
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(payments_bp)   # <-- Added (url_prefix='/payments' is defined inside the blueprint)
     app.register_blueprint(messages_bp)   # <-- /messages/inbox, /messages/conversation etc.
+
+    # Context processor to provide unread message count for navbar notifications (NEW messages only)
+    @app.context_processor
+    def inject_unread_messages_count():
+        if current_user.is_authenticated:
+            # Count only unread messages received by the current user
+            unread_count = Message.query.filter(
+                Message.receiver_id == current_user.id,
+                Message.read == False
+            ).count()
+            return {'unread_messages_count': unread_count}
+        return {'unread_messages_count': 0}
 
     return app

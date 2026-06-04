@@ -169,6 +169,10 @@
 
             <hr class="my-4">
 
+            {# Determine allowed contact methods (hoisted for use in card + modal). Backward compat for legacy listings without contact_methods. #}
+            {% set cm = (listing.contact_methods or '').strip() %}
+            {% set methods = (cm.split(',') if cm else ['dm', 'email', 'phone']) | map('trim') | list %}
+
             <!-- Contact Card -->
             <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
                 <div class="card-body p-4">
@@ -176,21 +180,45 @@
                         Contact the {{ 'Business' if listing.is_business_ad else 'Seller' }}
                     </h6>
 
-                    {% if current_user.is_authenticated and current_user.id != listing.user_id %}
-                        <!-- In-app Private Message (MVP) -->
-                        <button type="button" class="btn btn-warning w-100 mb-2 d-flex align-items-center justify-content-center gap-2" 
-                                data-bs-toggle="modal" data-bs-target="#messageModal">
-                            <i class="bi bi-chat-dots fs-5"></i> 
-                            <span>Message Privately <small class="opacity-75">(in-app)</small></span>
-                        </button>
-                    {% elif not current_user.is_authenticated %}
-                        <a href="{{ url_for('auth.login', next=request.path) }}" class="btn btn-outline-warning w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
-                            <i class="bi bi-chat-dots fs-5"></i> 
-                            <span>Login to Message Privately</span>
+                    <!-- Display selected contact preferences as badges -->
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">Seller accepts:</small>
+                        {% if 'dm' in methods %}
+                            <span class="badge bg-warning text-dark me-1"><i class="bi bi-chat-dots me-1"></i>DM</span>
+                        {% endif %}
+                        {% if 'email' in methods %}
+                            <span class="badge bg-primary me-1"><i class="bi bi-envelope me-1"></i>Email</span>
+                        {% endif %}
+                        {% if 'phone' in methods %}
+                            <span class="badge bg-success me-1"><i class="bi bi-whatsapp me-1"></i>Phone/WhatsApp</span>
+                        {% endif %}
+                    </div>
+
+                    {% if 'dm' in methods %}
+                        {% if current_user.is_authenticated and current_user.id != listing.user_id %}
+                            <!-- In-app Private Message -->
+                            <button type="button" class="btn btn-warning w-100 mb-2 d-flex align-items-center justify-content-center gap-2" 
+                                    data-bs-toggle="modal" data-bs-target="#messageModal">
+                                <i class="bi bi-chat-dots fs-5"></i> 
+                                <span>DM</span>
+                            </button>
+                        {% elif not current_user.is_authenticated %}
+                            <a href="{{ url_for('auth.login', next=request.path) }}" class="btn btn-outline-warning w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-chat-dots fs-5"></i> 
+                                <span>Login to DM</span>
+                            </a>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if listing.contact_email and 'email' in methods %}
+                        <a href="mailto:{{ listing.contact_email }}" 
+                           class="btn btn-outline-primary w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-envelope fs-5"></i> 
+                            <span>Email <small class="opacity-75">({{ listing.contact_email }})</small></span>
                         </a>
                     {% endif %}
 
-                    {% if listing.contact_phone %}
+                    {% if listing.contact_phone and 'phone' in methods %}
                         <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','')|replace('-','')|replace('(','')|replace(')','') }}" 
                            target="_blank" 
                            class="btn btn-success w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
@@ -199,32 +227,27 @@
                         </a>
                     {% endif %}
 
-                    {% if listing.contact_email %}
-                        <a href="mailto:{{ listing.contact_email }}" 
-                           class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2">
-                            <i class="bi bi-envelope fs-5"></i> 
-                            <span>Email <small class="opacity-75">({{ listing.contact_email }})</small></span>
-                        </a>
-                    {% endif %}
-
-                    {% if not listing.contact_phone and not listing.contact_email and not (current_user.is_authenticated and current_user.id != listing.user_id) %}
+                    {% set has_phone = listing.contact_phone and 'phone' in methods %}
+                    {% set has_email = listing.contact_email and 'email' in methods %}
+                    {% set show_dm_btn = 'dm' in methods and (current_user.is_authenticated and current_user.id != listing.user_id or not current_user.is_authenticated) %}
+                    {% if not has_phone and not has_email and not show_dm_btn %}
                         <p class="text-muted small mb-0">No direct contact details provided.</p>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Private Message Modal -->
-            {% if current_user.is_authenticated and current_user.id != listing.user_id %}
+            <!-- Private Message Modal (only if DM selected for this listing) -->
+            {% if 'dm' in methods and current_user.is_authenticated and current_user.id != listing.user_id %}
             <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="messageModalLabel">
-                                <i class="bi bi-chat-dots me-2"></i>Send Private Message
+                                <i class="bi bi-chat-dots me-2"></i>DM this Seller
                             </h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <form method="POST" action="{{ url_for('messages.send') }}">
+                        <form method="POST" action="{{ url_for('messages.send_message') }}">
                             <div class="modal-body">
                                 {{ message_form.hidden_tag() }}
 

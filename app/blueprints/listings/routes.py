@@ -60,17 +60,10 @@ def create():
         form.contact_email.data = current_user.email
 
     if form.validate_on_submit():
-        pref = form.contact_preference.data
-        contact_phone = None
-        contact_email = None
-
-        if pref == 'email':
-            contact_email = form.contact_email.data
-        elif pref == 'phone':
-            contact_phone = form.contact_phone.data
-        else:
-            contact_phone = form.contact_phone.data
-            contact_email = form.contact_email.data
+        selected = form.contact_methods.data or []
+        contact_phone = form.contact_phone.data if 'phone' in selected else None
+        contact_email = form.contact_email.data if 'email' in selected else None
+        contact_methods = ','.join(selected) if selected else 'dm,email,phone'
 
         # === PHOTO UPLOAD (supports multiple; first becomes photo_url, rest in photo_urls; extra photo = +1 credit) ===
         photo_url = None
@@ -158,6 +151,7 @@ def create():
             area="Western Cape",
             contact_phone=contact_phone,
             contact_email=contact_email,
+            contact_methods=contact_methods,
             category_id=form.category.data,
             user_id=current_user.id,
             photo_url=photo_url,
@@ -224,24 +218,22 @@ def edit_listing(listing_id):
         form.contact_phone.data = listing.contact_phone or ''
         form.contact_email.data = listing.contact_email or ''
         form.allow_comments.data = listing.allow_comments if listing.allow_comments is not None else True
-        if listing.contact_email and not listing.contact_phone:
-            form.contact_preference.data = 'email'
-        elif listing.contact_phone and not listing.contact_email:
-            form.contact_preference.data = 'phone'
+        # Prefill multi-select, with backward compat for old listings (no contact_methods yet)
+        if listing.contact_methods:
+            form.contact_methods.data = [m.strip() for m in listing.contact_methods.split(',') if m.strip()]
         else:
-            form.contact_preference.data = 'any'
+            methods = ['dm']
+            if listing.contact_email:
+                methods.append('email')
+            if listing.contact_phone:
+                methods.append('phone')
+            form.contact_methods.data = methods
 
     if form.validate_on_submit():
-        pref = form.contact_preference.data
-        contact_phone = None
-        contact_email = None
-        if pref == 'email':
-            contact_email = form.contact_email.data
-        elif pref == 'phone':
-            contact_phone = form.contact_phone.data
-        else:
-            contact_phone = form.contact_phone.data
-            contact_email = form.contact_email.data
+        selected = form.contact_methods.data or []
+        contact_phone = form.contact_phone.data if 'phone' in selected else None
+        contact_email = form.contact_email.data if 'email' in selected else None
+        contact_methods = ','.join(selected) if selected else 'dm,email,phone'
 
         # Photo: only replace if new files uploaded
         photo_url = listing.photo_url
@@ -287,6 +279,7 @@ def edit_listing(listing_id):
         listing.area = "Western Cape"
         listing.contact_phone = contact_phone
         listing.contact_email = contact_email
+        listing.contact_methods = contact_methods
         listing.category_id = form.category.data
         listing.photo_url = photo_url
         listing.photo_urls = photo_urls
@@ -327,17 +320,10 @@ def quick_create():
         form.contact_email.data = current_user.email or ''
 
     if form.validate_on_submit():
-        pref = form.contact_preference.data
-        contact_phone = None
-        contact_email = None
-
-        if pref == 'email':
-            contact_email = form.contact_email.data
-        elif pref == 'phone':
-            contact_phone = form.contact_phone.data
-        else:
-            contact_phone = form.contact_phone.data
-            contact_email = form.contact_email.data
+        selected = form.contact_methods.data or []
+        contact_phone = form.contact_phone.data if 'phone' in selected else None
+        contact_email = form.contact_email.data if 'email' in selected else None
+        contact_methods = ','.join(selected) if selected else 'dm,email,phone'
 
         # === PHOTO UPLOAD (supports multiple; first becomes photo_url, rest in photo_urls; extra photo = +1 credit) ===
         photo_url = None
@@ -404,6 +390,7 @@ def quick_create():
             area="Western Cape",
             contact_phone=contact_phone,
             contact_email=contact_email,
+            contact_methods=contact_methods,
             category_id=form.category.data,
             user_id=current_user.id,
             photo_url=photo_url,
@@ -457,10 +444,12 @@ def detail(listing_id):
     listing = Listing.query.get_or_404(listing_id)
     listing.views = (listing.views or 0) + 1
     db.session.commit()
-    # Prepare message form (only instantiated for the private DM modal when eligible)
+    # Prepare message form (only for the private DM modal when the listing allows DM and user is eligible)
     # This ensures proper CSRF token via hidden_tag() and prefilled hidden fields.
     message_form = None
-    if current_user.is_authenticated and current_user.id != listing.user_id:
+    cm = (listing.contact_methods or '').strip()
+    methods = [m.strip() for m in cm.split(',') if m.strip()] if cm else ['dm', 'email', 'phone']
+    if 'dm' in methods and current_user.is_authenticated and current_user.id != listing.user_id:
         message_form = MessageForm()
         message_form.receiver_id.data = listing.user_id
         message_form.listing_id.data = listing.id

@@ -58,7 +58,12 @@
                         <a class="nav-link" href="{{ url_for('main.my_listings') }}"><i class="bi bi-list-ul me-1"></i>My Listings</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('messages.inbox') }}"><i class="bi bi-chat-dots me-1"></i>Messages</a>
+                        <a class="nav-link" href="{{ url_for('messages.inbox') }}">
+                            <i class="bi bi-chat-dots me-1"></i>Messages
+                            {% if unread_messages_count > 0 %}
+                                <span class="badge bg-danger rounded-pill ms-1" style="font-size: 0.65rem; vertical-align: top;">{{ unread_messages_count }}</span>
+                            {% endif %}
+                        </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('profile.profile') }}"><i class="bi bi-person-circle me-1"></i>Profile</a>
@@ -133,8 +138,12 @@
                     </a>
                 </div>
                 <div class="col">
-                    <a href="{{ url_for('messages.inbox') }}" class="text-white text-decoration-none d-block py-1">
+                    <a href="{{ url_for('messages.inbox') }}" class="text-white text-decoration-none d-block py-1 position-relative">
                         <i class="bi bi-chat-dots fs-4 d-block"></i>
+                        {% if unread_messages_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                                  style="font-size: 0.5rem; padding: 0.15em 0.35em;">{{ unread_messages_count }}</span>
+                        {% endif %}
                         <small>Messages</small>
                     </a>
                 </div>

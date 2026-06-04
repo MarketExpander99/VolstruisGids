@@ -24,6 +24,9 @@ class Listing(db.Model):
     area = db.Column(db.String(100), nullable=False, index=True, server_default="")
     contact_phone = db.Column(db.String(20))
     contact_email = db.Column(db.String(120))
+    # Multi-select contact methods: comma-separated e.g. 'dm,email,phone'
+    # Supports DM (in-app private messaging), Email, Phone/WhatsApp
+    contact_methods = db.Column(db.String(100), default='dm,email,phone')
     
     is_active = db.Column(db.Boolean, default=True)
     is_business_ad = db.Column(db.Boolean, default=False)
