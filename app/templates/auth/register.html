@@ -25,6 +25,7 @@
                         <div class="mb-3">
                             {{ form.username.label(class="form-label") }}
                             {{ form.username(class="form-control") }}
+                            <small class="text-muted">Your @handle will be shown automatically on listings (no need to include @)</small>
                             {% for error in form.username.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                         </div>
                         

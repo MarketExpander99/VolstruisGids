@@ -12,7 +12,11 @@ def login():
         return redirect(url_for('main.index'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
+        login_username = form.username.data.strip().lstrip('@')
+        user = User.query.filter_by(username=login_username).first()
+        if not user:
+            # try with @ for legacy users who registered with @ in name
+            user = User.query.filter_by(username='@' + login_username).first()
         if user and check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember_me.data)
             next_page = request.args.get('next')
@@ -26,8 +30,10 @@ def register():
         return redirect(url_for('main.index'))
     form = RegistrationForm()
     if form.validate_on_submit():
+        # Normalize username: strip whitespace and leading @ (to avoid @@User in displays)
+        clean_username = form.username.data.strip().lstrip('@')
         user = User(
-            username=form.username.data,
+            username=clean_username,
             phone=form.phone.data,
             email=form.email.data if form.email.data else None,
             password_hash=generate_password_hash(form.password.data),

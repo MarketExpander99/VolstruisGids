@@ -99,7 +99,7 @@
                 </div>
             {% else %}
                 <div class="text-muted small mb-3">
-                    Posted by <strong>{{ listing.user.username if listing.user else 'Seller' }}</strong>
+                    Posted by <strong>@{{ (listing.user.username or 'Seller').lstrip('@') if listing.user else 'Seller' }}</strong>
                 </div>
             {% endif %}
 
@@ -252,7 +252,7 @@
                                 {{ message_form.hidden_tag() }}
 
                                 <div class="mb-3">
-                                    <label for="messageText" class="form-label small">Your message to <strong>{{ listing.user.username if listing.user else 'the seller' }}</strong> about this listing:</label>
+                                    <label for="messageText" class="form-label small">Your message to <strong>@{{ (listing.user.username or 'the seller').lstrip('@') if listing.user else 'the seller' }}</strong> about this listing:</label>
                                     <textarea name="text" id="messageText" class="form-control" rows="4" 
                                               placeholder="Hi, I'm interested in your {{ listing.title }}. Is it still available? ..." required maxlength="2000"></textarea>
                                     <div class="form-text">Keep it polite and include any questions. The seller will reply here in the app.</div>

@@ -100,7 +100,7 @@ def api_listings():
         'is_business_ad': l.is_business_ad,
         'business_name': l.user.business_name if l.is_business_ad and l.user and l.user.business_name else None,
         'business_logo': l.user.profile_pic if l.is_business_ad and l.user and l.user.profile_pic else None,
-        'username': l.user.username if l.user else 'unknown',
+        'username': (l.user.username or 'unknown').lstrip('@') if l.user else 'unknown',
         'user_id': l.user_id,
         'ad_type': l.post_type,
         'category': l.category.name if l.category else '',

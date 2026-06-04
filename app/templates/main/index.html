@@ -158,7 +158,7 @@
                                     <a href="?user_id=${listing.user_id}" 
                                        onclick="event.preventDefault(); filterByUser(${listing.user_id});" 
                                        class="text-decoration-none text-primary">
-                                        @${listing.username}
+                                        @${(listing.username || '').replace(/^@+/, '')}
                                     </a>
                                 </strong>
                             </div>`;
