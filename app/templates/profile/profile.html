@@ -77,6 +77,9 @@
                 <div class="col">
                     <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="text-decoration-none text-reset">
                         <div class="card h-100 shadow-sm {% if listing.is_promoted or listing.last_reposted_at %}boosted{% endif %} {% if listing.is_business_ad %}business-listing{% endif %}">
+                            {% if listing.is_promoted or listing.last_reposted_at %}
+                            <div class="promoted-banner">PROMOTED</div>
+                            {% endif %}
                             {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
                             <img src="{{ photo_src }}" class="card-img-top" style="height: 80px; object-fit: cover;" alt="{{ listing.title }}">
                             <div class="card-body p-2">
