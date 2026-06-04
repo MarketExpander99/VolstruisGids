@@ -2,10 +2,9 @@
 <div class="col-md-6 col-lg-4 mb-4">
     <div class="card h-100 shadow-sm">
         {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
-        {% set object_fit = 'cover' if listing.photo_url else 'contain' %}
-        {% set no_photo_class = ' no-photo' if not listing.photo_url else '' %}
-        <img src="{{ photo_src }}" class="card-img-top{{ no_photo_class }}" alt="{{ listing.title }}" 
-             style="height: 200px; width: 100%; object-fit: {{ object_fit }}; background-color: #f8f9fa;">
+        {% set img_variant = ' photo' if listing.photo_url else ' no-photo' %}
+        <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" alt="{{ listing.title }}" 
+             style="height: 200px; width: 100%; background-color: #f8f9fa;">
         
         <div class="card-body d-flex flex-column">
             <h5 class="card-title">{{ listing.title }}</h5>
