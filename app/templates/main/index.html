@@ -59,6 +59,7 @@
                 <option value="">All Types</option>
                 <option value="sale">For Sale</option>
                 <option value="wanted">Looking For</option>
+                <option value="rental">For Rent</option>
                 <option value="services">Services Offered</option>
                 <option value="announcement">Announcement</option>
             </select>
@@ -163,6 +164,8 @@
                         typeBadge = '<span class="badge bg-success mb-2">FOR SALE</span>';
                     } else if (listing.ad_type === 'wanted') {
                         typeBadge = '<span class="badge bg-warning text-dark mb-2">LOOKING FOR</span>';
+                    } else if (listing.ad_type === 'rental') {
+                        typeBadge = '<span class="badge bg-info mb-2">FOR RENT</span>';
                     } else if (listing.ad_type === 'services') {
                         typeBadge = '<span class="badge bg-primary mb-2">SERVICES OFFERED</span>';
                     } else if (listing.ad_type === 'announcement') {
@@ -171,7 +174,11 @@
 
                     let priceHTML = '';
                     const pt = listing.price_type || 'fixed';
-                    if (pt === 'fixed' && listing.price) {
+                    if (listing.ad_type === 'rental' && listing.price) {
+                        const dur = listing.rental_duration || '';
+                        const unit = listing.rental_duration_unit || 'day';
+                        priceHTML = `<p class="fw-bold text-success">R${listing.price} / ${unit}${dur ? ' (min ' + dur + ')' : ''}</p>`;
+                    } else if (pt === 'fixed' && listing.price) {
                         priceHTML = `<p class="fw-bold text-success">${listing.price}</p>`;
                     } else if (pt === 'range' && listing.min_price != null && listing.max_price != null) {
                         priceHTML = `<p class="fw-bold text-success">R${listing.min_price} – R${listing.max_price}</p>`;

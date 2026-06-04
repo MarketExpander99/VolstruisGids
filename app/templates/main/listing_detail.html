@@ -55,7 +55,14 @@
             <h1 class="fw-bold mb-2">{{ listing.title }}</h1>
 
             <!-- Price -->
-            {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
+            {% if listing.post_type == 'rental' and listing.price %}
+                <h2 class="fw-bold mb-4" style="color: #2C3E50;">R{{ listing.price | int }}</h2>
+                {% if listing.rental_duration and listing.rental_duration_unit %}
+                    <small class="text-muted">per {{ listing.rental_duration_unit }} (min {{ listing.rental_duration }})</small>
+                {% else %}
+                    <small class="text-muted">rental rate</small>
+                {% endif %}
+            {% elif listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
                 <h2 class="fw-bold mb-4" style="color: #2C3E50;">
                     R{{ listing.min_price | int }} — R{{ listing.max_price | int }}
                 </h2>

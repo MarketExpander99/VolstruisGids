@@ -23,6 +23,8 @@
                         <div class="mb-2">
                             {% if listing.post_type == 'wanted' %}
                                 <span class="badge bg-warning text-dark">🔍 Looking For</span>
+                            {% elif listing.post_type == 'rental' %}
+                                <span class="badge bg-info">🔄 For Rent</span>
                             {% elif listing.post_type == 'announcement' %}
                                 <span class="badge bg-info">📢 Announcement</span>
                             {% else %}

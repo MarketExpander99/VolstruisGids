@@ -98,8 +98,8 @@
                         {% set img_variant = ' photo' if listing.photo_url else ' no-photo' %}
                         <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" style="height: 180px; width: 100%; background-color: #f8f9fa;" alt="{{ listing.title }}">
                         <div class="card-body">
-                            <span class="badge bg-{{ 'success' if listing.post_type == 'sale' else 'warning' if listing.post_type == 'wanted' else 'info' }}">
-                                {{ listing.post_type|title }}
+                            <span class="badge bg-{{ 'success' if listing.post_type == 'sale' else 'warning' if listing.post_type == 'wanted' else 'info' if listing.post_type == 'rental' else 'primary' if listing.post_type == 'services' else 'info' }}">
+                                {{ 'For Rent' if listing.post_type == 'rental' else listing.post_type|title }}
                             </span>
                             <h5 class="card-title mt-2">{{ listing.title }}</h5>
                             {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}

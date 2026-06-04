@@ -74,6 +74,23 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Rental Duration (only for rental post type) -->
+                            <div id="rental-duration" style="display: none;" class="mt-3">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.rental_duration.label(class="form-label") }}
+                                        {{ form.rental_duration(class="form-control") }}
+                                        {% for error in form.rental_duration.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.rental_duration_unit.label(class="form-label") }}
+                                        {{ form.rental_duration_unit(class="form-select") }}
+                                        {% for error in form.rental_duration_unit.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                                    </div>
+                                </div>
+                                <small class="text-muted">Price above is rate per unit. e.g. R500 per day for 7 days.</small>
+                            </div>
                         </div>
 
                         <!-- Title -->
@@ -135,8 +152,8 @@
                         <!-- Photo -->
                         <div class="mb-3">
                             {{ form.photo.label(class="form-label") }}
-                            <small class="text-muted">(Square images recommended — auto-resized)</small>
-                            {{ form.photo(class="form-control", id="photo") }}
+                            <small class="text-muted">First photo included; +1 credit per additional (auto-resized to square).</small>
+                            {{ form.photo(class="form-control", id="photo", multiple=True) }}
                             {% for error in form.photo.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
                             <div id="image-preview" class="mt-3 text-center"></div>
                         </div>
@@ -179,12 +196,24 @@
     const priceDetails = document.getElementById('price-details');
     const fixedDiv = document.getElementById('fixed-price');
     const rangeDiv = document.getElementById('range-price');
+    const rentalDurationDiv = document.getElementById('rental-duration');
 
     function updatePriceVisibility() {
         const selectedPost = document.querySelector('input[name="post_type"]:checked');
         const postValue = selectedPost ? selectedPost.value : 'sale';
-        const showPrice = ['sale', 'services', 'wanted'].includes(postValue);
+        const showPrice = ['sale', 'services', 'wanted', 'rental'].includes(postValue);
+        const pricingGroup = document.getElementById('pricing-type-group');
+        if (pricingGroup) {
+            pricingGroup.style.display = (postValue === 'rental') ? 'none' : 'block';
+        }
         priceDetails.style.display = showPrice ? 'block' : 'none';
+        if (rentalDurationDiv) {
+            rentalDurationDiv.style.display = (postValue === 'rental') ? 'block' : 'none';
+        }
+        if (postValue === 'rental' && fixedDiv && rangeDiv) {
+            fixedDiv.style.display = 'block';
+            rangeDiv.style.display = 'none';
+        }
     }
 
     function updatePriceType() {

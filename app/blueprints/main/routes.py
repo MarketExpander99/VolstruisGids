@@ -92,6 +92,7 @@ def api_listings():
         'location': l.location,
         'post_type': l.post_type,
         'photo_url': l.photo_url,
+        'photo_urls': l.photo_urls,
         'detail_url': url_for('listings.detail', listing_id=l.id),
         'is_business_ad': l.is_business_ad,
         'business_name': l.user.business_name if l.is_business_ad and l.user and l.user.business_name else None,
@@ -99,7 +100,9 @@ def api_listings():
         'username': l.user.username if l.user else 'unknown',
         'user_id': l.user_id,
         'ad_type': l.post_type,
-        'category': l.category.name if l.category else ''
+        'category': l.category.name if l.category else '',
+        'rental_duration': l.rental_duration,
+        'rental_duration_unit': l.rental_duration_unit
     } for l in listings.items]
 
     return jsonify({

@@ -44,6 +44,14 @@
                     </div>
                 </div>
             {% endif %}
+
+            {% if listing.photo_urls %}
+                <div class="mt-2 d-flex flex-wrap gap-2">
+                    {% for purl in listing.photo_urls.split(',') %}
+                        <img src="{{ purl }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border:1px solid #eee;" alt="additional photo">
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
 
         <!-- Details Column -->
@@ -87,7 +95,14 @@
 
             <!-- Price -->
             <div class="mb-4">
-                {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
+                {% if listing.post_type == 'rental' and listing.price %}
+                    <h2 class="fw-bold mb-0" style="color: #2C3E50;">R{{ listing.price|int }}</h2>
+                    {% if listing.rental_duration and listing.rental_duration_unit %}
+                        <small class="text-muted">per {{ listing.rental_duration_unit }} (min {{ listing.rental_duration }})</small>
+                    {% else %}
+                        <small class="text-muted">rental rate</small>
+                    {% endif %}
+                {% elif listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
                     <div>
                         <span class="display-6 fw-bold" style="color: #2C3E50;">R{{ listing.min_price|int }}</span>
                         <span class="text-muted mx-2">—</span>

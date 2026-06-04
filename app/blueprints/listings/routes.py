@@ -71,15 +71,24 @@ def create():
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
 
-        # === PHOTO UPLOAD (now correctly inside the function) ===
+        # === PHOTO UPLOAD (supports multiple; first becomes photo_url, rest in photo_urls; extra photo = +1 credit) ===
         photo_url = None
-        if form.photo.data and allowed_file(form.photo.data.filename):
-            filename = secure_filename(form.photo.data.filename)
-            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            form.photo.data.save(filepath)
-            resize_image_to_square(filepath)
-            photo_url = f'/static/uploads/{filename}'
+        photo_urls_list = []
+        if form.photo.data:
+            files = form.photo.data if isinstance(form.photo.data, (list, tuple)) else [form.photo.data]
+            for f in files:
+                if f and getattr(f, 'filename', None) and allowed_file(f.filename):
+                    filename = secure_filename(f.filename)
+                    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                    filepath = os.path.join(UPLOAD_FOLDER, filename)
+                    f.save(filepath)
+                    resize_image_to_square(filepath)
+                    url = f'/static/uploads/{filename}'
+                    if photo_url is None:
+                        photo_url = url
+                    else:
+                        photo_urls_list.append(url)
+        photo_urls = ','.join(photo_urls_list) if photo_urls_list else None
 
         # Pricing logic
         price_type = form.price_type.data or 'fixed'
@@ -91,6 +100,13 @@ def create():
             price = 0.0  # legacy placeholder (NOT NULL in some DBs); range uses min/max for display
             min_price = form.min_price.data
             max_price = form.max_price.data
+
+        # Rental fields (if applicable)
+        rental_duration = form.rental_duration.data if form.post_type.data == 'rental' else None
+        rental_duration_unit = form.rental_duration_unit.data if form.post_type.data == 'rental' else None
+
+        # Extra credits for additional photos (first photo included; +1 credit per extra)
+        num_extra_photos = len(photo_urls_list) if 'photo_urls_list' in locals() else 0
 
         # Credit logic
         posts_today = getattr(current_user, 'posts_today', 0) or 0
@@ -108,15 +124,17 @@ def create():
             )
             db.session.add(txn)
         else:
-            required_credits = 2 if is_business else 1
+            base_credits = 2 if is_business else 1
+            extra_photo_credits = num_extra_photos
+            required_credits = base_credits + extra_photo_credits
             listing_type = 'super' if is_business else 'normal'
 
             if current_user.credit_balance < required_credits:
-                flash(
-                    f'Not enough credits. This {"super/business" if is_business else "normal"} listing requires {required_credits} credit(s). '
-                    'Please buy more credits to continue.',
-                    'warning'
-                )
+                if extra_photo_credits > 0:
+                    msg = f'Not enough credits. This {"super/business" if is_business else "normal"} listing requires {required_credits} credit(s). ({extra_photo_credits} extra for additional photos)'
+                else:
+                    msg = f'Not enough credits. This {"super/business" if is_business else "normal"} listing requires {required_credits} credit(s). Please buy more credits to continue.'
+                flash(msg, 'warning')
                 return render_template('listings/create.html', form=form)
 
             current_user.credit_balance -= required_credits
@@ -142,10 +160,13 @@ def create():
             category_id=form.category.data,
             user_id=current_user.id,
             photo_url=photo_url,
+            photo_urls=photo_urls,
             allow_comments=form.allow_comments.data,
             post_type=form.post_type.data,
             is_business_ad=current_user.is_business,
-            listing_type=listing_type
+            listing_type=listing_type,
+            rental_duration=rental_duration,
+            rental_duration_unit=rental_duration_unit
         )
 
         try:
@@ -201,14 +222,24 @@ def quick_create():
             contact_phone = form.contact_phone.data
             contact_email = form.contact_email.data
 
+        # === PHOTO UPLOAD (supports multiple; first becomes photo_url, rest in photo_urls; extra photo = +1 credit) ===
         photo_url = None
-        if form.photo.data and allowed_file(form.photo.data.filename):
-            filename = secure_filename(form.photo.data.filename)
-            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            form.photo.data.save(filepath)
-            resize_image_to_square(filepath)
-            photo_url = f'/static/uploads/{filename}'
+        photo_urls_list = []
+        if form.photo.data:
+            files = form.photo.data if isinstance(form.photo.data, (list, tuple)) else [form.photo.data]
+            for f in files:
+                if f and getattr(f, 'filename', None) and allowed_file(f.filename):
+                    filename = secure_filename(f.filename)
+                    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                    filepath = os.path.join(UPLOAD_FOLDER, filename)
+                    f.save(filepath)
+                    resize_image_to_square(filepath)
+                    url = f'/static/uploads/{filename}'
+                    if photo_url is None:
+                        photo_url = url
+                    else:
+                        photo_urls_list.append(url)
+        photo_urls = ','.join(photo_urls_list) if photo_urls_list else None
 
         price_type = form.price_type.data or 'fixed'
         if price_type == 'fixed':
@@ -220,19 +251,26 @@ def quick_create():
             min_price = form.min_price.data
             max_price = form.max_price.data
 
+        # Rental fields (if applicable)
+        rental_duration = form.rental_duration.data if form.post_type.data == 'rental' else None
+        rental_duration_unit = form.rental_duration_unit.data if form.post_type.data == 'rental' else None
+
         required_credits = 2
-        if current_user.credit_balance < required_credits:
-            flash(
-                f'Not enough credits. Quick-create (super/business) listings require {required_credits} credits. '
-                'Please buy more credits.',
-                'warning'
-            )
+        num_extra_photos = len(photo_urls_list)
+        extra_photo_credits = num_extra_photos
+        total_required = required_credits + extra_photo_credits
+        if current_user.credit_balance < total_required:
+            if extra_photo_credits > 0:
+                msg = f'Not enough credits. Quick-create (super/business) listings require {total_required} credits. ({extra_photo_credits} extra for additional photos)'
+            else:
+                msg = f'Not enough credits. Quick-create (super/business) listings require {total_required} credits. Please buy more credits.'
+            flash(msg, 'warning')
             return render_template('listings/quick_create.html', form=form)
 
-        current_user.credit_balance -= required_credits
+        current_user.credit_balance -= total_required
         txn = CreditTransaction(
             user_id=current_user.id,
-            amount=-required_credits,
+            amount=-total_required,
             transaction_type='listing',
             reference=f'quick_listing_{datetime.utcnow().isoformat()}'
         )
@@ -252,10 +290,13 @@ def quick_create():
             category_id=form.category.data,
             user_id=current_user.id,
             photo_url=photo_url,
+            photo_urls=photo_urls,
             allow_comments=form.allow_comments.data,
             post_type=form.post_type.data,
             is_business_ad=True,
-            listing_type='super'
+            listing_type='super',
+            rental_duration=rental_duration,
+            rental_duration_unit=rental_duration_unit
         )
 
         try:

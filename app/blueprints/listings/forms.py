@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField, SubmitField, RadioField, BooleanField
+from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField, SubmitField, RadioField, BooleanField, IntegerField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 
@@ -7,6 +7,7 @@ class ListingForm(FlaskForm):
     post_type = RadioField('Post Type', validators=[DataRequired()], choices=[
         ('sale', '🛒 Items for Sale'),
         ('wanted', '🔍 Looking for'),
+        ('rental', '🔄 For Rent / Hire'),
         ('services', '🛠 Services Offered'),
         ('announcement', '📢 General Announcement')
     ], default='sale')
@@ -49,3 +50,11 @@ class ListingForm(FlaskForm):
     contact_email = StringField('Contact Email')
 
     photo = FileField('Photo (optional)')
+
+    # Rental fields (shown only for post_type=rental)
+    rental_duration = IntegerField('Rental Duration', validators=[Optional(), NumberRange(min=1)])
+    rental_duration_unit = SelectField('Duration Unit', choices=[
+        ('day', 'Day(s)'),
+        ('week', 'Week(s)'),
+        ('month', 'Month(s)')
+    ], default='day', validators=[Optional()])
