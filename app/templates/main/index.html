@@ -108,7 +108,6 @@
                     const isBusiness = listing.is_business_ad;
                     const isBoosted = listing.listing_type === 'super' || listing.last_reposted_at;
 
-                    // Apply visual hierarchy classes
                     let cardExtraClasses = 'card h-100';
                     if (isBusiness) cardExtraClasses += ' business-listing';
                     if (isBoosted) cardExtraClasses += ' boosted';
@@ -166,15 +165,27 @@
                         priceHTML = `<p class="text-muted small">Price on request</p>`;
                     }
 
+                    // Default image fallback
+                    const defaultPhoto = '/static/img/default-listing.jpg';
+                    const photoHTML = listing.photo_url 
+                        ? `<div style="height:200px; background-color:#f8f9fa; display:flex; align-items:center; justify-content-center; overflow:hidden;">
+                             <img src="${listing.photo_url}" alt="Photo" 
+                                  style="max-width:100%; max-height:100%; object-fit:contain; padding:8px;">
+                           </div>`
+                        : `<div style="height:200px; background-color:#f8f9fa; display:flex; align-items:center; justify-content-center; overflow:hidden;">
+                             <img src="${defaultPhoto}" alt="Default listing photo" 
+                                  style="max-width:100%; max-height:100%; object-fit:contain; padding:8px; opacity: 0.85;">
+                           </div>`;
+
+                    // WhatsApp Share Button
+                    const shareText = `Check out this listing on VolstruisGids: ${listing.title}`;
+                    const shareUrl = `${window.location.origin}${listing.detail_url}`;
+                    const whatsappShareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+
                     const cardHTML = `
                         <div class="col-md-4 mb-4">
                             <div class="${cardExtraClasses}">
-                                ${listing.photo_url 
-                                    ? `<div style="height:200px; background-color:#f8f9fa; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                                         <img src="${listing.photo_url}" alt="Photo" 
-                                              style="max-width:100%; max-height:100%; object-fit:contain; padding:8px;">
-                                       </div>`
-                                    : `<div class="bg-light d-flex align-items-center justify-content-center" style="height:200px;"><span class="text-muted">No photo yet</span></div>`}
+                                ${photoHTML}
                                 <div class="card-body">
                                     ${typeBadge}
                                     <h5 class="card-title">${listing.title}</h5>
@@ -183,8 +194,19 @@
                                     ${posterHTML}
                                     <small class="text-muted">${listing.location}</small>
                                 </div>
-                                <div class="card-footer bg-transparent border-0">
-                                    <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100">View Full Ad →</a>
+                                <div class="card-footer bg-transparent border-0 pt-0">
+                                    <!-- Share on WhatsApp -->
+                                    <a href="${whatsappShareLink}" 
+                                       target="_blank" 
+                                       class="btn btn-success btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
+                                        <i class="bi bi-whatsapp"></i> 
+                                        <span>Share on WhatsApp</span>
+                                    </a>
+
+                                    <!-- View Full Ad -->
+                                    <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100">
+                                        View Full Ad →
+                                    </a>
                                 </div>
                             </div>
                         </div>`;
