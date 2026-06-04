@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 """
-Safe, non-destructive database schema sync for production (PostgreSQL on PythonAnywhere).
+Safe, non-destructive database schema sync.
 
 Ensures all columns from the current Listing model exist (price range, rental, photos, boost/promoted, contact_methods, allow_comments, listing_type etc.).
+Works for both:
+  - Production: PostgreSQL (PythonAnywhere, etc.)
+  - Local dev: SQLite
+
 - Idempotent (safe to run multiple times)
-- Uses IF NOT EXISTS + proper defaults
+- Uses "ADD COLUMN IF NOT EXISTS" + proper defaults
 - Backfills existing rows where sensible
 - Never drops data or tables
-- Respects DATABASE_URL (or falls back to SQLite for dev)
 
-Run this on production after deploying code that added new columns to the model.
-This fixes 500 errors on /api/listings (and other pages) caused by missing columns in prod DB.
+Run this after deploying code that added new columns to the model.
+This fixes 500 errors on /api/listings and similar (caused by missing columns in the DB).
 """
 
 import sys
@@ -19,7 +22,7 @@ from app import create_app, db
 
 
 def main():
-    print("=== Volstruis Gids Production DB Sync ===")
+    print("=== Volstruis Gids DB Schema Sync ===")
     print("This will safely add any missing columns from the current Listing model.")
     print("It is idempotent and will NOT delete or alter existing data.\n")
 
@@ -30,10 +33,16 @@ def main():
         safe_uri = db_uri.split('@')[-1] if '@' in db_uri else db_uri
         print(f"Connected to: {safe_uri}")
 
-        if 'postgresql' not in db_uri.lower() and 'postgres' not in db_uri.lower():
-            print("\n⚠️  WARNING: This does not appear to be a PostgreSQL connection.")
-            print("   For local SQLite dev you should use fix_database.py instead (destructive).")
-            answer = input("Continue anyway on this database? (yes/no): ").strip().lower()
+        is_postgres = 'postgresql' in db_uri.lower() or 'postgres' in db_uri.lower()
+        is_sqlite = 'sqlite' in db_uri.lower()
+
+        if is_postgres:
+            print("✓ PostgreSQL detected. Proceeding with safe ALTERs...")
+        elif is_sqlite:
+            print("✓ SQLite detected (local dev). Script is non-destructive (uses ADD COLUMN IF NOT EXISTS). Proceeding automatically...")
+        else:
+            print("\n⚠️  WARNING: Unrecognized database type.")
+            answer = input("Continue anyway? (yes/no): ").strip().lower()
             if answer != "yes":
                 print("Aborted by user.")
                 return
@@ -141,10 +150,10 @@ def main():
                     print(f"✓ Backfilled allow_comments on {result.rowcount} rows")
 
                 trans.commit()
-                print("\n✅ Production DB sync completed successfully!")
-                print("   All Listing model columns now exist in prod DB.")
+                print("\n✅ DB schema sync completed successfully!")
+                print("   All Listing model columns now exist.")
                 print("   /api/listings and homepage should now return valid JSON (no more 500s or JSON parse errors).")
-                print("   You can now reload the web app on PythonAnywhere.")
+                print("   Restart your app (Flask dev server or PythonAnywhere web app).")
 
             except Exception as e:
                 trans.rollback()
