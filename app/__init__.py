@@ -38,11 +38,13 @@ def create_app(config_class=Config):
     from app.blueprints.listings import listings_bp
     from app.blueprints.profile import profile_bp
     from app.blueprints.payments import payments_bp   # <-- Added for Paystack integration
+    from app.blueprints.messages import messages_bp   # <-- Private Messaging MVP
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(listings_bp)
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(payments_bp)   # <-- Added (url_prefix='/payments' is defined inside the blueprint)
+    app.register_blueprint(messages_bp)   # <-- /messages/inbox, /messages/conversation etc.
 
     return app

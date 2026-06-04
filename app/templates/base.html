@@ -58,6 +58,9 @@
                         <a class="nav-link" href="{{ url_for('main.my_listings') }}"><i class="bi bi-list-ul me-1"></i>My Listings</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('messages.inbox') }}"><i class="bi bi-chat-dots me-1"></i>Messages</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('profile.profile') }}"><i class="bi bi-person-circle me-1"></i>Profile</a>
                     </li>
 
@@ -130,7 +133,7 @@
                     </a>
                 </div>
                 <div class="col">
-                    <a href="#" onclick="showMessagesComingSoon()" class="text-white text-decoration-none d-block py-1">
+                    <a href="{{ url_for('messages.inbox') }}" class="text-white text-decoration-none d-block py-1">
                         <i class="bi bi-chat-dots fs-4 d-block"></i>
                         <small>Messages</small>
                     </a>

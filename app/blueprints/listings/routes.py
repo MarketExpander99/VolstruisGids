@@ -4,6 +4,7 @@ from app import db
 from app.models.listing import Listing
 from app.models.category import Category, seed_categories
 from .forms import ListingForm
+from app.blueprints.messages.forms import MessageForm   # for private message modal CSRF + fields on detail page
 from . import listings_bp
 import os
 from werkzeug.utils import secure_filename
@@ -456,4 +457,12 @@ def detail(listing_id):
     listing = Listing.query.get_or_404(listing_id)
     listing.views = (listing.views or 0) + 1
     db.session.commit()
-    return render_template('listings/detail.html', listing=listing)
+    # Prepare message form (only instantiated for the private DM modal when eligible)
+    # This ensures proper CSRF token via hidden_tag() and prefilled hidden fields.
+    message_form = None
+    if current_user.is_authenticated and current_user.id != listing.user_id:
+        message_form = MessageForm()
+        message_form.receiver_id.data = listing.user_id
+        message_form.listing_id.data = listing.id
+
+    return render_template('listings/detail.html', listing=listing, message_form=message_form)
