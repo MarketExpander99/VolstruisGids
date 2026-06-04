@@ -8,17 +8,16 @@
         <!-- Left: Photo -->
         <div class="col-lg-7">
             {% set isBusiness = listing.is_business_ad %}
-            {% set isBoosted = listing.listing_type == 'super' or listing.last_reposted_at %}
+            {% set isPromoted = listing.is_promoted or listing.last_reposted_at %}
 
             {% set photoContainerClasses = 'position-relative rounded-4 shadow-sm overflow-hidden border' %}
-            {% if isBusiness %}
-                {% set photoContainerClasses = photoContainerClasses ~ ' business-listing' %}
-            {% endif %}
-            {% if isBoosted %}
-                {% set photoContainerClasses = photoContainerClasses ~ ' boosted' %}
-            {% endif %}
+            {% if isBusiness %} {% set photoContainerClasses = photoContainerClasses ~ ' business-listing' %} {% endif %}
+            {% if isPromoted %} {% set photoContainerClasses = photoContainerClasses ~ ' boosted' %} {% endif %}
+
+            {% set defaultPhoto = '/static/img/default-listing.jpg' %}
 
             {% if listing.photo_url %}
+                <!-- Uploaded photo -->
                 <div class="{{ photoContainerClasses }}" style="background-color: #FAF4EB; max-height: 620px;">
                     <img src="{{ listing.photo_url }}" 
                          class="img-fluid w-100"
@@ -26,31 +25,32 @@
                          alt="{{ listing.title }}">
                 </div>
             {% else %}
-                <div class="bg-light rounded-4 shadow-sm d-flex align-items-center justify-content-center border" 
-                     style="height: 520px; background: linear-gradient(145deg, #FAF4EB, #f1e9d9);">
-                    <div class="text-center text-muted">
-                        <i class="bi bi-image fs-1"></i>
-                        <p class="mt-3 mb-0">No photo uploaded yet</p>
-                    </div>
+                <!-- Default image when no photo uploaded -->
+                <div class="{{ photoContainerClasses }}" style="background-color: #FAF4EB; max-height: 620px;">
+                    <img src="{{ defaultPhoto }}" 
+                         class="img-fluid w-100"
+                         style="max-height: 620px; object-fit: contain; padding: 12px; opacity: 0.9;"
+                         alt="Default listing photo">
                 </div>
             {% endif %}
         </div>
 
         <!-- Right: Details -->
         <div class="col-lg-5">
-            <!-- Business Badge -->
-            {% if listing.is_business_ad %}
-                <span class="badge bg-warning text-dark fs-6 px-3 py-2 mb-2">
-                    <i class="bi bi-building me-1"></i> BUSINESS LISTING
-                </span>
-            {% endif %}
+            <!-- Badges -->
+            <div class="mb-2">
+                {% if listing.is_business_ad %}
+                    <span class="badge bg-warning text-dark fs-6 px-3 py-2 me-2">
+                        <i class="bi bi-building me-1"></i> BUSINESS
+                    </span>
+                {% endif %}
 
-            <!-- Boosted Badge -->
-            {% if listing.listing_type == 'super' or listing.last_reposted_at %}
-                <span class="badge bg-info text-white fs-6 px-3 py-2 mb-2 ms-2">
-                    <i class="bi bi-rocket-takeoff me-1"></i> BOOSTED
-                </span>
-            {% endif %}
+                {% if listing.is_promoted or listing.last_reposted_at %}
+                    <span class="badge bg-info text-white fs-6 px-3 py-2">
+                        <i class="bi bi-rocket-takeoff me-1"></i> PROMOTED
+                    </span>
+                {% endif %}
+            </div>
 
             <h1 class="fw-bold mb-2">{{ listing.title }}</h1>
 
@@ -81,6 +81,32 @@
             </p>
 
             <hr class="my-4">
+
+            <!-- Boost Section (only visible to owner) -->
+            {% if current_user.is_authenticated and current_user.id == listing.user_id %}
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background-color: #f8f4eb;">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-2">
+                            <i class="bi bi-rocket-takeoff me-2"></i> Boost this listing
+                        </h6>
+                        <p class="small text-muted mb-3">
+                            Boosted listings get more visibility and a special badge.
+                        </p>
+
+                        {% if listing.is_promoted or listing.last_reposted_at %}
+                            <div class="alert alert-success py-2 px-3 mb-3 small">
+                                This listing is currently promoted.
+                            </div>
+                        {% endif %}
+
+                        <form method="POST" action="{{ url_for('listings.boost', listing_id=listing.id) }}">
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-rocket me-2"></i> Boost for 7 days
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
 
             <!-- Contact Section -->
             <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">

@@ -17,6 +17,7 @@
     <div class="row g-5">
         <!-- Photo Column -->
         <div class="col-lg-7">
+            {% set defaultPhoto = '/static/img/default-listing.jpg' %}
             {% if listing.photo_url %}
                 <div class="position-relative">
                     <img src="{{ listing.photo_url }}" 
@@ -30,11 +31,16 @@
                     </div>
                 </div>
             {% else %}
-                <div class="bg-light rounded-4 shadow-sm d-flex align-items-center justify-content-center border"
-                     style="height: 520px; background: linear-gradient(145deg, #FAF4EB, #f1e9d9);">
-                    <div class="text-center text-muted">
-                        <i class="bi bi-image fs-1"></i>
-                        <p class="mt-3 mb-0">No photo for this listing</p>
+                <!-- Default image when no photo uploaded -->
+                <div class="position-relative">
+                    <img src="{{ defaultPhoto }}" 
+                         class="img-fluid rounded-4 shadow-lg w-100 listing-hero-img"
+                         style="max-height: 620px; object-fit: contain; border: 1px solid #eee; background-color: #FAF4EB; padding: 12px;"
+                         alt="Default listing photo">
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-dark bg-opacity-75 px-3 py-2 fs-6">
+                            {{ listing.post_type|title if listing.post_type else 'Listing' }}
+                        </span>
                     </div>
                 </div>
             {% endif %}
