@@ -157,34 +157,6 @@ def api_categories():
     ])
 
 
-@main_bp.route('/profile')
-@login_required
-def profile():
-    listings = Listing.query.filter_by(user_id=current_user.id)\
-        .order_by(Listing.created_at.desc()).all()
-    return render_template('main/profile.html', listings=listings)
-
-@main_bp.route('/profile/edit', methods=['GET', 'POST'])
-@login_required
-def edit_profile():
-    if request.method == 'POST':
-        current_user.business_name = request.form.get('business_name') if current_user.is_business else None
-        current_user.bio = request.form.get('bio')
-        current_user.location = request.form.get('location')
-        if 'profile_pic' in request.files:
-            file = request.files['profile_pic']
-            if file and file.filename and allowed_file(file.filename):
-                os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-                filename = secure_filename(f"profile_{current_user.id}_{file.filename}")
-                filepath = os.path.join(UPLOAD_FOLDER, filename)
-                file.save(filepath)
-                resize_image_to_square(filepath)
-                current_user.profile_pic = f'/static/uploads/{filename}'
-        db.session.commit()
-        flash('✅ Profile updated successfully!', 'success')
-        return redirect(url_for('main.profile'))
-    return render_template('main/profile.html', listings=[], edit_mode=True)
-
 @main_bp.route('/my-listings')
 @login_required
 def my_listings():

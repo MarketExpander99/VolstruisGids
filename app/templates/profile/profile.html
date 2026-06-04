@@ -66,5 +66,32 @@
             </div>
         </div>
     </div>
+
+    <!-- Active Listings Grid -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h5 class="mb-3">📋 Your Active Listings ({{ listings|length }})</h5>
+            {% if listings %}
+            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2">
+                {% for listing in listings %}
+                <div class="col">
+                    <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="text-decoration-none text-reset">
+                        <div class="card h-100 shadow-sm {% if listing.is_promoted or listing.last_reposted_at %}boosted{% endif %} {% if listing.is_business_ad %}business-listing{% endif %}">
+                            {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
+                            <img src="{{ photo_src }}" class="card-img-top" style="height: 80px; object-fit: cover;" alt="{{ listing.title }}">
+                            <div class="card-body p-2">
+                                <p class="card-text small mb-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.2;">{{ listing.description[:80] }}...</p>
+                                <small class="text-muted"><i class="bi bi-eye me-1"></i>{{ listing.views or 0 }} views</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info py-2 small">No active listings yet. <a href="{{ url_for('listings.create') }}">Post your first one!</a></div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

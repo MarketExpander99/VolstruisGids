@@ -7,6 +7,8 @@ from flask_login import login_required, current_user
 from app import db
 from app.models.user import User
 from app.models.credit_transaction import CreditTransaction
+from app.models.listing import Listing
+from .forms import ProfileForm
 import requests  # for Paystack
 from app.blueprints.profile import profile_bp
 
@@ -230,3 +232,35 @@ def paystack_webhook():
         return '', 200
     except Exception:
         return '', 200
+
+
+@profile_bp.route('/', methods=['GET', 'POST'])
+@login_required
+def profile():
+    if request.method == 'POST':
+        form = ProfileForm()
+        if form.validate_on_submit():
+            current_user.email = form.email.data
+            current_user.phone = form.phone.data
+            db.session.commit()
+            flash('✅ Profile updated successfully!', 'success')
+            return redirect(url_for('profile.profile'))
+        # invalid POST: form has submitted data + errors, fall to render
+    else:
+        form = ProfileForm(obj=current_user)
+
+    listings = Listing.query.filter_by(user_id=current_user.id, is_active=True)\
+        .order_by(Listing.created_at.desc()).all()
+
+    is_business = current_user.account_type == 'business' or current_user.is_business
+    account_type_label = 'Business' if is_business else 'Personal'
+    credit_balance = current_user.credit_balance or 0
+
+    return render_template(
+        'profile/profile.html',
+        listings=listings,
+        form=form,
+        credit_balance=credit_balance,
+        is_business=is_business,
+        account_type_label=account_type_label
+    )

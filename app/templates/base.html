@@ -58,7 +58,7 @@
                         <a class="nav-link" href="{{ url_for('main.my_listings') }}"><i class="bi bi-list-ul me-1"></i>My Listings</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.profile') }}"><i class="bi bi-person-circle me-1"></i>Profile</a>
+                        <a class="nav-link" href="{{ url_for('profile.profile') }}"><i class="bi bi-person-circle me-1"></i>Profile</a>
                     </li>
 
                     {% if current_user.is_authenticated %}
@@ -124,7 +124,7 @@
                     </a>
                 </div>
                 <div class="col">
-                    <a href="{{ url_for('main.profile') }}" class="text-white text-decoration-none d-block py-1">
+                    <a href="{{ url_for('profile.profile') }}" class="text-white text-decoration-none d-block py-1">
                         <i class="bi bi-person fs-4 d-block"></i>
                         <small>Profile</small>
                     </a>
