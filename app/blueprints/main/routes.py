@@ -2,6 +2,7 @@ from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
+from app.models.category import Category
 from sqlalchemy.orm import joinedload
 from . import main_bp
 import os
@@ -41,11 +42,12 @@ def index():
 
 @main_bp.route('/api/listings')
 def api_listings():
-    """AJAX endpoint for homepage listings feed with working filters (q, town, post_type/ad_type, user_id)."""
+    """AJAX endpoint for homepage listings feed with working filters (q, town, post_type/ad_type, user_id, category)."""
     query = request.args.get('q', '').strip()
     post_type = request.args.get('post_type', '').strip()
     town = request.args.get('town', '').strip()
     user_id = request.args.get('user_id')
+    category = request.args.get('category', '').strip()
     page = int(request.args.get('page', 1))
     per_page = 12
 
@@ -69,6 +71,14 @@ def api_listings():
         except ValueError:
             pass
 
+    if category:
+        try:
+            cat = Category.query.filter_by(name=category).first()
+            if cat:
+                listings_query = listings_query.filter(Listing.category_id == cat.id)
+        except Exception:
+            pass
+
     listings = listings_query.order_by(Listing.created_at.desc())\
         .paginate(page=page, per_page=per_page, error_out=False)
 
@@ -86,7 +96,8 @@ def api_listings():
         'business_logo': l.user.profile_pic if l.is_business_ad and l.user and l.user.profile_pic else None,
         'username': l.user.username if l.user else 'unknown',
         'user_id': l.user_id,
-        'ad_type': l.post_type
+        'ad_type': l.post_type,
+        'category': l.category.name if l.category else ''
     } for l in listings.items]
 
     return jsonify({
@@ -94,6 +105,49 @@ def api_listings():
         'has_more': listings.has_next,
         'next_page': page + 1 if listings.has_next else None
     })
+
+
+@main_bp.route('/api/categories')
+def api_categories():
+    """Return categories with active listing counts. Respects other filters (q, town, post_type, user_id)
+    but ignores any category filter so that facet buttons show alternatives under current search.
+    """
+    query = request.args.get('q', '').strip()
+    post_type = request.args.get('post_type', '').strip()
+    town = request.args.get('town', '').strip()
+    user_id = request.args.get('user_id')
+
+    from sqlalchemy import func
+
+    cat_query = db.session.query(
+        Category.name, func.count(Listing.id).label('count')
+    ).join(Listing, Listing.category_id == Category.id
+    ).filter(Listing.is_active == True)
+
+    if query:
+        cat_query = cat_query.filter(
+            (Listing.title.ilike(f'%{query}%')) |
+            (Listing.description.ilike(f'%{query}%'))
+        )
+
+    if post_type:
+        cat_query = cat_query.filter(Listing.post_type == post_type)
+
+    if town:
+        cat_query = cat_query.filter(Listing.location == town)
+
+    if user_id:
+        try:
+            cat_query = cat_query.filter(Listing.user_id == int(user_id))
+        except ValueError:
+            pass
+
+    counts = cat_query.group_by(Category.name).order_by(func.count(Listing.id).desc()).all()
+
+    return jsonify([
+        {'name': name, 'count': count} for name, count in counts
+    ])
+
 
 @main_bp.route('/profile')
 @login_required

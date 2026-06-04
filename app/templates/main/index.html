@@ -3,16 +3,33 @@
 {% block content %}
 <div class="container mt-4">
     <!-- HERO BANNER -->
-    <div class="hero-bg position-relative text-white rounded-3 p-5 mb-5 text-center">
-        <h1 class="display-4 fw-bold">Welkom by VolstruisGids</h1>
-        <p class="lead">Klein Karoo Classifieds – van Oudtshoorn tot Ladismith</p>
-        <p class="mb-0">Business &amp; Personal listings • Free to browse • Post your ad today</p>
+    <div class="hero-bg position-relative overflow-hidden rounded-3 mb-5 text-white text-center">
+        <!-- Responsive hero image (desktop vs mobile crop for better composition) -->
+        <picture class="position-absolute top-0 start-0 w-100 h-100 m-0" style="z-index: 0;">
+            <source media="(max-width: 767.98px)" srcset="{{ url_for('static', filename='img/hero-karoo-sunset-mobile.jpg') }}">
+            <img src="{{ url_for('static', filename='img/hero-karoo-sunset.jpg') }}" 
+                 alt="Klein Karoo sunset landscape" 
+                 class="w-100 h-100"
+                 style="object-fit: cover; object-position: center; display: block;">
+        </picture>
+
+        <!-- Gradient overlay for text legibility -->
+        <div class="hero-overlay position-absolute top-0 start-0 w-100 h-100"
+             style="background: linear-gradient(rgba(44, 62, 80, 0.55), rgba(44, 62, 80, 0.72)); z-index: 1;"></div>
+
+        <!-- Text content -->
+        <div class="hero-content position-relative p-4 p-md-5" style="z-index: 2;">
+            <h1 class="display-4 fw-bold mb-3">Welkom by Volstruis Gids</h1>
+            <p class="lead mb-2">A marketplace built in the Klein Karoo, for the Klein Karoo</p>
+            <p class="mb-0 opacity-90">Business &amp; Personal listings • Free to browse • Post your ad today</p>
+        </div>
     </div>
 
-    <h1 class="mb-4">VolstruisGids - Klein Karoo Classifieds</h1>
+    <h1 class="mb-4">Volstruis Gids - Klein Karoo Classifieds</h1>
 
     <!-- Filters -->
     <div class="row g-3 mb-4 align-items-end" id="filter-form">
+        <input type="hidden" id="category" value="">
         <div class="col-md-3">
             <input type="text" id="q" class="form-control" placeholder="Search title or description..." value="">
         </div>
@@ -54,14 +71,11 @@
         </div>
     </div>
 
-    <!-- Popular Categories -->
+    <!-- Popular Categories (dynamic: only shows categories with listings matching current filters) -->
     <div class="mb-4">
         <h5 class="text-muted">Popular Categories</h5>
-        <div class="d-flex flex-wrap gap-2">
-            <span class="badge bg-secondary fs-6 px-3 py-2">Vehicles</span>
-            <span class="badge bg-secondary fs-6 px-3 py-2">Property</span>
-            <span class="badge bg-secondary fs-6 px-3 py-2">Farm &amp; Garden</span>
-            <span class="badge bg-secondary fs-6 px-3 py-2">Services</span>
+        <div id="popular-categories" class="d-flex flex-wrap gap-2">
+            <!-- Populated dynamically by JavaScript as filter buttons e.g. Vehicles (3) -->
         </div>
     </div>
 
@@ -78,7 +92,7 @@
     </div>
 
     <div class="text-center text-muted small mt-5">
-        VolstruisGids © 2026 • All listings are user posted • Business listings marked with logo
+        Volstruis Gids © 2026 • All listings are user posted • Business listings marked with logo
     </div>
 </div>
 
@@ -90,12 +104,14 @@
         const q = document.getElementById('q').value.trim();
         const town = document.getElementById('town').value;
         const post_type = document.getElementById('post_type').value;
+        const category = document.getElementById('category') ? document.getElementById('category').value.trim() : '';
         const user_id = new URLSearchParams(window.location.search).get('user_id');
 
         let url = `/api/listings?page=${page}`;
         if (q) url += `&q=${encodeURIComponent(q)}`;
         if (town) url += `&town=${encodeURIComponent(town)}`;
         if (post_type) url += `&post_type=${post_type}`;
+        if (category) url += `&category=${encodeURIComponent(category)}`;
         if (user_id) url += `&user_id=${user_id}`;
 
         fetch(url)
@@ -177,7 +193,7 @@
                         </div>`;
 
                     // WhatsApp Share
-                    const shareText = `Check out this listing on VolstruisGids: ${listing.title}`;
+                    const shareText = `Check out this listing on Volstruis Gids: ${listing.title}`;
                     const shareUrl = `${window.location.origin}${listing.detail_url}`;
                     const whatsappShareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
 
@@ -219,17 +235,21 @@
     function applyFilters() {
         currentPage = 1;
         fetchListings(1, false);
+        loadPopularCategories();
     }
 
     function resetFilters() {
         document.getElementById('q').value = '';
         document.getElementById('town').value = '';
         document.getElementById('post_type').value = '';
+        const catEl = document.getElementById('category');
+        if (catEl) catEl.value = '';
         const url = new URL(window.location);
         url.searchParams.delete('user_id');
         window.history.pushState({}, '', url);
         currentPage = 1;
         fetchListings(1, false);
+        loadPopularCategories();
     }
 
     function filterByUser(userId) {
@@ -238,6 +258,59 @@
         window.history.pushState({}, '', url);
         currentPage = 1;
         fetchListings(1, false);
+        loadPopularCategories();
+    }
+
+    function filterByCategory(catName) {
+        const catEl = document.getElementById('category');
+        if (catEl) catEl.value = catName;
+        currentPage = 1;
+        fetchListings(1, false);
+        loadPopularCategories();  // update buttons + active highlight immediately
+    }
+
+    function loadPopularCategories() {
+        const q = document.getElementById('q').value.trim();
+        const town = document.getElementById('town').value;
+        const post_type = document.getElementById('post_type').value;
+        const user_id = new URLSearchParams(window.location.search).get('user_id');
+        // Note: intentionally do NOT send 'category' param so the facet counts
+        // reflect other filters and allow switching between categories.
+
+        let url = `/api/categories`;
+        const params = [];
+        if (q) params.push(`q=${encodeURIComponent(q)}`);
+        if (town) params.push(`town=${encodeURIComponent(town)}`);
+        if (post_type) params.push(`post_type=${post_type}`);
+        if (user_id) params.push(`user_id=${user_id}`);
+        if (params.length > 0) url += `?${params.join('&')}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('popular-categories');
+                if (!container) return;
+                container.innerHTML = '';
+
+                const currentCat = document.getElementById('category') ? document.getElementById('category').value.trim() : '';
+
+                data.forEach(cat => {
+                    if (cat.count > 0) {
+                        const isActive = cat.name === currentCat;
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = `btn btn-sm ${isActive ? 'btn-success' : 'btn-outline-secondary'}`;
+                        btn.innerHTML = `${cat.name} <span class="badge ${isActive ? 'bg-light text-dark' : 'bg-secondary'} ms-1">${cat.count}</span>`;
+                        btn.onclick = () => filterByCategory(cat.name);
+                        // Optional: title for accessibility
+                        btn.title = `Filter to ${cat.name} (${cat.count} listings)`;
+                        container.appendChild(btn);
+                    }
+                });
+
+                // If no categories match current filters, the container will just be empty (h5 still visible)
+            })
+            .catch(err => console.error('Error fetching categories:', err));
     }
 
     function loadMore() {
@@ -247,6 +320,7 @@
 
     window.onload = function() {
         fetchListings(1, false);
+        loadPopularCategories();
     };
 </script>
 {% endblock %}

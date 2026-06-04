@@ -3,8 +3,9 @@
     <div class="card h-100 shadow-sm">
         {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
         {% set object_fit = 'cover' if listing.photo_url else 'contain' %}
-        <img src="{{ photo_src }}" class="card-img-top" alt="{{ listing.title }}" 
-             style="height: 200px; width: 100%; object-fit: {{ object_fit }}; background-color: #f8f9fa; {% if not listing.photo_url %}padding: 8px;{% endif %}">
+        {% set no_photo_class = ' no-photo' if not listing.photo_url else '' %}
+        <img src="{{ photo_src }}" class="card-img-top{{ no_photo_class }}" alt="{{ listing.title }}" 
+             style="height: 200px; width: 100%; object-fit: {{ object_fit }}; background-color: #f8f9fa;">
         
         <div class="card-body d-flex flex-column">
             <h5 class="card-title">{{ listing.title }}</h5>

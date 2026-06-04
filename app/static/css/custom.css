@@ -89,6 +89,11 @@ body {
     transform: scale(1.05);
 }
 
+/* For cards using default photo fallback (padding only; object-fit is set inline) */
+.card-img-top.no-photo {
+    padding: 8px;
+}
+
 .form-control, .form-select {
     border-radius: 8px;
     padding: 12px 16px;
@@ -107,6 +112,57 @@ body {
     color: white;
     padding: 120px 0;
     position: relative;
+}
+
+/* ============================================
+   HERO BANNER (index page) - responsive with desktop + mobile images
+   ============================================ */
+.hero-bg {
+    min-height: 340px;
+    background-color: #2C3E50; /* fallback */
+    display: flex;
+    align-items: center;
+}
+
+/* The hero image is inside <picture> - we control object-position on the img */
+.hero-bg img {
+    object-position: center;
+}
+
+.hero-content {
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+.hero-content h1,
+.hero-content .lead,
+.hero-content p {
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Mobile adjustments + use the dedicated mobile crop */
+@media (max-width: 767.98px) {
+    .hero-bg {
+        min-height: 230px;
+    }
+
+    .hero-bg img {
+        /* Shift focal point if the mobile crop benefits from it */
+        object-position: center 35%;
+    }
+
+    .hero-content {
+        max-width: 100%;
+    }
+
+    .hero-content h1 {
+        font-size: 2.1rem;
+        line-height: 1.15;
+    }
+
+    .hero-content .lead {
+        font-size: 1.05rem;
+    }
 }
 
 footer {

@@ -18,7 +18,7 @@ from app import create_app, db
 
 
 def main():
-    print("=== VolstruisGids Production DB Sync ===")
+    print("=== Volstruis Gids Production DB Sync ===")
     print("This will safely add price range columns if missing.")
     print("It is idempotent and will NOT delete or alter existing data.\n")
 

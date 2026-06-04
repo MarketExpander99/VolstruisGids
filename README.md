@@ -6,7 +6,7 @@ A clean, searchable, always-available marketplace replacing noisy WhatsApp group
 
 ### Mission
 People in the Klein Karoo are already buying, selling, and sharing daily on WhatsApp.  
-VolstruisGids gives them a **better home**:  
+Volstruis Gids gives them a **better home**:  
 - Listings that don’t disappear when you stop scrolling  
 - Private messaging (no more public phone numbers)  
 - Powerful search and filters  

@@ -96,7 +96,8 @@
                     <div class="card h-100 shadow-sm">
                         {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
                         {% set object_fit = 'cover' if listing.photo_url else 'contain' %}
-                        <img src="{{ photo_src }}" class="card-img-top" style="height: 180px; width: 100%; object-fit: {{ object_fit }}; background-color: #f8f9fa; {% if not listing.photo_url %}padding: 8px;{% endif %}" alt="{{ listing.title }}">
+                        {% set no_photo_class = ' no-photo' if not listing.photo_url else '' %}
+                        <img src="{{ photo_src }}" class="card-img-top{{ no_photo_class }}" style="height: 180px; width: 100%; object-fit: {{ object_fit }}; background-color: #f8f9fa;" alt="{{ listing.title }}">
                         <div class="card-body">
                             <span class="badge bg-{{ 'success' if listing.post_type == 'sale' else 'warning' if listing.post_type == 'wanted' else 'info' }}">
                                 {{ listing.post_type|title }}
