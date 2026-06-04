@@ -104,7 +104,7 @@ def create():
             min_price = None
             max_price = None
         else:
-            price = None
+            price = 0.0  # legacy placeholder (NOT NULL in some DBs); range uses min/max for display
             min_price = form.min_price.data
             max_price = form.max_price.data
 
@@ -248,7 +248,7 @@ def quick_create():
             min_price = None
             max_price = None
         else:
-            price = None
+            price = 0.0  # legacy placeholder (NOT NULL in some DBs); range uses min/max for display
             min_price = form.min_price.data
             max_price = form.max_price.data
 

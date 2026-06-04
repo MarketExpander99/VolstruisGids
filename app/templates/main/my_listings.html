@@ -32,7 +32,9 @@
 
                         <h5 class="card-title">{{ listing.title }}</h5>
                         
-                        {% if listing.price and listing.price > 0 %}
+                        {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
+                            <h6 class="text-success">R{{ listing.min_price|int }} – R{{ listing.max_price|int }}</h6>
+                        {% elif listing.price and listing.price > 0 %}
                             <h6 class="text-success">R{{ listing.price }}</h6>
                         {% elif listing.post_type == 'wanted' %}
                             <h6 class="text-warning">🔍 Looking For</h6>

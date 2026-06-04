@@ -9,7 +9,8 @@ class Listing(db.Model):
     title = db.Column(db.String(200), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
     
-    # Pricing - nullable to support 'range' and 'negotiable' listings
+    # Pricing - nullable=True in model (for range/negotiable), but some legacy DBs may still have NOT NULL.
+    # Creation code sets price=0.0 for range as safe placeholder; display logic prefers price_type + min/max.
     price = db.Column(db.Float, nullable=True)                    # kept for legacy fixed price
     price_type = db.Column(db.String(10), default='fixed', nullable=False)  # 'fixed' or 'range'
     min_price = db.Column(db.Float, nullable=True)

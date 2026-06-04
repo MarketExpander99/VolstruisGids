@@ -87,6 +87,8 @@ def api_listings():
         'title': l.title,
         'description': l.description[:100] + '...' if l.description else '',
         'price': f"R{l.price}" if l.price and l.price > 0 else '',
+        'min_price': l.min_price,
+        'max_price': l.max_price,
         'location': l.location,
         'post_type': l.post_type,
         'photo_url': l.photo_url,
