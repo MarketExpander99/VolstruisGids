@@ -2,7 +2,7 @@ from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
-from app.models.category import Category
+from app.models.category import Category, seed_categories
 from .forms import ListingForm
 from . import listings_bp
 import os
@@ -47,24 +47,8 @@ def resize_image_to_square(image_path, size=800, bg_color=(250, 244, 235)):
 def create():
     form = ListingForm()
 
-    # Auto-seed categories if table is empty
-    if Category.query.count() == 0:
-        seed_data = [
-            ("Farm Equipment", "Listings for Farm Equipment"),
-            ("Livestock & Ostriches", "Listings for Livestock & Ostriches"),
-            ("Property & Rentals", "Listings for Property & Rentals"),
-            ("Services", "Listings for Services"),
-            ("Electronics", "Listings for Electronics"),
-            ("Vehicles", "Listings for Vehicles"),
-            ("General", "Listings for General"),
-            ("Building Materials", "Listings for Building Materials"),
-            ("Furniture", "Listings for Furniture"),
-            ("Jobs", "Listings for Jobs"),
-        ]
-        for name, desc in seed_data:
-            if not Category.query.filter_by(name=name).first():
-                db.session.add(Category(name=name, description=desc))
-        db.session.commit()
+    # Auto-seed categories (idempotent)
+    seed_categories()
 
     form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
     if not form.category.choices:
@@ -194,23 +178,7 @@ def quick_create():
 
     form = ListingForm()
 
-    if Category.query.count() == 0:
-        seed_data = [
-            ("Farm Equipment", "Listings for Farm Equipment"),
-            ("Livestock & Ostriches", "Listings for Livestock & Ostriches"),
-            ("Property & Rentals", "Listings for Property & Rentals"),
-            ("Services", "Listings for Services"),
-            ("Electronics", "Listings for Electronics"),
-            ("Vehicles", "Listings for Vehicles"),
-            ("General", "Listings for General"),
-            ("Building Materials", "Listings for Building Materials"),
-            ("Furniture", "Listings for Furniture"),
-            ("Jobs", "Listings for Jobs"),
-        ]
-        for name, desc in seed_data:
-            if not Category.query.filter_by(name=name).first():
-                db.session.add(Category(name=name, description=desc))
-        db.session.commit()
+    seed_categories()
 
     form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
     if not form.category.choices:
