@@ -165,19 +165,18 @@
                         priceHTML = `<p class="text-muted small">Price on request</p>`;
                     }
 
-                    // Default image fallback
+                    // Improved centered photo container (works for both uploaded + default image)
                     const defaultPhoto = '/static/img/default-listing.jpg';
-                    const photoHTML = listing.photo_url 
-                        ? `<div style="height:200px; background-color:#f8f9fa; display:flex; align-items:center; justify-content-center; overflow:hidden;">
-                             <img src="${listing.photo_url}" alt="Photo" 
-                                  style="max-width:100%; max-height:100%; object-fit:contain; padding:8px;">
-                           </div>`
-                        : `<div style="height:200px; background-color:#f8f9fa; display:flex; align-items:center; justify-content-center; overflow:hidden;">
-                             <img src="${defaultPhoto}" alt="Default listing photo" 
-                                  style="max-width:100%; max-height:100%; object-fit:contain; padding:8px; opacity: 0.85;">
-                           </div>`;
+                    const photoSrc = listing.photo_url || defaultPhoto;
 
-                    // WhatsApp Share Button
+                    const photoHTML = `
+                        <div style="height:200px; background-color:#f8f9fa; position:relative; overflow:hidden;">
+                            <img src="${photoSrc}" alt="Photo" 
+                                 style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); 
+                                        max-width:94%; max-height:94%; object-fit:contain; padding:6px;">
+                        </div>`;
+
+                    // WhatsApp Share
                     const shareText = `Check out this listing on VolstruisGids: ${listing.title}`;
                     const shareUrl = `${window.location.origin}${listing.detail_url}`;
                     const whatsappShareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
@@ -195,7 +194,6 @@
                                     <small class="text-muted">${listing.location}</small>
                                 </div>
                                 <div class="card-footer bg-transparent border-0 pt-0">
-                                    <!-- Share on WhatsApp -->
                                     <a href="${whatsappShareLink}" 
                                        target="_blank" 
                                        class="btn btn-success btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
@@ -203,7 +201,6 @@
                                         <span>Share on WhatsApp</span>
                                     </a>
 
-                                    <!-- View Full Ad -->
                                     <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100">
                                         View Full Ad →
                                     </a>
