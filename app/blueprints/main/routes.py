@@ -1,13 +1,17 @@
+# app/blueprints/main/routes.py
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
 from app.models.category import Category
+from app.models.credit_transaction import CreditTransaction
 from sqlalchemy.orm import joinedload
 from . import main_bp
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image
+import requests
+from datetime import datetime, date
 
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -36,9 +40,11 @@ def resize_image_to_square(image_path, size=400):
     except Exception:
         return False
 
+
 @main_bp.route('/')
 def index():
     return render_template('main/index.html')
+
 
 @main_bp.route('/api/listings')
 def api_listings():
@@ -167,6 +173,7 @@ def my_listings():
         .order_by(Listing.created_at.desc()).all()
     return render_template('main/my_listings.html', listings=listings)
 
+
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])
 @login_required
 def delete_listing(listing_id):
@@ -176,5 +183,111 @@ def delete_listing(listing_id):
         return redirect(url_for('main.my_listings'))
     db.session.delete(listing)
     db.session.commit()
-    flash('Listing deleted successfully ✅', 'success')
+    flash('Listing deleted successfully', 'success')
     return redirect(url_for('main.my_listings'))
+
+
+# ============================================================
+# NEW: Grok AI Chat endpoint for listings (2 free uses/day + credit deduct after)
+# ============================================================
+@main_bp.route('/api/ai/ask', methods=['POST'])
+@login_required
+def ai_ask_listing():
+    data = request.get_json() or {}
+    listing_id = data.get('listing_id')
+    question = (data.get('question') or '').strip()
+
+    if not listing_id or not question:
+        return jsonify({'error': 'Missing listing_id or question'}), 400
+
+    listing = Listing.query.get_or_404(listing_id)
+
+    # === Daily free uses logic (uses existing CreditTransaction, no model changes) ===
+    today = date.today()
+    start_of_day = datetime.combine(today, datetime.min.time())
+
+    ai_uses_today = CreditTransaction.query.filter(
+        CreditTransaction.user_id == current_user.id,
+        CreditTransaction.transaction_type == 'ai_query',
+        CreditTransaction.created_at >= start_of_day
+    ).count()
+
+    is_free = ai_uses_today < 2
+
+    if not is_free:
+        if current_user.credit_balance < 1:
+            return jsonify({
+                'error': 'You have used your 2 free AI questions today. Please purchase more credits to continue.'
+            }), 402
+        current_user.credit_balance -= 1
+
+    # Log the usage (amount = 0 for free, -1 when deducting)
+    tx = CreditTransaction(
+        user_id=current_user.id,
+        amount=0 if is_free else -1,
+        transaction_type='ai_query',
+        reference=f'listing_{listing_id}'
+    )
+    db.session.add(tx)
+    db.session.commit()
+
+    # === Build rich context for Grok ===
+    price_str = ''
+    if listing.price_type == 'range' and listing.min_price and listing.max_price:
+        price_str = f"R{listing.min_price} – R{listing.max_price}"
+    elif listing.price:
+        price_str = f"R{listing.price}"
+
+    system_prompt = f"""You are a helpful, practical assistant for Volstruis Gids — a local classifieds platform in the Klein Karoo, South Africa.
+The user is asking a question about this specific listing. Be concise, friendly, and realistic. Use South African context where helpful (e.g. local roads, farming equipment, vehicles, etc.).
+
+Listing details:
+- Title: {listing.title}
+- Description: {listing.description or 'No description provided'}
+- Price: {price_str or 'Not specified'}
+- Area: {listing.area or listing.location or 'Klein Karoo'}
+- Category / Type: {listing.post_type or 'General'}
+- Posted: {listing.created_at.strftime('%d %B %Y') if listing.created_at else 'recently'}
+
+Answer the user's question directly about this listing. If the question is unrelated, gently steer back to the listing. Keep answers short and actionable."""
+
+    try:
+        api_key = current_app.config.get('GROK_API_KEY')  # or use os.getenv if preferred
+        if not api_key:
+            return jsonify({'error': 'AI service is not configured. Please contact support.'}), 500
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": current_app.config.get('GROK_MODEL', 'grok-3'),
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question}
+            ],
+            "max_tokens": 400,
+            "temperature": 0.6
+        }
+
+        resp = requests.post(
+            current_app.config.get('GROK_API_URL'),
+            json=payload,
+            headers=headers,
+            timeout=25
+        )
+        resp.raise_for_status()
+        answer = resp.json()['choices'][0]['message']['content'].strip()
+
+        return jsonify({
+            'answer': answer,
+            'is_free': is_free,
+            'remaining_free_today': max(0, 2 - (ai_uses_today + 1))
+        })
+
+    except requests.exceptions.RequestException as e:
+        db.session.rollback()
+        return jsonify({'error': 'Sorry, the AI service is temporarily unavailable. Please try again in a moment.'}), 503
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Unexpected error processing your question.'}), 500

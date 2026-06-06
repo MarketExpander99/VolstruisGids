@@ -96,7 +96,108 @@
         Volstruis Gids © 2026 • All listings are user posted • Business listings marked with logo
     </div>
 </div>
+<!-- Grok AI Chat Modal -->
+<div class="modal fade" id="grokChatModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title"><i class="bi bi-robot me-2"></i>Ask Grok about this listing</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="chat-log" style="max-height: 320px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px;">
+          <!-- Messages appended here by JS -->
+        </div>
 
+        <!-- Grok is thinking indicator -->
+        <div id="grok-thinking" style="display: none; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <span class="text-muted">Grok is thinking<span class="thinking-dots">...</span></span>
+        </div>
+
+        <div class="input-group">
+          <input type="text" id="grok-input" class="form-control" placeholder="e.g. Would this gearbox work in my 2018 Hilux?" 
+                 onkeypress="if (event.key === 'Enter') sendGrokMessage()">
+          <button class="btn btn-info" onclick="sendGrokMessage()">
+            <i class="bi bi-send"></i> Send
+          </button>
+        </div>
+        <small class="text-muted">2 free questions per day. After that, 1 credit per question.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentGrokListing = null;
+
+function openGrokChat(listingId, title, description, area) {
+    currentGrokListing = { id: listingId, title: title, description: description, area: area };
+    
+    // Reset chat
+    document.getElementById('chat-log').innerHTML = `
+        <div class="text-muted small mb-2">Ask anything about <strong>${title}</strong> (${area})</div>
+    `;
+    document.getElementById('grok-input').value = '';
+    document.getElementById('grok-thinking').style.display = 'none';
+
+    const modal = new bootstrap.Modal(document.getElementById('grokChatModal'));
+    modal.show();
+}
+
+function appendMessage(role, text) {
+    const log = document.getElementById('chat-log');
+    const div = document.createElement('div');
+    div.style.marginBottom = '8px';
+    
+    if (role === 'user') {
+        div.innerHTML = `<div class="d-flex justify-content-end"><div class="bg-primary text-white px-3 py-2 rounded-3" style="max-width: 80%;">${text}</div></div>`;
+    } else if (role === 'grok') {
+        div.innerHTML = `<div class="d-flex"><div class="bg-white border px-3 py-2 rounded-3" style="max-width: 80%;"><strong>Grok:</strong> ${text}</div></div>`;
+    } else {
+        div.innerHTML = `<div class="text-danger small">${text}</div>`;
+    }
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+}
+
+function sendGrokMessage() {
+    const input = document.getElementById('grok-input');
+    const question = input.value.trim();
+    if (!question || !currentGrokListing) return;
+
+    appendMessage('user', question);
+    input.value = '';
+
+    const thinking = document.getElementById('grok-thinking');
+    thinking.style.display = 'flex';
+
+    fetch('/api/ai/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            listing_id: currentGrokListing.id,
+            question: question
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        thinking.style.display = 'none';
+        if (data.error) {
+            appendMessage('error', data.error);
+        } else {
+            appendMessage('grok', data.answer);
+            if (data.remaining_free_today !== undefined) {
+                console.log('Remaining free AI uses today:', data.remaining_free_today);
+            }
+        }
+    })
+    .catch(err => {
+        thinking.style.display = 'none';
+        appendMessage('error', 'Connection error. Please try again.');
+    });
+}
+</script>
 <script>
     let currentPage = 1;
     let hasMore = true;

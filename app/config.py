@@ -16,6 +16,10 @@ class Config:
     LOGIN_MESSAGE_CATEGORY = 'info'
 
     # Flask-Migrate settings (handled via extension)
-    # Additional production settings
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None
+
+    # === Grok / xAI API (added - no existing config removed) ===
+    GROK_API_KEY = os.environ.get('GROK_API_KEY')
+    GROK_API_URL = 'https://api.x.ai/v1/chat/completions'
+    GROK_MODEL = 'grok-3'   # or 'grok-2-1212' if you prefer
