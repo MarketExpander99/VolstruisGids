@@ -18,16 +18,19 @@
             </p>
             
             <div class="mt-auto">
-                <!-- ✅ Correct link to detail page -->
+                <!-- View button -->
                 <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
                    class="btn btn-outline-primary btn-sm me-2">
                     <i class="bi bi-eye me-1"></i>View
                 </a>
                 
-                <!-- NEW: Ask Grok AI button (styled to match existing buttons) -->
+                <!-- FIXED: Ask Grok button using data attributes (no more broken onclick) -->
                 <button type="button" 
-                        class="btn btn-outline-info btn-sm"
-                        onclick="openGrokChat({{ listing.id }}, {{ listing.title | tojson }}, {{ (listing.description or '') | tojson }}, {{ listing.area | tojson }})">
+                        class="btn btn-outline-info btn-sm grok-ask-btn"
+                        data-grok-listing-id="{{ listing.id }}"
+                        data-grok-title="{{ listing.title | e }}"
+                        data-grok-description="{{ (listing.description or '') | e }}"
+                        data-grok-area="{{ listing.area | e }}">
                     <i class="bi bi-robot me-1"></i>Ask Grok
                 </button>
                 

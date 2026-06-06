@@ -195,5 +195,22 @@
             lastScrollTop = scrollTop;
         });
     </script>
+    <script>
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.grok-ask-btn');
+    if (!btn) return;
+
+    const listingId = btn.dataset.grokListingId;
+    const title = btn.dataset.grokTitle;
+    const description = btn.dataset.grokDescription;
+    const area = btn.dataset.grokArea;
+
+    if (typeof openGrokChat === 'function') {
+        openGrokChat(listingId, title, description, area);
+    } else {
+        console.error('openGrokChat function not found. Make sure the modal script is loaded.');
+    }
+});
+</script>
 </body>
 </html>

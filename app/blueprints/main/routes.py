@@ -1,5 +1,5 @@
 # app/blueprints/main/routes.py
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
@@ -188,7 +188,7 @@ def delete_listing(listing_id):
 
 
 # ============================================================
-# NEW: Grok AI Chat endpoint for listings (2 free uses/day + credit deduct after)
+# Grok AI Chat endpoint for listings (2 free uses/day + credit deduct after)
 # ============================================================
 @main_bp.route('/api/ai/ask', methods=['POST'])
 @login_required
@@ -221,7 +221,7 @@ def ai_ask_listing():
             }), 402
         current_user.credit_balance -= 1
 
-    # Log the usage (amount = 0 for free, -1 when deducting)
+    # Log the usage
     tx = CreditTransaction(
         user_id=current_user.id,
         amount=0 if is_free else -1,
@@ -239,7 +239,7 @@ def ai_ask_listing():
         price_str = f"R{listing.price}"
 
     system_prompt = f"""You are a helpful, practical assistant for Volstruis Gids — a local classifieds platform in the Klein Karoo, South Africa.
-The user is asking a question about this specific listing. Be concise, friendly, and realistic. Use South African context where helpful (e.g. local roads, farming equipment, vehicles, etc.).
+The user is asking a question about this specific listing. Be concise, friendly, and realistic. Use South African context where helpful.
 
 Listing details:
 - Title: {listing.title}
@@ -252,7 +252,7 @@ Listing details:
 Answer the user's question directly about this listing. If the question is unrelated, gently steer back to the listing. Keep answers short and actionable."""
 
     try:
-        api_key = current_app.config.get('GROK_API_KEY')  # or use os.getenv if preferred
+        api_key = current_app.config.get('GROK_API_KEY')
         if not api_key:
             return jsonify({'error': 'AI service is not configured. Please contact support.'}), 500
 

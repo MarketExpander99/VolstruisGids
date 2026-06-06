@@ -4,7 +4,6 @@
 <div class="container mt-4">
     <!-- HERO BANNER -->
     <div class="hero-bg position-relative overflow-hidden rounded-3 mb-5 text-white text-center">
-        <!-- Responsive hero image (desktop vs mobile crop for better composition) -->
         <picture class="position-absolute top-0 start-0 w-100 h-100 m-0" style="z-index: 0;">
             <source media="(max-width: 767.98px)" srcset="{{ url_for('static', filename='img/hero-karoo-sunset-mobile.jpg') }}">
             <img src="{{ url_for('static', filename='img/hero-karoo-sunset.jpg') }}" 
@@ -13,11 +12,9 @@
                  style="object-fit: cover; object-position: center; display: block;">
         </picture>
 
-        <!-- Gradient overlay for text legibility -->
         <div class="hero-overlay position-absolute top-0 start-0 w-100 h-100"
              style="background: linear-gradient(rgba(44, 62, 80, 0.55), rgba(44, 62, 80, 0.72)); z-index: 1;"></div>
 
-        <!-- Text content -->
         <div class="hero-content position-relative p-4 p-md-5" style="z-index: 2;">
             <h1 class="display-4 fw-bold mb-3">Welkom by Volstruis Gids</h1>
             <p class="lead mb-2">A marketplace built in the Klein Karoo, for the Klein Karoo</p>
@@ -72,18 +69,14 @@
         </div>
     </div>
 
-    <!-- Popular Categories (dynamic: only shows categories with listings matching current filters) -->
+    <!-- Popular Categories -->
     <div class="mb-4">
         <h5 class="text-muted">Popular Categories</h5>
-        <div id="popular-categories" class="d-flex flex-wrap gap-2">
-            <!-- Populated dynamically by JavaScript as filter buttons e.g. Vehicles (3) -->
-        </div>
+        <div id="popular-categories" class="d-flex flex-wrap gap-2"></div>
     </div>
 
     <!-- Listings Feed -->
-    <div id="listings-container" class="row">
-        <!-- Populated dynamically by JavaScript -->
-    </div>
+    <div id="listings-container" class="row"></div>
 
     <!-- Load More -->
     <div class="text-center my-5">
@@ -96,6 +89,7 @@
         Volstruis Gids © 2026 • All listings are user posted • Business listings marked with logo
     </div>
 </div>
+
 <!-- Grok AI Chat Modal -->
 <div class="modal fade" id="grokChatModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -105,11 +99,8 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div id="chat-log" style="max-height: 320px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px;">
-          <!-- Messages appended here by JS -->
-        </div>
+        <div id="chat-log" style="max-height: 320px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px;"></div>
 
-        <!-- Grok is thinking indicator -->
         <div id="grok-thinking" style="display: none; align-items: center; gap: 10px; margin-bottom: 10px;">
           <div class="spinner-border spinner-border-sm text-info" role="status"></div>
           <span class="text-muted">Grok is thinking<span class="thinking-dots">...</span></span>
@@ -134,14 +125,14 @@ let currentGrokListing = null;
 function openGrokChat(listingId, title, description, area) {
     currentGrokListing = { id: listingId, title: title, description: description, area: area };
     
-    // Reset chat
     document.getElementById('chat-log').innerHTML = `
-        <div class="text-muted small mb-2">Ask anything about <strong>${title}</strong> (${area})</div>
+        <div class="text-muted small mb-2">Ask anything about <strong>${title}</strong> (${area || 'Klein Karoo'})</div>
     `;
     document.getElementById('grok-input').value = '';
     document.getElementById('grok-thinking').style.display = 'none';
 
-    const modal = new bootstrap.Modal(document.getElementById('grokChatModal'));
+    const modalEl = document.getElementById('grokChatModal');
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
     modal.show();
 }
 
@@ -180,24 +171,44 @@ function sendGrokMessage() {
             question: question
         })
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
         thinking.style.display = 'none';
         if (data.error) {
             appendMessage('error', data.error);
         } else {
             appendMessage('grok', data.answer);
-            if (data.remaining_free_today !== undefined) {
-                console.log('Remaining free AI uses today:', data.remaining_free_today);
-            }
         }
     })
-    .catch(err => {
+    .catch(() => {
         thinking.style.display = 'none';
         appendMessage('error', 'Connection error. Please try again.');
     });
 }
+
+// === Delegated listener for Ask Grok buttons (works on index + _listing_cards.html) ===
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.grok-ask-btn, button[onclick*="openGrokChat"]');
+    if (!btn) return;
+
+    // If it has data attributes (new clean method)
+    if (btn.dataset.grokListingId) {
+        const id = btn.dataset.grokListingId;
+        const title = btn.dataset.grokTitle || '';
+        const desc = btn.dataset.grokDescription || '';
+        const area = btn.dataset.grokArea || '';
+        openGrokChat(id, title, desc, area);
+        return;
+    }
+
+    // Fallback for any old inline onclick buttons (temporary safety)
+    if (btn.onclick) {
+        // Let the original onclick run
+        return;
+    }
+});
 </script>
+
 <script>
     let currentPage = 1;
     let hasMore = true;
@@ -218,9 +229,7 @@ function sendGrokMessage() {
 
         fetch(url)
             .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Server error: ${response.status}`);
                 return response.json();
             })
             .then(data => {
@@ -236,7 +245,6 @@ function sendGrokMessage() {
                     if (isBoosted) cardExtraClasses += ' boosted';
 
                     let posterHTML = '';
-
                     if (isBusiness) {
                         const logo = listing.business_logo 
                             ? `<img src="${listing.business_logo}" alt="Logo" class="rounded-circle me-2" width="36" height="36" style="object-fit:cover;">` 
@@ -266,17 +274,11 @@ function sendGrokMessage() {
                     }
 
                     let typeBadge = '';
-                    if (listing.ad_type === 'sale') {
-                        typeBadge = '<span class="badge bg-success mb-2">FOR SALE</span>';
-                    } else if (listing.ad_type === 'wanted') {
-                        typeBadge = '<span class="badge bg-warning text-dark mb-2">LOOKING FOR</span>';
-                    } else if (listing.ad_type === 'rental') {
-                        typeBadge = '<span class="badge bg-info mb-2">FOR RENT</span>';
-                    } else if (listing.ad_type === 'services') {
-                        typeBadge = '<span class="badge bg-primary mb-2">SERVICES OFFERED</span>';
-                    } else if (listing.ad_type === 'announcement') {
-                        typeBadge = '<span class="badge bg-info mb-2">ANNOUNCEMENT</span>';
-                    }
+                    if (listing.ad_type === 'sale') typeBadge = '<span class="badge bg-success mb-2">FOR SALE</span>';
+                    else if (listing.ad_type === 'wanted') typeBadge = '<span class="badge bg-warning text-dark mb-2">LOOKING FOR</span>';
+                    else if (listing.ad_type === 'rental') typeBadge = '<span class="badge bg-info mb-2">FOR RENT</span>';
+                    else if (listing.ad_type === 'services') typeBadge = '<span class="badge bg-primary mb-2">SERVICES OFFERED</span>';
+                    else if (listing.ad_type === 'announcement') typeBadge = '<span class="badge bg-info mb-2">ANNOUNCEMENT</span>';
 
                     let priceHTML = '';
                     const pt = listing.price_type || 'fixed';
@@ -294,7 +296,6 @@ function sendGrokMessage() {
                         priceHTML = `<p class="text-muted small">Price on request</p>`;
                     }
 
-                    // Improved centered photo container (works for both uploaded + default image)
                     const defaultPhoto = '/static/img/default-listing.jpg';
                     const photoSrc = listing.photo_url || defaultPhoto;
 
@@ -305,7 +306,6 @@ function sendGrokMessage() {
                                         max-width:94%; max-height:94%; object-fit:contain; padding:6px;">
                         </div>`;
 
-                    // WhatsApp Share
                     const shareText = `Check out this listing on Volstruis Gids: ${listing.title}`;
                     const shareUrl = `${window.location.origin}${listing.detail_url}`;
                     const whatsappShareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
@@ -331,12 +331,24 @@ function sendGrokMessage() {
                                         <span>Share on WhatsApp</span>
                                     </a>
 
+                                    <!-- Clean Ask Grok button using data attributes -->
+                                    <button type="button"
+                                            class="btn btn-outline-info btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 grok-ask-btn"
+                                            data-grok-listing-id="${listing.id}"
+                                            data-grok-title="${listing.title}"
+                                            data-grok-description="${listing.description || ''}"
+                                            data-grok-area="${listing.location || ''}">
+                                        <i class="bi bi-robot"></i> 
+                                        <span>Ask Grok</span>
+                                    </button>
+
                                     <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100">
                                         View Full Ad →
                                     </a>
                                 </div>
                             </div>
                         </div>`;
+
                     container.innerHTML += cardHTML;
                 });
 
@@ -380,7 +392,7 @@ function sendGrokMessage() {
         if (catEl) catEl.value = catName;
         currentPage = 1;
         fetchListings(1, false);
-        loadPopularCategories();  // update buttons + active highlight immediately
+        loadPopularCategories();
     }
 
     function loadPopularCategories() {
@@ -388,8 +400,6 @@ function sendGrokMessage() {
         const town = document.getElementById('town').value;
         const post_type = document.getElementById('post_type').value;
         const user_id = new URLSearchParams(window.location.search).get('user_id');
-        // Note: intentionally do NOT send 'category' param so the facet counts
-        // reflect other filters and allow switching between categories.
 
         let url = `/api/categories`;
         const params = [];
@@ -401,9 +411,7 @@ function sendGrokMessage() {
 
         fetch(url)
             .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Server error: ${response.status}`);
                 return response.json();
             })
             .then(data => {
@@ -421,13 +429,10 @@ function sendGrokMessage() {
                         btn.className = `btn btn-sm ${isActive ? 'btn-success' : 'btn-outline-secondary'}`;
                         btn.innerHTML = `${cat.name} <span class="badge ${isActive ? 'bg-light text-dark' : 'bg-secondary'} ms-1">${cat.count}</span>`;
                         btn.onclick = () => filterByCategory(cat.name);
-                        // Optional: title for accessibility
                         btn.title = `Filter to ${cat.name} (${cat.count} listings)`;
                         container.appendChild(btn);
                     }
                 });
-
-                // If no categories match current filters, the container will just be empty (h5 still visible)
             })
             .catch(err => console.error('Error fetching categories:', err));
     }
