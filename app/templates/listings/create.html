@@ -121,6 +121,31 @@
                             {% endfor %}
                         </div>
 
+                        <!-- ========== AI AD POLISH SECTION (integrated) ========== -->
+                        <div class="mb-4 p-3 rounded-3" style="background-color: #FFF8E7; border: 1px solid #E6B800;">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <strong class="text-volstruis-brown"><i class="bi bi-magic me-1"></i> AI Ad Polish</strong>
+                                    <small class="text-muted d-block">2 free uses today • then 1 credit • uses category, price &amp; town for best results</small>
+                                </div>
+                                <button type="button" id="ai-improve-btn"
+                                        class="btn btn-sm px-3 py-1 fw-semibold"
+                                        style="background-color: #8B4513; color: white; border: none; min-width: 160px;">
+                                    <span id="ai-btn-text">Improve with AI</span>
+                                    <span id="ai-btn-spinner" class="spinner-border spinner-border-sm d-none ms-1" role="status"></span>
+                                </button>
+                            </div>
+
+                            <!-- AI Result -->
+                            <div id="ai-result" class="d-none mt-3">
+                                <div class="alert alert-success border-0 py-2 mb-0 small" style="background-color: #E8F5E9;">
+                                    <strong>✅ Ad updated!</strong><br>
+                                    <span id="ai-price-reason"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ========== END AI SECTION ========== -->
+
                         <!-- Town + Category -->
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
@@ -214,7 +239,7 @@
 </div>
 
 <script>
-    // ========== Live Photo Preview ==========
+    // ========== EXISTING: Live Photo Preview ==========
     const photoInput = document.getElementById('photo');
     const previewContainer = document.getElementById('image-preview');
 
@@ -241,7 +266,7 @@
         });
     }
 
-    // ========== Pricing Visibility Logic ==========
+    // ========== EXISTING: Pricing Visibility Logic ==========
     const postRadios = document.querySelectorAll('input[name="post_type"]');
     const priceTypeRadios = document.querySelectorAll('input[name="price_type"]');
     const priceDetails = document.getElementById('price-details');
@@ -290,5 +315,116 @@
     // Initial state on page load
     updatePriceVisibility();
     updatePriceType();
+
+    // ========== AI IMPROVE WITH AI (Category + Price + Town optimisation) ==========
+    const aiBtn = document.getElementById('ai-improve-btn');
+    if (aiBtn) {
+        aiBtn.addEventListener('click', async function () {
+            const btnText = document.getElementById('ai-btn-text');
+            const spinner = document.getElementById('ai-btn-spinner');
+            const resultBox = document.getElementById('ai-result');
+            const priceReasonEl = document.getElementById('ai-price-reason');
+
+            // Collect values from the real WTForms fields
+            const titleEl = document.getElementById('title');
+            const descEl = document.getElementById('description');
+            const townSelect = document.getElementById('town');
+            const categorySelect = document.getElementById('category');
+
+            const title = titleEl ? titleEl.value.trim() : '';
+            const description = descEl ? descEl.value.trim() : '';
+            const town = townSelect ? (townSelect.options[townSelect.selectedIndex]?.text || '') : '';
+            const category_id = categorySelect ? categorySelect.value : null;
+
+            // Smart price detection (respect visible fixed vs range)
+            let price = null;
+            const fixedPrice = document.getElementById('price');
+            const minPrice = document.getElementById('min_price');
+            if (fixedPrice && fixedPrice.offsetParent !== null) {
+                price = fixedPrice.value;
+            } else if (minPrice && minPrice.offsetParent !== null) {
+                price = minPrice.value;
+            }
+
+            const postTypeChecked = document.querySelector('input[name="post_type"]:checked');
+            const post_type = postTypeChecked ? postTypeChecked.value : '';
+
+            if (!title && !description) {
+                alert('Please add a title or description first before using AI.');
+                return;
+            }
+
+            // Loading state
+            aiBtn.disabled = true;
+            btnText.textContent = 'Improving...';
+            spinner.classList.remove('d-none');
+            resultBox.classList.add('d-none');
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+                const response = await fetch("{{ url_for('listings.improve_with_ai') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(csrfToken && { 'X-CSRFToken': csrfToken })
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description,
+                        post_type: post_type,
+                        category_id: category_id,
+                        price: price,
+                        town: town
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'AI request failed');
+                }
+
+                // === SAFE POPULATION (only touches AI fields) ===
+                if (data.improved_title && titleEl) {
+                    titleEl.value = data.improved_title;
+                }
+                if (data.improved_description && descEl) {
+                    descEl.value = data.improved_description;
+                }
+
+                // Price population (prefer fixed, fallback to min)
+                if (data.suggested_price) {
+                    if (fixedPrice && fixedPrice.offsetParent !== null) {
+                        fixedPrice.value = data.suggested_price;
+                    } else if (minPrice && minPrice.offsetParent !== null) {
+                        minPrice.value = data.suggested_price;
+                    } else if (fixedPrice) {
+                        fixedPrice.value = data.suggested_price;
+                    }
+                }
+
+                // Show price reason
+                if (data.price_reason) {
+                    priceReasonEl.innerHTML = `<strong>AI suggested price:</strong> R${Number(data.suggested_price || 0).toLocaleString()} — ${data.price_reason}`;
+                    resultBox.classList.remove('d-none');
+                }
+
+                btnText.textContent = '✅ Done!';
+                setTimeout(() => {
+                    btnText.textContent = 'Improve with AI';
+                }, 1600);
+
+            } catch (err) {
+                alert('AI temporarily unavailable: ' + err.message);
+            } finally {
+                aiBtn.disabled = false;
+                spinner.classList.add('d-none');
+                if (btnText.textContent === 'Improving...') {
+                    btnText.textContent = 'Improve with AI';
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}

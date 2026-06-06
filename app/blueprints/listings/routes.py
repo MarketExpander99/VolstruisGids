@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
@@ -9,8 +9,10 @@ from . import listings_bp
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image
-from datetime import datetime
+from datetime import datetime, date
 from app.models.credit_transaction import CreditTransaction
+import requests
+import json as pyjson
 
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -42,6 +44,97 @@ def resize_image_to_square(image_path, size=800, bg_color=(250, 244, 235)):
         print(f"Image resize error: {e}")
         return False
 
+
+@listings_bp.route('/improve-with-ai', methods=['POST'])
+@login_required
+def improve_with_ai():
+    """One powerful AI improvement for the whole listing (professional ad + price check)."""
+    data = request.get_json() or {}
+    title = (data.get('title') or '').strip()
+    description = (data.get('description') or '').strip()
+    post_type = data.get('post_type', '')
+    category_id = data.get('category_id')
+
+    if not title and not description:
+        return jsonify({'error': 'Please add a title or description first.'}), 400
+
+    # Daily quota check (2 free, then 8 credits)
+    today = date.today()
+    ai_uses_today = CreditTransaction.query.filter(
+        CreditTransaction.user_id == current_user.id,
+        CreditTransaction.transaction_type.in_(['ai_improve', 'ai_improve_free']),
+        db.func.date(CreditTransaction.created_at) == today
+    ).count()
+
+    is_free = ai_uses_today < 2
+    cost = 0 if is_free else 8
+
+    if not is_free and current_user.credit_balance < cost:
+        return jsonify({
+            'error': f'Not enough credits. After 2 free daily uses, this costs {cost} credits.'
+        }), 402
+
+    # === Grok Prompt - Professional Selling Ad + Price Check ===
+    try:
+        grok_api_key = os.environ.get('GROK_API_KEY')
+        if not grok_api_key:
+            return jsonify({'error': 'AI service not configured. Add GROK_API_KEY to .env'}), 500
+
+        category_name = ""
+        if category_id:
+            cat = Category.query.get(category_id)
+            if cat:
+                category_name = cat.name
+
+        prompt = f"""You are a professional classifieds copywriter for VolstruisGids in the Klein Karoo.
+
+Create a clean, professional, fact-based listing that will actually help this item sell. Stay honest and local-sounding.
+
+Post type: {post_type}
+Category: {category_name}
+Original Title: {title}
+Original Description: {description}
+
+Return ONLY valid JSON with these exact keys:
+{{
+  "improved_title": "Clear, professional, benefit-focused title (max 85 chars)",
+  "improved_description": "Professional, scannable description. Use short paragraphs. Highlight real benefits and condition. Make it easy to read and trustworthy. Max 380 words.",
+  "suggested_price": 1250,
+  "price_reason": "Short explanation why this price makes sense in the current Klein Karoo market (1-2 sentences)"
+}}"""
+
+        headers = {
+            "Authorization": f"Bearer {grok_api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "grok-3-latest",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.6,
+            "max_tokens": 950
+        }
+
+        resp = requests.post("https://api.x.ai/v1/chat/completions", headers=headers, json=payload, timeout=30)
+        resp.raise_for_status()
+        content = resp.json()['choices'][0]['message']['content']
+
+        cleaned = content.strip().replace('```json', '').replace('```', '').strip()
+        improved = pyjson.loads(cleaned)
+
+        return jsonify({
+            'success': True,
+            'improved_title': improved.get('improved_title', title),
+            'improved_description': improved.get('improved_description', description),
+            'suggested_price': improved.get('suggested_price'),
+            'price_reason': improved.get('price_reason', ''),
+            'is_free': is_free,
+            'credits_used': cost,
+            'remaining_credits': current_user.credit_balance - cost if not is_free else current_user.credit_balance,
+            'uses_today': ai_uses_today + 1
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'AI temporarily unavailable. ({str(e)})'}), 500
 
 @listings_bp.route('/create', methods=['GET', 'POST'])
 @login_required
