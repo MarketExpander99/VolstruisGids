@@ -1,5 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, FloatField, SelectField, FileField, SubmitField, RadioField, BooleanField, IntegerField, SelectMultipleField
+from wtforms import (
+    StringField, TextAreaField, FloatField, SelectField, 
+    FileField, MultipleFileField, SubmitField, RadioField, 
+    BooleanField, IntegerField, SelectMultipleField
+)
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 
@@ -37,8 +41,7 @@ class ListingForm(FlaskForm):
         ('Zoar', 'Zoar')
     ])
 
-    # Multi-select contact methods (checkboxes). Sellers can choose any combination.
-    # 'dm' = in-app private messaging, 'email', 'phone' = WhatsApp
+    # Multi-select contact methods
     contact_methods = SelectMultipleField(
         'How would you like to be contacted? (select all that apply)',
         choices=[
@@ -55,9 +58,10 @@ class ListingForm(FlaskForm):
     contact_phone = StringField('Contact Phone')
     contact_email = StringField('Contact Email')
 
-    photo = FileField('Photo (optional)')
+    # Changed to MultipleFileField so multiple photos work properly
+    photo = MultipleFileField('Photos (optional)')
 
-    # Rental fields (shown only for post_type=rental)
+    # Rental fields
     rental_duration = IntegerField('Rental Duration', validators=[Optional(), NumberRange(min=1)])
     rental_duration_unit = SelectField('Duration Unit', choices=[
         ('day', 'Day(s)'),

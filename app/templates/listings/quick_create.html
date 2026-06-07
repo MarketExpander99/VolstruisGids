@@ -124,7 +124,7 @@
                             {% endfor %}
                         </div>
 
-                        <!-- ========== AI AD POLISH SECTION (identical to create.html) ========== -->
+                        <!-- ========== AI AD POLISH SECTION ========== -->
                         <div class="mb-4 p-3 rounded-3" style="background-color: #FFF8E7; border: 1px solid #E6B800;">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                 <div>
@@ -200,7 +200,7 @@
                             {{ form.allow_comments.label(class="form-check-label") }}
                         </div>
 
-                        <!-- Photo Upload with Live Preview -->
+                        <!-- ========== IMPROVED MULTI-PHOTO UPLOAD (same as create.html) ========== -->
                         <div class="mb-4">
                             {{ form.photo.label(class="form-label fw-semibold") }}
                             <small class="text-muted d-block mb-2">
@@ -210,8 +210,11 @@
                             {% for error in form.photo.errors %}
                                 <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
-                            <div id="image-preview" class="mt-3 text-center"></div>
+                            
+                            <!-- Multi-photo preview grid -->
+                            <div id="image-preview" class="mt-3"></div>
                         </div>
+                        <!-- ========== END PHOTO SECTION ========== -->
 
                         <button type="submit" class="btn btn-success btn-lg w-100 py-3 fw-semibold">
                             <i class="bi bi-plus-circle me-1"></i> Save &amp; Add Another Listing
@@ -227,30 +230,71 @@
 </div>
 
 <script>
-    // ========== Live Photo Preview ==========
+    // ========== Multi-Photo Preview + Remove (identical to create.html) ==========
     const photoInput = document.getElementById('photo');
     const previewContainer = document.getElementById('image-preview');
+    let selectedFiles = [];
+
+    function renderPreviews() {
+        if (!previewContainer) return;
+        previewContainer.innerHTML = '';
+
+        if (selectedFiles.length === 0) return;
+
+        const grid = document.createElement('div');
+        grid.className = 'd-flex flex-wrap gap-3';
+
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'position-relative';
+                wrapper.style.width = '140px';
+
+                wrapper.innerHTML = `
+                    <div class="border rounded-3 overflow-hidden shadow-sm" style="background: #f8f4eb;">
+                        <img src="${ev.target.result}" 
+                             style="width: 140px; height: 140px; object-fit: cover;" 
+                             alt="Photo preview ${index + 1}">
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-0" 
+                            style="width: 22px; height: 22px; line-height: 18px; font-size: 14px;" 
+                            title="Remove photo">×</button>
+                    ${index === 0 ? '<div class="position-absolute bottom-0 start-0 m-1"><span class="badge bg-success">Main</span></div>' : ''}
+                `;
+
+                const removeBtn = wrapper.querySelector('button');
+                removeBtn.onclick = () => {
+                    selectedFiles.splice(index, 1);
+                    updateFileInput();
+                    renderPreviews();
+                };
+
+                grid.appendChild(wrapper);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        previewContainer.appendChild(grid);
+
+        const info = document.createElement('p');
+        info.className = 'text-muted small mt-2 mb-0';
+        info.innerHTML = `${selectedFiles.length} photo(s) selected • First photo will be the main image`;
+        previewContainer.appendChild(info);
+    }
+
+    function updateFileInput() {
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => dataTransfer.items.add(file));
+        photoInput.files = dataTransfer.files;
+    }
 
     if (photoInput && previewContainer) {
         photoInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    previewContainer.innerHTML = `
-                        <div class="d-inline-block p-2 rounded-3" style="background: #f8f4eb; border: 1px solid #E6B800;">
-                            <img src="${ev.target.result}" 
-                                 class="img-fluid rounded-3 shadow-sm" 
-                                 style="max-width: 280px; max-height: 280px; object-fit: contain; background: white; aspect-ratio: 1 / 1;" 
-                                 alt="Preview">
-                        </div>
-                        <p class="text-muted mt-2 small mb-0">Preview — will be fitted to square on upload</p>
-                    `;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                previewContainer.innerHTML = '';
-            }
+            const newFiles = Array.from(e.target.files);
+            selectedFiles = [...selectedFiles, ...newFiles];
+            updateFileInput();
+            renderPreviews();
         });
     }
 
@@ -268,15 +312,9 @@
         const showPrice = ['sale', 'services', 'wanted', 'rental'].includes(postValue);
         const pricingGroup = document.getElementById('pricing-type-group');
         
-        if (pricingGroup) {
-            pricingGroup.style.display = (postValue === 'rental') ? 'none' : 'block';
-        }
-        if (priceDetails) {
-            priceDetails.style.display = showPrice ? 'block' : 'none';
-        }
-        if (rentalDurationDiv) {
-            rentalDurationDiv.style.display = (postValue === 'rental') ? 'block' : 'none';
-        }
+        if (pricingGroup) pricingGroup.style.display = (postValue === 'rental') ? 'none' : 'block';
+        if (priceDetails) priceDetails.style.display = showPrice ? 'block' : 'none';
+        if (rentalDurationDiv) rentalDurationDiv.style.display = (postValue === 'rental') ? 'block' : 'none';
         if (postValue === 'rental' && fixedDiv && rangeDiv) {
             fixedDiv.style.display = 'block';
             rangeDiv.style.display = 'none';
@@ -286,7 +324,6 @@
     function updatePriceType() {
         const selectedType = document.querySelector('input[name="price_type"]:checked');
         if (!selectedType || !fixedDiv || !rangeDiv) return;
-
         if (selectedType.value === 'fixed') {
             fixedDiv.style.display = 'block';
             rangeDiv.style.display = 'none';
@@ -298,12 +335,10 @@
 
     postRadios.forEach(radio => radio.addEventListener('change', updatePriceVisibility));
     priceTypeRadios.forEach(radio => radio.addEventListener('change', updatePriceType));
-
-    // Initial state
     updatePriceVisibility();
     updatePriceType();
 
-    // ========== AI IMPROVE WITH AI (identical logic to create.html) ==========
+    // ========== AI IMPROVE WITH AI ==========
     const aiBtn = document.getElementById('ai-improve-btn');
     if (aiBtn) {
         aiBtn.addEventListener('click', async function () {
@@ -325,11 +360,8 @@
             let price = null;
             const fixedPrice = document.getElementById('price');
             const minPrice = document.getElementById('min_price');
-            if (fixedPrice && fixedPrice.offsetParent !== null) {
-                price = fixedPrice.value;
-            } else if (minPrice && minPrice.offsetParent !== null) {
-                price = minPrice.value;
-            }
+            if (fixedPrice && fixedPrice.offsetParent !== null) price = fixedPrice.value;
+            else if (minPrice && minPrice.offsetParent !== null) price = minPrice.value;
 
             const postTypeChecked = document.querySelector('input[name="post_type"]:checked');
             const post_type = postTypeChecked ? postTypeChecked.value : '';
@@ -346,64 +378,38 @@
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
                 const response = await fetch("{{ url_for('listings.improve_with_ai') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         ...(csrfToken && { 'X-CSRFToken': csrfToken })
                     },
-                    body: JSON.stringify({
-                        title: title,
-                        description: description,
-                        post_type: post_type,
-                        category_id: category_id,
-                        price: price,
-                        town: town
-                    })
+                    body: JSON.stringify({ title, description, post_type, category_id, price, town })
                 });
-
                 const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.error || 'AI request failed');
 
-                if (!response.ok || !data.success) {
-                    throw new Error(data.error || 'AI request failed');
-                }
-
-                if (data.improved_title && titleEl) {
-                    titleEl.value = data.improved_title;
-                }
-                if (data.improved_description && descEl) {
-                    descEl.value = data.improved_description;
-                }
+                if (data.improved_title && titleEl) titleEl.value = data.improved_title;
+                if (data.improved_description && descEl) descEl.value = data.improved_description;
 
                 if (data.suggested_price) {
-                    if (fixedPrice && fixedPrice.offsetParent !== null) {
-                        fixedPrice.value = data.suggested_price;
-                    } else if (minPrice && minPrice.offsetParent !== null) {
-                        minPrice.value = data.suggested_price;
-                    } else if (fixedPrice) {
-                        fixedPrice.value = data.suggested_price;
-                    }
+                    if (fixedPrice && fixedPrice.offsetParent !== null) fixedPrice.value = data.suggested_price;
+                    else if (minPrice && minPrice.offsetParent !== null) minPrice.value = data.suggested_price;
+                    else if (fixedPrice) fixedPrice.value = data.suggested_price;
                 }
-
                 if (data.price_reason) {
                     priceReasonEl.innerHTML = `<strong>AI suggested price:</strong> R${Number(data.suggested_price || 0).toLocaleString()} — ${data.price_reason}`;
                     resultBox.classList.remove('d-none');
                 }
 
                 btnText.textContent = '✅ Done!';
-                setTimeout(() => {
-                    btnText.textContent = 'Improve with AI';
-                }, 1600);
-
+                setTimeout(() => { btnText.textContent = 'Improve with AI'; }, 1600);
             } catch (err) {
                 alert('AI temporarily unavailable: ' + err.message);
             } finally {
                 aiBtn.disabled = false;
                 spinner.classList.add('d-none');
-                if (btnText.textContent === 'Improving...') {
-                    btnText.textContent = 'Improve with AI';
-                }
+                if (btnText.textContent === 'Improving...') btnText.textContent = 'Improve with AI';
             }
         });
     }
