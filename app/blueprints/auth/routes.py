@@ -20,6 +20,7 @@ def login():
             user = User.query.filter_by(username='@' + login_username).first()
         if user and check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember_me.data)
+            user.ensure_daily_free_credits()
             next_page = request.args.get('next')
             return redirect(next_page or url_for('main.index'))
         flash('Invalid username or password')

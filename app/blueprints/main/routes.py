@@ -44,10 +44,13 @@ def resize_image_to_square(image_path, size=400):
 
 
 # ============================================================
-# Helper: Daily free credit refresh (+2 credits per day)
+# Daily Free Credit Refresh (+2 credits once per day)
 # ============================================================
 def ensure_daily_free_credits(user):
-    """Automatically give user +2 free credits once per day."""
+    """
+    Automatically gives the user +2 free credits once per calendar day.
+    Safe to call multiple times — it only gives credits once per day.
+    """
     today = date.today()
     start_of_day = datetime.combine(today, datetime.min.time())
 
@@ -61,18 +64,22 @@ def ensure_daily_free_credits(user):
     if already_received:
         return False
 
-    # Give 2 free credits
-    user.credit_balance += 2
+    try:
+        user.credit_balance += 2
 
-    tx = CreditTransaction(
-        user_id=user.id,
-        amount=2,
-        transaction_type='daily_free',
-        reference=f'daily_free_{today.isoformat()}'
-    )
-    db.session.add(tx)
-    db.session.commit()
-    return True
+        tx = CreditTransaction(
+            user_id=user.id,
+            amount=2,
+            transaction_type='daily_free',
+            reference=f'daily_free_{today.isoformat()}'
+        )
+        db.session.add(tx)
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error giving daily free credits: {e}")
+        return False
 
 
 @main_bp.route('/')
@@ -220,12 +227,12 @@ def delete_listing(listing_id):
 
 
 # ============================================================
-# Grok AI Chat endpoint (with daily credit refresh + proper deduction)
+# Grok AI Chat endpoint (Daily credits + 2 free queries per day)
 # ============================================================
 @main_bp.route('/api/ai/ask', methods=['POST'])
 @login_required
 def ai_ask_listing():
-    # Give daily free credits if user hasn't received them today
+    # Ensure user receives their daily +2 free credits
     ensure_daily_free_credits(current_user)
 
     data = request.get_json() or {}
@@ -237,7 +244,7 @@ def ai_ask_listing():
 
     listing = Listing.query.get_or_404(listing_id)
 
-    # === Count today's AI queries ===
+    # Count how many AI queries the user has made today
     today = date.today()
     start_of_day = datetime.combine(today, datetime.min.time())
 
@@ -256,7 +263,7 @@ def ai_ask_listing():
             }), 402
         current_user.credit_balance -= 1
 
-    # Log the usage
+    # Record the transaction
     tx = CreditTransaction(
         user_id=current_user.id,
         amount=0 if is_free else -1,
@@ -266,7 +273,7 @@ def ai_ask_listing():
     db.session.add(tx)
     db.session.commit()
 
-    # === Build rich context for Grok ===
+    # === Build context for Grok ===
     price_str = ''
     if listing.price_type == 'range' and listing.min_price and listing.max_price:
         price_str = f"R{listing.min_price} – R{listing.max_price}"

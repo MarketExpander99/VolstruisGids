@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from app import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -20,8 +20,7 @@ class User(UserMixin, db.Model):
     location = db.Column(db.String(100), nullable=True)
     posts_today = db.Column(db.Integer, default=0)
     
-    # === Credit System v1.0 additions (added only - no existing columns removed) ===
-    account_type = db.Column(db.String(20), default='personal')  # personal / business
+    account_type = db.Column(db.String(20), default='personal')
     credit_balance = db.Column(db.Integer, default=0)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -31,6 +30,37 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    # ============================================================
+    # Daily Free Credit Refresh (+2 credits once per day)
+    # ============================================================
+    def ensure_daily_free_credits(self):
+        """Give the user +2 free credits once per day if they haven't received them today."""
+        today = date.today()
+        start_of_day = datetime.combine(today, datetime.min.time())
+
+        from app.models.credit_transaction import CreditTransaction
+
+        already_received = CreditTransaction.query.filter(
+            CreditTransaction.user_id == self.id,
+            CreditTransaction.transaction_type == 'daily_free',
+            CreditTransaction.created_at >= start_of_day
+        ).first()
+
+        if already_received:
+            return False
+
+        self.credit_balance += 2
+
+        tx = CreditTransaction(
+            user_id=self.id,
+            amount=2,
+            transaction_type='daily_free',
+            reference=f'daily_free_{today.isoformat()}'
+        )
+        db.session.add(tx)
+        db.session.commit()
+        return True
 
     def __repr__(self):
         return f'<User {self.username}>'
