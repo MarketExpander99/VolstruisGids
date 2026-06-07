@@ -48,12 +48,14 @@ def resize_image_to_square(image_path, size=800, bg_color=(250, 244, 235)):
 @listings_bp.route('/improve-with-ai', methods=['POST'])
 @login_required
 def improve_with_ai():
-    """One powerful AI improvement for the whole listing (professional ad + price check)."""
+    """One powerful AI improvement for the whole listing (professional ad + realistic Klein Karoo market price)."""
     data = request.get_json() or {}
     title = (data.get('title') or '').strip()
     description = (data.get('description') or '').strip()
     post_type = data.get('post_type', '')
     category_id = data.get('category_id')
+    town = (data.get('town') or '').strip()
+    price = data.get('price') or ''
 
     if not title and not description:
         return jsonify({'error': 'Please add a title or description first.'}), 400
@@ -74,7 +76,7 @@ def improve_with_ai():
             'error': f'Not enough credits. After 2 free daily uses, this costs {cost} credits.'
         }), 402
 
-    # === Grok Prompt - Professional Selling Ad + Price Check ===
+    # === Grok Prompt - Professional Selling Ad + Realistic Klein Karoo Market Price ===
     try:
         grok_api_key = os.environ.get('GROK_API_KEY')
         if not grok_api_key:
@@ -86,21 +88,39 @@ def improve_with_ai():
             if cat:
                 category_name = cat.name
 
-        prompt = f"""You are a professional classifieds copywriter for VolstruisGids in the Klein Karoo.
+        prompt = f"""You are a professional classifieds copywriter and local market pricing expert for VolstruisGids, serving the Klein Karoo towns (Oudtshoorn, Ladismith, Calitzdorp, etc.) in the Western Cape, South Africa.
 
-Create a clean, professional, fact-based listing that will actually help this item sell. Stay honest and local-sounding.
+Your goal: Create a clean, professional, fact-based listing that will actually help this item sell quickly. Stay honest, local-sounding, and trustworthy. Never overpromise.
 
-Post type: {post_type}
-Category: {category_name}
-Original Title: {title}
-Original Description: {description}
+Key context for this listing:
+- Post type: {post_type}
+- Category: {category_name}
+- Town / Area: {town}
+- Original Title: {title}
+- Original Description: {description}
+- User's current price input (if provided): {price if price else 'not specified by user'}
 
-Return ONLY valid JSON with these exact keys:
+For the pricing suggestion:
+You must suggest a single realistic **suggested_price** (integer in ZAR) that reflects current fair market value for this specific item in the Klein Karoo / rural Western Cape second-hand market.
+
+Consider these real market variables when deciding the price:
+- Typical prices for similar items in this category in small Karoo towns (lower than Cape Town metro due to smaller buyer pool and logistics).
+- Item condition, age, brand, and features described (or implied).
+- Local demand drivers: agricultural/farming season, tourism/high season, school holidays, or economic factors in the region.
+- Supply: how common this item is locally (e.g. bakkie parts, farming equipment, household appliances, furniture, livestock-related).
+- Quick-sale pricing psychology for classifieds platforms — slightly competitive but fair so it sells without long wait.
+- If post_type is 'wanted': suggest a realistic offer price a buyer would make.
+- If 'rental' or 'services': the rate should be sensible per the duration unit.
+
+DO NOT default to any example number like 1250 or copy from previous responses. Base it purely on your trained knowledge of South African rural marketplace values in the Western Cape Karoo region. Make it specific to the described item.
+
+Return ONLY valid JSON with these exact keys (no extra text, no markdown):
+
 {{
-  "improved_title": "Clear, professional, benefit-focused title (max 85 chars)",
-  "improved_description": "Professional, scannable description. Use short paragraphs. Highlight real benefits and condition. Make it easy to read and trustworthy. Max 380 words.",
-  "suggested_price": 1250,
-  "price_reason": "Short explanation why this price makes sense in the current Klein Karoo market (1-2 sentences)"
+  "improved_title": "Clear, professional, benefit-focused title (max 85 characters, include key specs or town if helpful)",
+  "improved_description": "Professional, scannable description. Use short paragraphs or bullet points where helpful. Highlight real benefits, condition, location advantages, and call-to-action. Keep it trustworthy and easy to read. Max 380 words.",
+  "suggested_price": <the integer ZAR price you determined from market analysis>,
+  "price_reason": "1-2 sentences explaining the suggested price with reference to specific local Klein Karoo market factors (e.g. comparable farm gear prices in Oudtshoorn area this season, demand for this item type, condition-based adjustment)."
 }}"""
 
         headers = {
