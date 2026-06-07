@@ -230,32 +230,48 @@
         });
     </script>
 
-    <!-- Footer -->
     <footer class="bg-light border-top mt-5 py-4">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
-                    <small class="text-muted">
-                        © {{ current_year or 2026 }} Volstruis Gids • Klein Karoo
-                    </small>
-                </div>
-                <div class="col-md-6 text-center text-md-end">
-                    <a href="{{ url_for('main.terms') }}" class="text-muted me-3 small">Terms</a>
-                    <a href="{{ url_for('main.privacy') }}" class="text-muted me-3 small">Privacy</a>
-                    <a href="{{ url_for('main.guidelines') }}" class="text-muted me-3 small">Guidelines</a>
-                    
-                    <!-- WhatsApp Support -->
-                    <a href="https://wa.me/27810763237" 
-                       target="_blank" 
-                       class="btn btn-sm btn-success ms-2 d-inline-flex align-items-center gap-1"
-                       style="font-size: 0.85rem; padding: 5px 12px;">
-                        <i class="bi bi-whatsapp"></i>
-                        <span>Support</span>
-                    </a>
-                </div>
+    <div class="container">
+        <div class="row align-items-center">
+            
+            <!-- Left: Copyright -->
+            <div class="col-md-4 text-center text-md-start mb-3 mb-md-0">
+                <small class="text-muted">
+                    © {{ current_year or 2026 }} Volstruis Gids • Klein Karoo
+                </small>
             </div>
+
+            <!-- Center: Visit Grok -->
+            <div class="col-md-4 text-center mb-3 mb-md-0">
+                <a href="https://grok.x.ai" 
+                   target="_blank" 
+                   class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-2"
+                   style="font-size: 0.9rem; padding: 6px 16px;">
+                    <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" 
+                         alt="Grok" height="20" style="vertical-align: middle;">
+                    <span class="fw-semibold">Visit Grok</span>
+                </a>
+            </div>
+
+            <!-- Right: Legal + WhatsApp Support -->
+            <div class="col-md-4 text-center text-md-end">
+                <a href="{{ url_for('main.terms') }}" class="text-muted me-3 small">Terms</a>
+                <a href="{{ url_for('main.privacy') }}" class="text-muted me-3 small">Privacy</a>
+                <a href="{{ url_for('main.guidelines') }}" class="text-muted me-3 small">Guidelines</a>
+
+                <!-- WhatsApp Support -->
+                <a href="https://wa.me/27810763237" 
+                   target="_blank" 
+                   class="btn btn-sm btn-success ms-2 d-inline-flex align-items-center gap-1"
+                   style="font-size: 0.85rem; padding: 5px 12px;">
+                    <i class="bi bi-whatsapp"></i>
+                    <span>Support</span>
+                </a>
+            </div>
+
         </div>
-    </footer>
+    </div>
+</footer>
 
 </body>
 </html>

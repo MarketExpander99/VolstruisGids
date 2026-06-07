@@ -72,7 +72,7 @@
         <div id="popular-categories" class="d-flex flex-wrap gap-2"></div>
     </div>
 
-    <!-- User Store Header (shows only when viewing a specific user's listings) -->
+    <!-- User Store Header -->
     <div id="user-store-header" class="mb-4 p-3 rounded-3 d-none" style="background-color: #f8f4eb; border: 1px solid #E6B800;">
         <div class="d-flex align-items-center">
             <img id="user-store-logo" src="" alt="Store Logo" 
@@ -105,7 +105,9 @@
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-info text-white">
-        <h5 class="modal-title"><i class="bi bi-robot me-2"></i>Ask Grok about this listing</h5>
+        <h5 class="modal-title"><img src="{{ url_for('static', filename='img/GrokLogo.png') }}" 
+               alt="Grok" height="26" class="me-2" style="vertical-align: middle;">
+          Ask Grok about this listing</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -234,22 +236,19 @@ document.addEventListener('click', function(e) {
                 const container = document.getElementById('listings-container');
                 if (!append) container.innerHTML = '';
 
-                // === User Store Header Logic ===
+                // User Store Header
                 const header = document.getElementById('user-store-header');
                 const logoEl = document.getElementById('user-store-logo');
                 const nameEl = document.getElementById('user-store-name');
 
                 if (user_id && data.listings.length > 0) {
                     const first = data.listings[0];
-
-                    // Set logo
                     if (first.business_logo) {
                         logoEl.src = first.business_logo;
                     } else {
                         logoEl.src = '/static/img/default-listing.jpg';
                     }
 
-                    // Set store name
                     let storeName = 'Seller\'s Store';
                     if (first.business_name) {
                         storeName = first.business_name;
@@ -257,12 +256,10 @@ document.addEventListener('click', function(e) {
                         storeName = first.username.replace(/^@+/, '') + "'s Store";
                     }
                     nameEl.textContent = storeName;
-
                     header.classList.remove('d-none');
                 } else {
                     header.classList.add('d-none');
                 }
-                // === End User Store Header ===
 
                 data.listings.forEach(listing => {
                     const isBusiness = listing.is_business_ad;
@@ -359,13 +356,15 @@ document.addEventListener('click', function(e) {
                                         <span>Share on WhatsApp</span>
                                     </a>
 
+                                    <!-- Updated Ask Grok button with logo -->
                                     <button type="button"
                                             class="btn btn-outline-info btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 grok-ask-btn"
                                             data-grok-listing-id="${listing.id}"
                                             data-grok-title="${listing.title}"
                                             data-grok-description="${listing.description || ''}"
                                             data-grok-area="${listing.location || ''}">
-                                        <i class="bi bi-robot"></i>
+                                        <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" 
+                                             alt="Grok" height="16" style="vertical-align: middle;">
                                         <span>Ask Grok</span>
                                     </button>
 
@@ -400,10 +399,7 @@ document.addEventListener('click', function(e) {
         const url = new URL(window.location);
         url.searchParams.delete('user_id');
         window.history.pushState({}, '', url);
-
-        // Hide user store header on reset
         document.getElementById('user-store-header').classList.add('d-none');
-
         currentPage = 1;
         fetchListings(1, false);
         loadPopularCategories();
