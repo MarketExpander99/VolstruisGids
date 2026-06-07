@@ -212,6 +212,17 @@ def my_listings():
         .order_by(Listing.created_at.desc()).all()
     return render_template('main/my_listings.html', listings=listings)
 
+@main_bp.route('/terms')
+def terms():
+    return render_template('main/terms.html')
+
+@main_bp.route('/privacy')
+def privacy():
+    return render_template('main/privacy.html')
+
+@main_bp.route('/guidelines')
+def guidelines():
+    return render_template('main/guidelines.html')
 
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])
 @login_required
@@ -333,3 +344,5 @@ Answer the user's question directly about this listing. If the question is unrel
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Unexpected error processing your question.'}), 500
+    
+    
