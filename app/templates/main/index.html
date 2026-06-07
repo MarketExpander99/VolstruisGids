@@ -72,6 +72,19 @@
         <div id="popular-categories" class="d-flex flex-wrap gap-2"></div>
     </div>
 
+    <!-- User Store Header (shows only when viewing a specific user's listings) -->
+    <div id="user-store-header" class="mb-4 p-3 rounded-3 d-none" style="background-color: #f8f4eb; border: 1px solid #E6B800;">
+        <div class="d-flex align-items-center">
+            <img id="user-store-logo" src="" alt="Store Logo" 
+                 class="rounded-circle me-3" width="60" height="60" 
+                 style="object-fit: cover; border: 3px solid #E6B800;">
+            <div>
+                <h4 id="user-store-name" class="mb-1 fw-bold text-dark"></h4>
+                <small class="text-muted">Store • Klein Karoo</small>
+            </div>
+        </div>
+    </div>
+
     <!-- Listings Feed -->
     <div id="listings-container" class="row"></div>
 
@@ -221,6 +234,36 @@ document.addEventListener('click', function(e) {
                 const container = document.getElementById('listings-container');
                 if (!append) container.innerHTML = '';
 
+                // === User Store Header Logic ===
+                const header = document.getElementById('user-store-header');
+                const logoEl = document.getElementById('user-store-logo');
+                const nameEl = document.getElementById('user-store-name');
+
+                if (user_id && data.listings.length > 0) {
+                    const first = data.listings[0];
+
+                    // Set logo
+                    if (first.business_logo) {
+                        logoEl.src = first.business_logo;
+                    } else {
+                        logoEl.src = '/static/img/default-listing.jpg';
+                    }
+
+                    // Set store name
+                    let storeName = 'Seller\'s Store';
+                    if (first.business_name) {
+                        storeName = first.business_name;
+                    } else if (first.username) {
+                        storeName = first.username.replace(/^@+/, '') + "'s Store";
+                    }
+                    nameEl.textContent = storeName;
+
+                    header.classList.remove('d-none');
+                } else {
+                    header.classList.add('d-none');
+                }
+                // === End User Store Header ===
+
                 data.listings.forEach(listing => {
                     const isBusiness = listing.is_business_ad;
                     const isBoosted = listing.is_promoted || listing.last_reposted_at;
@@ -229,7 +272,6 @@ document.addEventListener('click', function(e) {
                     if (isBusiness) cardExtraClasses += ' business-listing border-warning';
                     if (isBoosted) cardExtraClasses += ' boosted';
 
-                    // Business vs Personal poster section
                     let posterHTML = '';
                     if (isBusiness) {
                         const logo = listing.business_logo
@@ -259,7 +301,6 @@ document.addEventListener('click', function(e) {
                             </div>`;
                     }
 
-                    // Type badge
                     let typeBadge = '';
                     const adType = listing.ad_type || listing.post_type;
                     if (adType === 'sale') typeBadge = '<span class="badge bg-success mb-2">FOR SALE</span>';
@@ -268,7 +309,6 @@ document.addEventListener('click', function(e) {
                     else if (adType === 'services') typeBadge = '<span class="badge bg-primary mb-2">SERVICES</span>';
                     else if (adType === 'announcement') typeBadge = '<span class="badge bg-secondary mb-2">ANNOUNCEMENT</span>';
 
-                    // Price
                     let priceHTML = '';
                     const pt = listing.price_type || 'fixed';
                     if (adType === 'rental' && listing.price) {
@@ -360,6 +400,10 @@ document.addEventListener('click', function(e) {
         const url = new URL(window.location);
         url.searchParams.delete('user_id');
         window.history.pushState({}, '', url);
+
+        // Hide user store header on reset
+        document.getElementById('user-store-header').classList.add('d-none');
+
         currentPage = 1;
         fetchListings(1, false);
         loadPopularCategories();
