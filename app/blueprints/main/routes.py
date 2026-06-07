@@ -16,8 +16,10 @@ from datetime import datetime, date
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 def resize_image_to_square(image_path, size=400):
     try:
@@ -41,6 +43,38 @@ def resize_image_to_square(image_path, size=400):
         return False
 
 
+# ============================================================
+# Helper: Daily free credit refresh (+2 credits per day)
+# ============================================================
+def ensure_daily_free_credits(user):
+    """Automatically give user +2 free credits once per day."""
+    today = date.today()
+    start_of_day = datetime.combine(today, datetime.min.time())
+
+    # Check if user already received daily free credits today
+    already_received = CreditTransaction.query.filter(
+        CreditTransaction.user_id == user.id,
+        CreditTransaction.transaction_type == 'daily_free',
+        CreditTransaction.created_at >= start_of_day
+    ).first()
+
+    if already_received:
+        return False
+
+    # Give 2 free credits
+    user.credit_balance += 2
+
+    tx = CreditTransaction(
+        user_id=user.id,
+        amount=2,
+        transaction_type='daily_free',
+        reference=f'daily_free_{today.isoformat()}'
+    )
+    db.session.add(tx)
+    db.session.commit()
+    return True
+
+
 @main_bp.route('/')
 def index():
     return render_template('main/index.html')
@@ -48,7 +82,7 @@ def index():
 
 @main_bp.route('/api/listings')
 def api_listings():
-    """AJAX endpoint for homepage listings feed with working filters (q, town, post_type/ad_type, user_id, category)."""
+    """AJAX endpoint for homepage listings feed with working filters."""
     query = request.args.get('q', '').strip()
     post_type = request.args.get('post_type', '').strip()
     town = request.args.get('town', '').strip()
@@ -126,9 +160,7 @@ def api_listings():
 
 @main_bp.route('/api/categories')
 def api_categories():
-    """Return categories with active listing counts. Respects other filters (q, town, post_type, user_id)
-    but ignores any category filter so that facet buttons show alternatives under current search.
-    """
+    """Return categories with active listing counts."""
     query = request.args.get('q', '').strip()
     post_type = request.args.get('post_type', '').strip()
     town = request.args.get('town', '').strip()
@@ -188,11 +220,14 @@ def delete_listing(listing_id):
 
 
 # ============================================================
-# Grok AI Chat endpoint for listings (2 free uses/day + credit deduct after)
+# Grok AI Chat endpoint (with daily credit refresh + proper deduction)
 # ============================================================
 @main_bp.route('/api/ai/ask', methods=['POST'])
 @login_required
 def ai_ask_listing():
+    # Give daily free credits if user hasn't received them today
+    ensure_daily_free_credits(current_user)
+
     data = request.get_json() or {}
     listing_id = data.get('listing_id')
     question = (data.get('question') or '').strip()
@@ -202,7 +237,7 @@ def ai_ask_listing():
 
     listing = Listing.query.get_or_404(listing_id)
 
-    # === Daily free uses logic (uses existing CreditTransaction, no model changes) ===
+    # === Count today's AI queries ===
     today = date.today()
     start_of_day = datetime.combine(today, datetime.min.time())
 

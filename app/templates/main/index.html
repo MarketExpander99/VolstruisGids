@@ -1,20 +1,17 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container mt-4">
     <!-- HERO BANNER -->
     <div class="hero-bg position-relative overflow-hidden rounded-3 mb-5 text-white text-center">
         <picture class="position-absolute top-0 start-0 w-100 h-100 m-0" style="z-index: 0;">
             <source media="(max-width: 767.98px)" srcset="{{ url_for('static', filename='img/hero-karoo-sunset-mobile.jpg') }}">
-            <img src="{{ url_for('static', filename='img/hero-karoo-sunset.jpg') }}" 
-                 alt="Klein Karoo sunset landscape" 
+            <img src="{{ url_for('static', filename='img/hero-karoo-sunset.jpg') }}"
+                 alt="Klein Karoo sunset landscape"
                  class="w-100 h-100"
                  style="object-fit: cover; object-position: center; display: block;">
         </picture>
-
         <div class="hero-overlay position-absolute top-0 start-0 w-100 h-100"
              style="background: linear-gradient(rgba(44, 62, 80, 0.55), rgba(44, 62, 80, 0.72)); z-index: 1;"></div>
-
         <div class="hero-content position-relative p-4 p-md-5" style="z-index: 2;">
             <h1 class="display-4 fw-bold mb-3">Welkom by Volstruis Gids</h1>
             <p class="lead mb-2">A marketplace built in the Klein Karoo, for the Klein Karoo</p>
@@ -100,14 +97,12 @@
       </div>
       <div class="modal-body">
         <div id="chat-log" style="max-height: 320px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px;"></div>
-
         <div id="grok-thinking" style="display: none; align-items: center; gap: 10px; margin-bottom: 10px;">
           <div class="spinner-border spinner-border-sm text-info" role="status"></div>
           <span class="text-muted">Grok is thinking<span class="thinking-dots">...</span></span>
         </div>
-
         <div class="input-group">
-          <input type="text" id="grok-input" class="form-control" placeholder="e.g. Would this gearbox work in my 2018 Hilux?" 
+          <input type="text" id="grok-input" class="form-control" placeholder="e.g. Would this gearbox work in my 2018 Hilux?"
                  onkeypress="if (event.key === 'Enter') sendGrokMessage()">
           <button class="btn btn-info" onclick="sendGrokMessage()">
             <i class="bi bi-send"></i> Send
@@ -124,13 +119,11 @@ let currentGrokListing = null;
 
 function openGrokChat(listingId, title, description, area) {
     currentGrokListing = { id: listingId, title: title, description: description, area: area };
-    
     document.getElementById('chat-log').innerHTML = `
         <div class="text-muted small mb-2">Ask anything about <strong>${title}</strong> (${area || 'Klein Karoo'})</div>
     `;
     document.getElementById('grok-input').value = '';
     document.getElementById('grok-thinking').style.display = 'none';
-
     const modalEl = document.getElementById('grokChatModal');
     const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
     modal.show();
@@ -140,7 +133,7 @@ function appendMessage(role, text) {
     const log = document.getElementById('chat-log');
     const div = document.createElement('div');
     div.style.marginBottom = '8px';
-    
+   
     if (role === 'user') {
         div.innerHTML = `<div class="d-flex justify-content-end"><div class="bg-primary text-white px-3 py-2 rounded-3" style="max-width: 80%;">${text}</div></div>`;
     } else if (role === 'grok') {
@@ -159,7 +152,6 @@ function sendGrokMessage() {
 
     appendMessage('user', question);
     input.value = '';
-
     const thinking = document.getElementById('grok-thinking');
     thinking.style.display = 'flex';
 
@@ -186,25 +178,18 @@ function sendGrokMessage() {
     });
 }
 
-// === Delegated listener for Ask Grok buttons (works on index + _listing_cards.html) ===
+// Delegated listener for Ask Grok buttons
 document.addEventListener('click', function(e) {
-    const btn = e.target.closest('.grok-ask-btn, button[onclick*="openGrokChat"]');
+    const btn = e.target.closest('.grok-ask-btn');
     if (!btn) return;
 
-    // If it has data attributes (new clean method)
     if (btn.dataset.grokListingId) {
-        const id = btn.dataset.grokListingId;
-        const title = btn.dataset.grokTitle || '';
-        const desc = btn.dataset.grokDescription || '';
-        const area = btn.dataset.grokArea || '';
-        openGrokChat(id, title, desc, area);
-        return;
-    }
-
-    // Fallback for any old inline onclick buttons (temporary safety)
-    if (btn.onclick) {
-        // Let the original onclick run
-        return;
+        openGrokChat(
+            btn.dataset.grokListingId,
+            btn.dataset.grokTitle || '',
+            btn.dataset.grokDescription || '',
+            btn.dataset.grokArea || ''
+        );
     }
 });
 </script>
@@ -240,71 +225,68 @@ document.addEventListener('click', function(e) {
                     const isBusiness = listing.is_business_ad;
                     const isBoosted = listing.is_promoted || listing.last_reposted_at;
 
-                    let cardExtraClasses = 'card h-100';
-                    if (isBusiness) cardExtraClasses += ' business-listing';
+                    let cardExtraClasses = 'card h-100 shadow-sm';
+                    if (isBusiness) cardExtraClasses += ' business-listing border-warning';
                     if (isBoosted) cardExtraClasses += ' boosted';
 
+                    // Business vs Personal poster section
                     let posterHTML = '';
                     if (isBusiness) {
-                        const logo = listing.business_logo 
-                            ? `<img src="${listing.business_logo}" alt="Logo" class="rounded-circle me-2" width="36" height="36" style="object-fit:cover;">` 
-                            : '';
+                        const logo = listing.business_logo
+                            ? `<img src="${listing.business_logo}" alt="Business Logo" class="rounded-circle me-2" width="36" height="36" style="object-fit:cover; border: 2px solid #E6B800;">`
+                            : `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px; background:#8B4513; color:white; font-weight:700; font-size:0.9rem;">B</div>`;
+
                         posterHTML = `
                             <div class="d-flex align-items-center mb-3">
                                 ${logo}
-                                <strong>
-                                    <a href="?user_id=${listing.user_id}" 
-                                       onclick="event.preventDefault(); filterByUser(${listing.user_id});" 
-                                       class="text-decoration-none text-primary">
-                                        ${listing.business_name || 'Business'}
-                                    </a>
-                                </strong>
+                                <div>
+                                    <strong class="text-primary">
+                                        <a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none">
+                                            ${listing.business_name || 'Business'}
+                                        </a>
+                                    </strong>
+                                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">BUSINESS</span>
+                                </div>
                             </div>`;
                     } else {
                         posterHTML = `
                             <div class="d-flex align-items-center mb-3">
                                 <strong>
-                                    <a href="?user_id=${listing.user_id}" 
-                                       onclick="event.preventDefault(); filterByUser(${listing.user_id});" 
-                                       class="text-decoration-none text-primary">
+                                    <a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">
                                         @${(listing.username || '').replace(/^@+/, '')}
                                     </a>
                                 </strong>
                             </div>`;
                     }
 
+                    // Type badge
                     let typeBadge = '';
-                    if (listing.ad_type === 'sale') typeBadge = '<span class="badge bg-success mb-2">FOR SALE</span>';
-                    else if (listing.ad_type === 'wanted') typeBadge = '<span class="badge bg-warning text-dark mb-2">LOOKING FOR</span>';
-                    else if (listing.ad_type === 'rental') typeBadge = '<span class="badge bg-info mb-2">FOR RENT</span>';
-                    else if (listing.ad_type === 'services') typeBadge = '<span class="badge bg-primary mb-2">SERVICES OFFERED</span>';
-                    else if (listing.ad_type === 'announcement') typeBadge = '<span class="badge bg-info mb-2">ANNOUNCEMENT</span>';
+                    const adType = listing.ad_type || listing.post_type;
+                    if (adType === 'sale') typeBadge = '<span class="badge bg-success mb-2">FOR SALE</span>';
+                    else if (adType === 'wanted') typeBadge = '<span class="badge bg-warning text-dark mb-2">LOOKING FOR</span>';
+                    else if (adType === 'rental') typeBadge = '<span class="badge bg-info mb-2">FOR RENT</span>';
+                    else if (adType === 'services') typeBadge = '<span class="badge bg-primary mb-2">SERVICES</span>';
+                    else if (adType === 'announcement') typeBadge = '<span class="badge bg-secondary mb-2">ANNOUNCEMENT</span>';
 
+                    // Price
                     let priceHTML = '';
                     const pt = listing.price_type || 'fixed';
-                    if (listing.ad_type === 'rental' && listing.price) {
+                    if (adType === 'rental' && listing.price) {
                         const dur = listing.rental_duration || '';
                         const unit = listing.rental_duration_unit || 'day';
-                        priceHTML = `<p class="fw-bold text-success">R${listing.price} / ${unit}${dur ? ' (min ' + dur + ')' : ''}</p>`;
+                        priceHTML = `<p class="fw-bold text-success mb-1">R${listing.price} / ${unit}${dur ? ' (min ' + dur + ')' : ''}</p>`;
                     } else if (pt === 'fixed' && listing.price) {
-                        priceHTML = `<p class="fw-bold text-success">R${listing.price}</p>`;
+                        priceHTML = `<p class="fw-bold text-success mb-1">R${listing.price}</p>`;
                     } else if (pt === 'range' && listing.min_price != null && listing.max_price != null) {
-                        priceHTML = `<p class="fw-bold text-success">R${listing.min_price} – R${listing.max_price}</p>`;
-                    } else if (listing.post_type === 'wanted' || listing.ad_type === 'wanted') {
-                        priceHTML = `<p class="text-warning small">Looking For — price flexible</p>`;
-                    } else if (!listing.price) {
-                        priceHTML = `<p class="text-muted small">Price on request</p>`;
+                        priceHTML = `<p class="fw-bold text-success mb-1">R${listing.min_price} – R${listing.max_price}</p>`;
+                    } else if (adType === 'wanted') {
+                        priceHTML = `<p class="text-warning small mb-1">Price flexible</p>`;
+                    } else {
+                        priceHTML = `<p class="text-muted small mb-1">Price on request</p>`;
                     }
 
                     const defaultPhoto = '/static/img/default-listing.jpg';
                     const photoSrc = listing.photo_url || defaultPhoto;
-
-                    const photoHTML = `
-                        <div style="height:200px; background-color:#f8f9fa; position:relative; overflow:hidden;">
-                            <img src="${photoSrc}" alt="Photo" 
-                                 style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); 
-                                        max-width:94%; max-height:94%; object-fit:contain; padding:6px;">
-                        </div>`;
 
                     const shareText = `Check out this listing on Volstruis Gids: ${listing.title}`;
                     const shareUrl = `${window.location.origin}${listing.detail_url}`;
@@ -312,9 +294,15 @@ document.addEventListener('click', function(e) {
 
                     const cardHTML = `
                         <div class="col-md-4 mb-4">
-                            <div class="${cardExtraClasses}">
-                                ${isBoosted ? '<div class="promoted-banner">PROMOTED</div>' : ''}
-                                ${photoHTML}
+                            <div class="${cardExtraClasses}" style="${isBusiness ? 'border-top: 4px solid #E6B800;' : ''}">
+                                ${isBoosted ? '<div class="promoted-banner bg-warning text-dark fw-bold">PROMOTED</div>' : ''}
+                                
+                                <div style="height:200px; background-color:#f8f9fa; position:relative; overflow:hidden;">
+                                    <img src="${photoSrc}" alt="Photo"
+                                         style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+                                                max-width:94%; max-height:94%; object-fit:contain; padding:6px;">
+                                </div>
+
                                 <div class="card-body">
                                     ${typeBadge}
                                     <h5 class="card-title">${listing.title}</h5>
@@ -323,22 +311,21 @@ document.addEventListener('click', function(e) {
                                     ${posterHTML}
                                     <small class="text-muted">${listing.location}</small>
                                 </div>
+
                                 <div class="card-footer bg-transparent border-0 pt-0">
-                                    <a href="${whatsappShareLink}" 
-                                       target="_blank" 
+                                    <a href="${whatsappShareLink}" target="_blank"
                                        class="btn btn-success btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
-                                        <i class="bi bi-whatsapp"></i> 
+                                        <i class="bi bi-whatsapp"></i>
                                         <span>Share on WhatsApp</span>
                                     </a>
 
-                                    <!-- Clean Ask Grok button using data attributes -->
                                     <button type="button"
                                             class="btn btn-outline-info btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 grok-ask-btn"
                                             data-grok-listing-id="${listing.id}"
                                             data-grok-title="${listing.title}"
                                             data-grok-description="${listing.description || ''}"
                                             data-grok-area="${listing.location || ''}">
-                                        <i class="bi bi-robot"></i> 
+                                        <i class="bi bi-robot"></i>
                                         <span>Ask Grok</span>
                                     </button>
 
