@@ -121,29 +121,39 @@
                             {% endfor %}
                         </div>
 
-                        <!-- ========== AI AD POLISH SECTION ========== -->
+                        <!-- ========== GROK AD POLISH SECTION ========== -->
                         <div class="mb-4 p-3 rounded-3" style="background-color: #FFF8E7; border: 1px solid #E6B800;">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                 <div>
-                                    <strong class="text-volstruis-brown"><i class="bi bi-magic me-1"></i> AI Ad Polish</strong>
+                                    <strong class="text-volstruis-brown d-flex align-items-center">
+                                        <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" 
+                                            alt="Grok" height="22" class="me-2" style="vertical-align: middle;">
+                                        Grok Ad Polish
+                                    </strong>
                                     <small class="text-muted d-block">2 free uses today • then 1 credit • uses category, price &amp; town for best results</small>
                                 </div>
+
                                 <button type="button" id="ai-improve-btn"
-                                        class="btn btn-sm px-3 py-1 fw-semibold"
-                                        style="background-color: #8B4513; color: white; border: none; min-width: 160px;">
-                                    <span id="ai-btn-text">Improve with AI</span>
+                                        class="btn btn-sm px-3 py-1 fw-semibold d-flex align-items-center gap-2"
+                                        style="background-color: #8B4513; color: white; border: none; min-width: 185px; height: 38px;">
+                                    
+                                    <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" 
+                                        alt="Grok" height="18" style="vertical-align: middle;">
+                                    
+                                    <span id="ai-btn-text">Improve with Grok</span>
+                                    
                                     <span id="ai-btn-spinner" class="spinner-border spinner-border-sm d-none ms-1" role="status"></span>
                                 </button>
                             </div>
 
                             <div id="ai-result" class="d-none mt-3">
                                 <div class="alert alert-success border-0 py-2 mb-0 small" style="background-color: #E8F5E9;">
-                                    <strong>✅ Ad updated!</strong><br>
+                                    <strong>✅ Ad updated with Grok!</strong><br>
                                     <span id="ai-price-reason"></span>
                                 </div>
                             </div>
                         </div>
-                        <!-- ========== END AI SECTION ========== -->
+                        <!-- ========== END GROK SECTION ========== -->
 
                         <!-- Town + Category -->
                         <div class="row g-3 mb-3">
@@ -196,7 +206,7 @@
                             {{ form.allow_comments.label(class="form-check-label") }}
                         </div>
 
-                        <!-- ========== IMPROVED MULTI-PHOTO UPLOAD ========== -->
+                        <!-- Multi-Photo Upload -->
                         <div class="mb-4">
                             {{ form.photo.label(class="form-label fw-semibold") }}
                             <small class="text-muted d-block mb-2">
@@ -220,10 +230,8 @@
                                 <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
                             
-                            <!-- Multi-photo preview grid -->
                             <div id="image-preview" class="mt-3"></div>
                         </div>
-                        <!-- ========== END PHOTO SECTION ========== -->
 
                         <button type="submit" class="btn btn-success btn-lg w-100 py-3 fw-semibold">
                             {% if editing is defined and editing %}
@@ -240,7 +248,7 @@
 </div>
 
 <script>
-    // ========== Multi-Photo Preview + Remove ==========
+    // Multi-Photo Preview logic (kept exactly as you had it)
     const photoInput = document.getElementById('photo');
     const previewContainer = document.getElementById('image-preview');
     let selectedFiles = [];
@@ -273,7 +281,6 @@
                     ${index === 0 ? '<div class="position-absolute bottom-0 start-0 m-1"><span class="badge bg-success">Main</span></div>' : ''}
                 `;
 
-                // Remove button handler
                 const removeBtn = wrapper.querySelector('button');
                 removeBtn.onclick = () => {
                     selectedFiles.splice(index, 1);
@@ -288,7 +295,6 @@
 
         previewContainer.appendChild(grid);
 
-        // Extra info text
         const info = document.createElement('p');
         info.className = 'text-muted small mt-2 mb-0';
         info.innerHTML = `${selectedFiles.length} photo(s) selected • First photo will be the main image`;
@@ -303,7 +309,6 @@
 
     if (photoInput && previewContainer) {
         photoInput.addEventListener('change', function(e) {
-            // Merge new files with existing selectedFiles
             const newFiles = Array.from(e.target.files);
             selectedFiles = [...selectedFiles, ...newFiles];
             updateFileInput();
@@ -311,7 +316,7 @@
         });
     }
 
-    // ========== EXISTING: Pricing Visibility Logic ==========
+    // Pricing Visibility Logic
     const postRadios = document.querySelectorAll('input[name="post_type"]');
     const priceTypeRadios = document.querySelectorAll('input[name="price_type"]');
     const priceDetails = document.getElementById('price-details');
@@ -351,7 +356,7 @@
     updatePriceVisibility();
     updatePriceType();
 
-    // ========== AI IMPROVE WITH AI (unchanged) ==========
+    // ========== GROK IMPROVE BUTTON ==========
     const aiBtn = document.getElementById('ai-improve-btn');
     if (aiBtn) {
         aiBtn.addEventListener('click', async function () {
@@ -380,12 +385,12 @@
             const post_type = postTypeChecked ? postTypeChecked.value : '';
 
             if (!title && !description) {
-                alert('Please add a title or description first before using AI.');
+                alert('Please add a title or description first before using Grok.');
                 return;
             }
 
             aiBtn.disabled = true;
-            btnText.textContent = 'Improving...';
+            btnText.textContent = 'Improving with Grok...';
             spinner.classList.remove('d-none');
             resultBox.classList.add('d-none');
 
@@ -400,7 +405,7 @@
                     body: JSON.stringify({ title, description, post_type, category_id, price, town })
                 });
                 const data = await response.json();
-                if (!response.ok || !data.success) throw new Error(data.error || 'AI request failed');
+                if (!response.ok || !data.success) throw new Error(data.error || 'Grok request failed');
 
                 if (data.improved_title && titleEl) titleEl.value = data.improved_title;
                 if (data.improved_description && descEl) descEl.value = data.improved_description;
@@ -411,18 +416,18 @@
                     else if (fixedPrice) fixedPrice.value = data.suggested_price;
                 }
                 if (data.price_reason) {
-                    priceReasonEl.innerHTML = `<strong>AI suggested price:</strong> R${Number(data.suggested_price || 0).toLocaleString()} — ${data.price_reason}`;
+                    priceReasonEl.innerHTML = `<strong>Grok suggested price:</strong> R${Number(data.suggested_price || 0).toLocaleString()} — ${data.price_reason}`;
                     resultBox.classList.remove('d-none');
                 }
 
                 btnText.textContent = '✅ Done!';
-                setTimeout(() => { btnText.textContent = 'Improve with AI'; }, 1600);
+                setTimeout(() => { btnText.textContent = 'Improve with Grok'; }, 1600);
             } catch (err) {
-                alert('AI temporarily unavailable: ' + err.message);
+                alert('Grok temporarily unavailable: ' + err.message);
             } finally {
                 aiBtn.disabled = false;
                 spinner.classList.add('d-none');
-                if (btnText.textContent === 'Improving...') btnText.textContent = 'Improve with AI';
+                if (btnText.textContent.includes('Improving')) btnText.textContent = 'Improve with Grok';
             }
         });
     }
