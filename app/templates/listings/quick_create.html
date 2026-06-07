@@ -4,27 +4,30 @@
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card shadow">
-                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">⚡ Quick Business Entry</h4>
+            <div class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
+                <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #2C3E50;">
+                    <h4 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Quick Business Entry</h4>
                     <span class="badge bg-light text-dark">Multiple listings • Contact pre-filled</span>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4 p-md-5">
+
+                    <!-- Flash Messages -->
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                                <div class="alert alert-{{ 'danger' if category in ['error', 'danger'] else 'success' }} alert-dismissible fade show" role="alert">
                                     {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
                             {% endfor %}
                         {% endif %}
                     {% endwith %}
 
-                    <div class="alert alert-info">
+                    <div class="alert alert-info small">
                         <strong>Tip:</strong> Contact info is taken from your profile. Add as many specials as you like — each saves instantly!
                     </div>
 
-                    <form method="POST" enctype="multipart/form-data">
+                    <form method="POST" enctype="multipart/form-data" novalidate>
                         {{ form.hidden_tag() }}
 
                         <!-- Post Type -->
@@ -54,72 +57,111 @@
                         </div>
 
                         <!-- Price Details -->
-                        <div id="price-details" class="mb-3">
+                        <div id="price-details" class="mb-4">
                             <div id="fixed-price">
                                 {{ form.price.label(class="form-label") }}
                                 {{ form.price(class="form-control") }}
-                                {% for error in form.price.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                                {% for error in form.price.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div id="range-price" style="display: none;">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
                                         {{ form.min_price.label(class="form-label") }}
                                         {{ form.min_price(class="form-control") }}
-                                        {% for error in form.min_price.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                                        {% for error in form.min_price.errors %}
+                                            <div class="text-danger small mt-1">{{ error }}</div>
+                                        {% endfor %}
                                     </div>
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-md-6">
                                         {{ form.max_price.label(class="form-label") }}
                                         {{ form.max_price(class="form-control") }}
-                                        {% for error in form.max_price.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                                        {% for error in form.max_price.errors %}
+                                            <div class="text-danger small mt-1">{{ error }}</div>
+                                        {% endfor %}
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Rental Duration (only for rental post type) -->
+                            <!-- Rental Duration -->
                             <div id="rental-duration" style="display: none;" class="mt-3">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
                                         {{ form.rental_duration.label(class="form-label") }}
                                         {{ form.rental_duration(class="form-control") }}
-                                        {% for error in form.rental_duration.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                                        {% for error in form.rental_duration.errors %}
+                                            <div class="text-danger small mt-1">{{ error }}</div>
+                                        {% endfor %}
                                     </div>
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-md-6">
                                         {{ form.rental_duration_unit.label(class="form-label") }}
                                         {{ form.rental_duration_unit(class="form-select") }}
-                                        {% for error in form.rental_duration_unit.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                                        {% for error in form.rental_duration_unit.errors %}
+                                            <div class="text-danger small mt-1">{{ error }}</div>
+                                        {% endfor %}
                                     </div>
                                 </div>
-                                <small class="text-muted">Price above is rate per unit. e.g. R500 per day for 7 days.</small>
+                                <small class="text-muted">Price above is the rate per unit.</small>
                             </div>
                         </div>
 
                         <!-- Title -->
                         <div class="mb-3">
                             {{ form.title.label(class="form-label") }}
-                            {{ form.title(class="form-control") }}
-                            {% for error in form.title.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                            {{ form.title(class="form-control form-control-lg") }}
+                            {% for error in form.title.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
                         </div>
 
                         <!-- Description -->
                         <div class="mb-3">
                             {{ form.description.label(class="form-label") }}
-                            {{ form.description(class="form-control", rows=4) }}
-                            {% for error in form.description.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                            {{ form.description(class="form-control", rows=5) }}
+                            {% for error in form.description.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
                         </div>
 
+                        <!-- ========== AI AD POLISH SECTION (identical to create.html) ========== -->
+                        <div class="mb-4 p-3 rounded-3" style="background-color: #FFF8E7; border: 1px solid #E6B800;">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <strong class="text-volstruis-brown"><i class="bi bi-magic me-1"></i> AI Ad Polish</strong>
+                                    <small class="text-muted d-block">2 free uses today • then 1 credit • uses category, price &amp; town for best results</small>
+                                </div>
+                                <button type="button" id="ai-improve-btn"
+                                        class="btn btn-sm px-3 py-1 fw-semibold"
+                                        style="background-color: #8B4513; color: white; border: none; min-width: 160px;">
+                                    <span id="ai-btn-text">Improve with AI</span>
+                                    <span id="ai-btn-spinner" class="spinner-border spinner-border-sm d-none ms-1" role="status"></span>
+                                </button>
+                            </div>
+
+                            <!-- AI Result -->
+                            <div id="ai-result" class="d-none mt-3">
+                                <div class="alert alert-success border-0 py-2 mb-0 small" style="background-color: #E8F5E9;">
+                                    <strong>✅ Ad updated!</strong><br>
+                                    <span id="ai-price-reason"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ========== END AI SECTION ========== -->
+
                         <!-- Town + Category -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
                                 {{ form.category.label(class="form-label") }}
                                 {{ form.category(class="form-select") }}
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
                                 {{ form.town.label(class="form-label") }}
                                 {{ form.town(class="form-select") }}
                             </div>
                         </div>
 
-                        <!-- Contact Methods (multi-select checkboxes) -->
+                        <!-- Contact Methods -->
                         <div class="mb-4">
                             {{ form.contact_methods.label(class="form-label fw-bold") }}
                             <div class="list-group">
@@ -140,65 +182,79 @@
                             {% endfor %}
                         </div>
 
-                        <div id="contact-details" class="row">
-                            <div class="col-md-6 mb-3">
+                        <!-- Conditional Contact Fields -->
+                        <div id="contact-details" class="row g-3 mb-4">
+                            <div class="col-md-6">
                                 {{ form.contact_phone.label(class="form-label") }}
-                                {{ form.contact_phone(class="form-control") }}
+                                {{ form.contact_phone(class="form-control", id="contact_phone") }}
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
                                 {{ form.contact_email.label(class="form-label") }}
-                                {{ form.contact_email(class="form-control") }}
+                                {{ form.contact_email(class="form-control", id="contact_email") }}
                             </div>
                         </div>
 
                         <!-- Allow Comments -->
-                        <div class="mb-3 form-check">
+                        <div class="mb-4 form-check">
                             {{ form.allow_comments(class="form-check-input") }}
                             {{ form.allow_comments.label(class="form-check-label") }}
                         </div>
 
-                        <!-- Photo -->
-                        <div class="mb-3">
-                            {{ form.photo.label(class="form-label") }}
-                            <small class="text-muted">First photo included; +1 credit per additional (auto-resized to square).</small>
+                        <!-- Photo Upload with Live Preview -->
+                        <div class="mb-4">
+                            {{ form.photo.label(class="form-label fw-semibold") }}
+                            <small class="text-muted d-block mb-2">
+                                First photo free. Additional photos cost 1 extra credit each. Photos auto-fitted to 800×800 square.
+                            </small>
                             {{ form.photo(class="form-control", id="photo", multiple=True) }}
-                            {% for error in form.photo.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+                            {% for error in form.photo.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
                             <div id="image-preview" class="mt-3 text-center"></div>
                         </div>
 
-                        <button type="submit" class="btn btn-success btn-lg w-100">
-                            <i class="bi bi-check2-circle me-1"></i>Save &amp; Add Another Listing
+                        <button type="submit" class="btn btn-success btn-lg w-100 py-3 fw-semibold">
+                            <i class="bi bi-plus-circle me-1"></i> Save &amp; Add Another Listing
                         </button>
                     </form>
                 </div>
             </div>
             <div class="text-center mt-3">
-                <a href="{{ url_for('profile.profile') }}" class="text-muted">← Back to Profile</a>
+                <a href="{{ url_for('profile.profile') }}" class="text-muted">Back to Profile</a>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Live Photo Preview
+    // ========== Live Photo Preview ==========
     const photoInput = document.getElementById('photo');
-    if (photoInput) {
+    const previewContainer = document.getElementById('image-preview');
+
+    if (photoInput && previewContainer) {
         photoInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file && file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = function(ev) {
-                    document.getElementById('image-preview').innerHTML = `
-                        <img src="${ev.target.result}" class="img-fluid rounded border shadow-sm" 
-                             style="max-width: 320px; max-height: 320px; object-fit: cover; aspect-ratio: 1 / 1;" alt="Preview">
-                        <p class="text-muted mt-1 small">Preview (will be squared on upload)</p>`;
+                    previewContainer.innerHTML = `
+                        <div class="d-inline-block p-2 rounded-3" style="background: #f8f4eb; border: 1px solid #E6B800;">
+                            <img src="${ev.target.result}" 
+                                 class="img-fluid rounded-3 shadow-sm" 
+                                 style="max-width: 280px; max-height: 280px; object-fit: contain; background: white; aspect-ratio: 1 / 1;" 
+                                 alt="Preview">
+                        </div>
+                        <p class="text-muted mt-2 small mb-0">Preview — will be fitted to square on upload</p>
+                    `;
                 };
                 reader.readAsDataURL(file);
+            } else {
+                previewContainer.innerHTML = '';
             }
         });
     }
 
-    // Pricing visibility logic
+    // ========== Pricing Visibility Logic ==========
     const postRadios = document.querySelectorAll('input[name="post_type"]');
     const priceTypeRadios = document.querySelectorAll('input[name="price_type"]');
     const priceDetails = document.getElementById('price-details');
@@ -211,10 +267,13 @@
         const postValue = selectedPost ? selectedPost.value : 'sale';
         const showPrice = ['sale', 'services', 'wanted', 'rental'].includes(postValue);
         const pricingGroup = document.getElementById('pricing-type-group');
+        
         if (pricingGroup) {
             pricingGroup.style.display = (postValue === 'rental') ? 'none' : 'block';
         }
-        priceDetails.style.display = showPrice ? 'block' : 'none';
+        if (priceDetails) {
+            priceDetails.style.display = showPrice ? 'block' : 'none';
+        }
         if (rentalDurationDiv) {
             rentalDurationDiv.style.display = (postValue === 'rental') ? 'block' : 'none';
         }
@@ -226,22 +285,127 @@
 
     function updatePriceType() {
         const selectedType = document.querySelector('input[name="price_type"]:checked');
-        if (selectedType && selectedType.value === 'fixed') {
+        if (!selectedType || !fixedDiv || !rangeDiv) return;
+
+        if (selectedType.value === 'fixed') {
             fixedDiv.style.display = 'block';
             rangeDiv.style.display = 'none';
-        } else if (selectedType) {
+        } else {
             fixedDiv.style.display = 'none';
             rangeDiv.style.display = 'block';
         }
     }
 
-    postRadios.forEach(radio => radio.addEventListener('change', () => {
-        updatePriceVisibility();
-    }));
+    postRadios.forEach(radio => radio.addEventListener('change', updatePriceVisibility));
     priceTypeRadios.forEach(radio => radio.addEventListener('change', updatePriceType));
 
     // Initial state
     updatePriceVisibility();
     updatePriceType();
+
+    // ========== AI IMPROVE WITH AI (identical logic to create.html) ==========
+    const aiBtn = document.getElementById('ai-improve-btn');
+    if (aiBtn) {
+        aiBtn.addEventListener('click', async function () {
+            const btnText = document.getElementById('ai-btn-text');
+            const spinner = document.getElementById('ai-btn-spinner');
+            const resultBox = document.getElementById('ai-result');
+            const priceReasonEl = document.getElementById('ai-price-reason');
+
+            const titleEl = document.getElementById('title');
+            const descEl = document.getElementById('description');
+            const townSelect = document.getElementById('town');
+            const categorySelect = document.getElementById('category');
+
+            const title = titleEl ? titleEl.value.trim() : '';
+            const description = descEl ? descEl.value.trim() : '';
+            const town = townSelect ? (townSelect.options[townSelect.selectedIndex]?.text || '') : '';
+            const category_id = categorySelect ? categorySelect.value : null;
+
+            let price = null;
+            const fixedPrice = document.getElementById('price');
+            const minPrice = document.getElementById('min_price');
+            if (fixedPrice && fixedPrice.offsetParent !== null) {
+                price = fixedPrice.value;
+            } else if (minPrice && minPrice.offsetParent !== null) {
+                price = minPrice.value;
+            }
+
+            const postTypeChecked = document.querySelector('input[name="post_type"]:checked');
+            const post_type = postTypeChecked ? postTypeChecked.value : '';
+
+            if (!title && !description) {
+                alert('Please add a title or description first before using AI.');
+                return;
+            }
+
+            aiBtn.disabled = true;
+            btnText.textContent = 'Improving...';
+            spinner.classList.remove('d-none');
+            resultBox.classList.add('d-none');
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+                const response = await fetch("{{ url_for('listings.improve_with_ai') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(csrfToken && { 'X-CSRFToken': csrfToken })
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description,
+                        post_type: post_type,
+                        category_id: category_id,
+                        price: price,
+                        town: town
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'AI request failed');
+                }
+
+                if (data.improved_title && titleEl) {
+                    titleEl.value = data.improved_title;
+                }
+                if (data.improved_description && descEl) {
+                    descEl.value = data.improved_description;
+                }
+
+                if (data.suggested_price) {
+                    if (fixedPrice && fixedPrice.offsetParent !== null) {
+                        fixedPrice.value = data.suggested_price;
+                    } else if (minPrice && minPrice.offsetParent !== null) {
+                        minPrice.value = data.suggested_price;
+                    } else if (fixedPrice) {
+                        fixedPrice.value = data.suggested_price;
+                    }
+                }
+
+                if (data.price_reason) {
+                    priceReasonEl.innerHTML = `<strong>AI suggested price:</strong> R${Number(data.suggested_price || 0).toLocaleString()} — ${data.price_reason}`;
+                    resultBox.classList.remove('d-none');
+                }
+
+                btnText.textContent = '✅ Done!';
+                setTimeout(() => {
+                    btnText.textContent = 'Improve with AI';
+                }, 1600);
+
+            } catch (err) {
+                alert('AI temporarily unavailable: ' + err.message);
+            } finally {
+                aiBtn.disabled = false;
+                spinner.classList.add('d-none');
+                if (btnText.textContent === 'Improving...') {
+                    btnText.textContent = 'Improve with AI';
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}
