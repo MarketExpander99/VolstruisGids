@@ -303,3 +303,41 @@ footer {
     border-bottom: 7px solid transparent;
     border-right: 3px solid #d39e00;
 }
+
+/* ============================================
+   UI CONSISTENCY - Buttons & Headings
+   ============================================ */
+
+/* Grok-specific buttons (warm brown accent) */
+.btn-grok {
+    background-color: #8B4513;
+    color: white;
+    border: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-grok:hover {
+    background-color: #6B3410;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(139, 69, 19, 0.35);
+    color: white;
+}
+
+/* Optional: Consistent page heading helper */
+.page-heading {
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+}
+
+/* Make sure btn-primary stays strong (already good, just reinforcing) */
+.btn-primary {
+    background-color: var(--primary-color);
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+}

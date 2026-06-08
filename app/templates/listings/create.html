@@ -133,9 +133,10 @@
                                     <small class="text-muted d-block">2 free uses today • then 1 credit • uses category, price &amp; town for best results</small>
                                 </div>
 
+                                <!-- Updated Grok button -->
                                 <button type="button" id="ai-improve-btn"
-                                        class="btn btn-sm px-3 py-1 fw-semibold d-flex align-items-center gap-2"
-                                        style="background-color: #8B4513; color: white; border: none; min-width: 185px; height: 38px;">
+                                        class="btn btn-grok btn-sm px-3 py-1 fw-semibold d-flex align-items-center gap-2"
+                                        style="min-width: 185px; height: 38px;">
                                     
                                     <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" 
                                         alt="Grok" height="18" style="vertical-align: middle;">
@@ -233,7 +234,8 @@
                             <div id="image-preview" class="mt-3"></div>
                         </div>
 
-                        <button type="submit" class="btn btn-success btn-lg w-100 py-3 fw-semibold">
+                        <!-- Updated Main Submit Button -->
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
                             {% if editing is defined and editing %}
                                 <i class="bi bi-save me-1"></i>Update Listing
                             {% else %}
@@ -248,7 +250,7 @@
 </div>
 
 <script>
-    // Multi-Photo Preview logic (kept exactly as you had it)
+    // Multi-Photo Preview logic
     const photoInput = document.getElementById('photo');
     const previewContainer = document.getElementById('image-preview');
     let selectedFiles = [];
