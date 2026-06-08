@@ -294,6 +294,11 @@ def create():
 
                 # Re-render the form with everything preserved except title, description and price fields
                 continue_form = ListingForm()
+                seed_categories()
+                continue_form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
+                if not continue_form.category.choices:
+                    continue_form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
+
                 continue_form.post_type.data = form.post_type.data
                 continue_form.price_type.data = form.price_type.data
                 continue_form.category.data = form.category.data
