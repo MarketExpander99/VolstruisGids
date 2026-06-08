@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
@@ -39,7 +39,9 @@ def create_app(config_class=Config):
     from app.blueprints.profile import profile_bp
     from app.blueprints.payments import payments_bp   # <-- Added for Paystack integration
     from app.blueprints.messages import messages_bp   # <-- Private Messaging MVP
+    from app.blueprints.sitemap import sitemap_bp
 
+    app.register_blueprint(sitemap_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(listings_bp)
