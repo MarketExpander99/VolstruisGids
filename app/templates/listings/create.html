@@ -234,14 +234,37 @@
                             <div id="image-preview" class="mt-3"></div>
                         </div>
 
-                        <!-- Updated Main Submit Button -->
-                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
-                            {% if editing is defined and editing %}
+                        <!-- Submit Buttons -->
+                        {% if editing is defined and editing %}
+                            <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
                                 <i class="bi bi-save me-1"></i>Update Listing
+                            </button>
+                        {% else %}
+                            {% if current_user.is_business %}
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-6">
+                                        <button type="submit" name="action" value="post" 
+                                                class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
+                                            <i class="bi bi-plus-circle me-1"></i>Post Listing
+                                        </button>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <button type="submit" name="action" value="create_new" 
+                                                class="btn btn-success btn-lg w-100 py-3 fw-semibold">
+                                            <i class="bi bi-plus-circle me-1"></i>Post &amp; Create New
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Business users: “Post &amp; Create New” saves the listing and keeps category, town &amp; contact details ready for your next one.
+                                </small>
                             {% else %}
-                                <i class="bi bi-plus-circle me-1"></i>Post Listing
+                                <button type="submit" name="action" value="post" 
+                                        class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
+                                    <i class="bi bi-plus-circle me-1"></i>Post Listing
+                                </button>
                             {% endif %}
-                        </button>
+                        {% endif %}
                     </form>
                 </div>
             </div>
@@ -250,7 +273,7 @@
 </div>
 
 <script>
-    // Multi-Photo Preview logic
+    // Multi-Photo Preview logic (unchanged)
     const photoInput = document.getElementById('photo');
     const previewContainer = document.getElementById('image-preview');
     let selectedFiles = [];
@@ -318,7 +341,7 @@
         });
     }
 
-    // Pricing Visibility Logic
+    // Pricing Visibility Logic (unchanged)
     const postRadios = document.querySelectorAll('input[name="post_type"]');
     const priceTypeRadios = document.querySelectorAll('input[name="price_type"]');
     const priceDetails = document.getElementById('price-details');
@@ -358,7 +381,7 @@
     updatePriceVisibility();
     updatePriceType();
 
-    // ========== GROK IMPROVE BUTTON ==========
+    // ========== GROK IMPROVE BUTTON (unchanged) ==========
     const aiBtn = document.getElementById('ai-improve-btn');
     if (aiBtn) {
         aiBtn.addEventListener('click', async function () {

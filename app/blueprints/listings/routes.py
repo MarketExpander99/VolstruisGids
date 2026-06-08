@@ -281,15 +281,36 @@ def create():
             db.session.add(listing)
             db.session.commit()
 
+            action = request.form.get('action')
+
             if required_credits == 0:
-                flash('Listing created successfully using your free daily quota! It will be live for 7 days.', 'success')
+                base_msg = 'Listing created successfully using your free daily quota! It will be live for 7 days.'
             else:
-                flash(
-                    f'Listing created successfully! {required_credits} credit(s) deducted. '
-                    f'New balance: {current_user.credit_balance}',
-                    'success'
-                )
-            return redirect(url_for('main.index'))
+                base_msg = f'Listing created successfully! {required_credits} credit(s) deducted. New balance: {current_user.credit_balance}'
+
+            if action == 'create_new':
+                flash(base_msg + ' Category, town & contacts kept for your next listing — just add new title, description & price.', 'success')
+
+                # Re-render the form with everything preserved except title, description and price fields
+                continue_form = ListingForm()
+                continue_form.post_type.data = form.post_type.data
+                continue_form.price_type.data = form.price_type.data
+                continue_form.category.data = form.category.data
+                continue_form.town.data = form.town.data
+                continue_form.contact_methods.data = selected
+                continue_form.contact_phone.data = contact_phone
+                continue_form.contact_email.data = contact_email
+                continue_form.allow_comments.data = form.allow_comments.data
+
+                if form.post_type.data == 'rental':
+                    continue_form.rental_duration_unit.data = form.rental_duration_unit.data
+                    # rental_duration deliberately left blank (price-related field)
+
+                return render_template('listings/create.html', form=continue_form, editing=False)
+            else:
+                flash(base_msg, 'success')
+                return redirect(url_for('main.index'))
+
         except Exception as e:
             db.session.rollback()
             flash(f'Error saving your listing: {str(e)}', 'danger')
