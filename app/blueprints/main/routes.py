@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 from PIL import Image
 import requests
 from datetime import datetime, date
+from flask import send_from_directory
 
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -211,6 +212,14 @@ def my_listings():
     listings = Listing.query.filter_by(user_id=current_user.id)\
         .order_by(Listing.created_at.desc()).all()
     return render_template('main/my_listings.html', listings=listings)
+
+@main_bp.route('/robots.txt')
+def robots_txt():
+    return send_from_directory(
+        os.path.join(current_app.root_path, 'static'),
+        'robots.txt',
+        mimetype='text/plain'
+    )
 
 @main_bp.route('/terms')
 def terms():
