@@ -1,6 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}{{ listing.title }} - Volstruis Gids{% endblock %}
+{% block title %}{{ page_title or (listing.title + ' - Volstruis Gids') }}{% endblock %}
+
+{% block head %}
+    <meta name="description" content="{{ meta_description }}">
+    <link rel="canonical" href="{{ request.url_root.rstrip('/') }}{{ url_for('listings.detail', listing_id=listing.id) }}">
+
+    <!-- Open Graph / Social sharing -->
+    <meta property="og:title" content="{{ page_title }}">
+    <meta property="og:description" content="{{ meta_description }}">
+    <meta property="og:type" content="product">
+    <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ url_for('listings.detail', listing_id=listing.id) }}">
+    {% if listing.photo_url %}
+    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ listing.photo_url }}">
+    {% endif %}
+    <meta property="og:site_name" content="VolstruisGids">
+
+    <!-- JSON-LD Structured Data for Google -->
+    <script type="application/ld+json">
+    {{ structured_data | tojson | safe }}
+    </script>
+{% endblock %}
 
 {% block content %}
 <div class="container my-5">

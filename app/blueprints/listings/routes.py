@@ -156,6 +156,7 @@ Return ONLY valid JSON with these exact keys (no extra text, no markdown):
     except Exception as e:
         return jsonify({'error': f'AI temporarily unavailable. ({str(e)})'}), 500
 
+
 @listings_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
@@ -576,8 +577,11 @@ def boost(listing_id):
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
     listing = Listing.query.get_or_404(listing_id)
+    
+    # Increment views safely
     listing.views = (listing.views or 0) + 1
     db.session.commit()
+    
     # Prepare message form (only for the private DM modal when the listing allows DM and user is eligible)
     # This ensures proper CSRF token via hidden_tag() and prefilled hidden fields.
     message_form = None
@@ -588,4 +592,38 @@ def detail(listing_id):
         message_form.receiver_id.data = listing.user_id
         message_form.listing_id.data = listing.id
 
-    return render_template('listings/detail.html', listing=listing, message_form=message_form)
+    # SEO enhancements
+    title = f"{listing.title} - {listing.location} | VolstruisGids"
+    meta_description = f"{listing.title} in {listing.location}. {'R' + str(int(listing.price)) if listing.price and listing.price > 0 else 'Price on request'}. Local classifieds Klein Karoo. Contact seller today."
+    
+    # Structured data for Google (Offer + local business context)
+    structured_data = {
+        "@context": "https://schema.org",
+        "@type": "Offer",
+        "name": listing.title,
+        "description": (listing.description or "")[:500],
+        "price": str(listing.price) if listing.price and listing.price > 0 else None,
+        "priceCurrency": "ZAR",
+        "itemCondition": "https://schema.org/UsedCondition" if 'used' in (listing.title or '').lower() else "https://schema.org/NewCondition",
+        "availability": "https://schema.org/InStock",
+        "seller": {
+            "@type": "Person" if not listing.is_business_ad else "Organization",
+            "name": (listing.user.business_name or listing.user.username) if listing.user else "Private Seller"
+        },
+        "availableAtOrFrom": {
+            "@type": "Place",
+            "address": {
+                "@type": "PostalAddress",
+                "addressLocality": listing.location,
+                "addressRegion": "Western Cape",
+                "addressCountry": "ZA"
+            }
+        }
+    }
+    
+    return render_template('listings/detail.html', 
+                         listing=listing, 
+                         message_form=message_form,
+                         page_title=title,
+                         meta_description=meta_description,
+                         structured_data=structured_data)
