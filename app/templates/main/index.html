@@ -18,9 +18,7 @@
             <p class="mb-0 opacity-90">Business &amp; Personal listings • Free to browse • Post your ad today</p>
         </div>
     </div>
-
     <h1 class="mb-4">Volstruis Gids - Klein Karoo Classifieds</h1>
-
     <!-- Filters -->
     <div class="row g-3 mb-4 align-items-end" id="filter-form">
         <input type="hidden" id="category" value="">
@@ -65,18 +63,16 @@
             <button onclick="resetFilters()" class="btn btn-outline-secondary w-100">Reset All</button>
         </div>
     </div>
-
     <!-- Popular Categories -->
     <div class="mb-4">
         <h5 class="text-muted">Popular Categories</h5>
         <div id="popular-categories" class="d-flex flex-wrap gap-2"></div>
     </div>
-
     <!-- User Store Header -->
     <div id="user-store-header" class="mb-4 p-3 rounded-3 d-none" style="background-color: #f8f4eb; border: 1px solid #E6B800;">
         <div class="d-flex align-items-center">
-            <img id="user-store-logo" src="" alt="Store Logo" 
-                 class="rounded-circle me-3" width="60" height="60" 
+            <img id="user-store-logo" src="" alt="Store Logo"
+                 class="rounded-circle me-3" width="60" height="60"
                  style="object-fit: cover; border: 3px solid #E6B800;">
             <div>
                 <h4 id="user-store-name" class="mb-1 fw-bold text-dark"></h4>
@@ -84,28 +80,24 @@
             </div>
         </div>
     </div>
-
     <!-- Listings Feed -->
     <div id="listings-container" class="row"></div>
-
     <!-- Load More -->
     <div class="text-center my-5">
         <button id="load-more-btn" onclick="loadMore()" class="btn btn-outline-primary px-5 py-2" style="display: none;">
             Load More Listings
         </button>
     </div>
-
     <div class="text-center text-muted small mt-5">
         Volstruis Gids © 2026 • All listings are user posted • Business listings marked with logo
     </div>
 </div>
-
 <!-- Grok AI Chat Modal -->
 <div class="modal fade" id="grokChatModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-info text-white">
-        <h5 class="modal-title"><img src="{{ url_for('static', filename='img/GrokLogo.png') }}" 
+        <h5 class="modal-title"><img src="{{ url_for('static', filename='img/GrokLogo.png') }}"
                alt="Grok" height="26" class="me-2" style="vertical-align: middle;">
           Ask Grok about this listing</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -128,10 +120,8 @@
     </div>
   </div>
 </div>
-
 <script>
 let currentGrokListing = null;
-
 function openGrokChat(listingId, title, description, area) {
     currentGrokListing = { id: listingId, title: title, description: description, area: area };
     document.getElementById('chat-log').innerHTML = `
@@ -143,12 +133,11 @@ function openGrokChat(listingId, title, description, area) {
     const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
     modal.show();
 }
-
 function appendMessage(role, text) {
     const log = document.getElementById('chat-log');
     const div = document.createElement('div');
     div.style.marginBottom = '8px';
-   
+  
     if (role === 'user') {
         div.innerHTML = `<div class="d-flex justify-content-end"><div class="bg-primary text-white px-3 py-2 rounded-3" style="max-width: 80%;">${text}</div></div>`;
     } else if (role === 'grok') {
@@ -159,17 +148,14 @@ function appendMessage(role, text) {
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;
 }
-
 function sendGrokMessage() {
     const input = document.getElementById('grok-input');
     const question = input.value.trim();
     if (!question || !currentGrokListing) return;
-
     appendMessage('user', question);
     input.value = '';
     const thinking = document.getElementById('grok-thinking');
     thinking.style.display = 'flex';
-
     fetch('/api/ai/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -192,12 +178,10 @@ function sendGrokMessage() {
         appendMessage('error', 'Connection error. Please try again.');
     });
 }
-
 // Delegated listener for Ask Grok buttons
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('.grok-ask-btn');
     if (!btn) return;
-
     if (btn.dataset.grokListingId) {
         openGrokChat(
             btn.dataset.grokListingId,
@@ -208,25 +192,21 @@ document.addEventListener('click', function(e) {
     }
 });
 </script>
-
 <script>
     let currentPage = 1;
     let hasMore = true;
-
     function fetchListings(page = 1, append = false) {
         const q = document.getElementById('q').value.trim();
         const town = document.getElementById('town').value;
         const post_type = document.getElementById('post_type').value;
         const category = document.getElementById('category') ? document.getElementById('category').value.trim() : '';
         const user_id = new URLSearchParams(window.location.search).get('user_id');
-
         let url = `/api/listings?page=${page}`;
         if (q) url += `&q=${encodeURIComponent(q)}`;
         if (town) url += `&town=${encodeURIComponent(town)}`;
         if (post_type) url += `&post_type=${post_type}`;
         if (category) url += `&category=${encodeURIComponent(category)}`;
         if (user_id) url += `&user_id=${user_id}`;
-
         fetch(url)
             .then(response => {
                 if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -235,66 +215,89 @@ document.addEventListener('click', function(e) {
             .then(data => {
                 const container = document.getElementById('listings-container');
                 if (!append) container.innerHTML = '';
-
-                // User Store Header
+                // User Store Header - now uses profile picture from profile screen
                 const header = document.getElementById('user-store-header');
                 const logoEl = document.getElementById('user-store-logo');
                 const nameEl = document.getElementById('user-store-name');
-
                 if (user_id && data.listings.length > 0) {
                     const first = data.listings[0];
-                    if (first.business_logo) {
-                        logoEl.src = first.business_logo;
-                    } else {
-                        logoEl.src = '/static/img/default-listing.jpg';
-                    }
-
+                    let logoSrc = '/static/img/default-listing.jpg';
                     let storeName = 'Seller\'s Store';
+                    const headerPic = first.business_logo || first.profile_picture || first.user_profile_picture || first.avatar;
+                    if (headerPic) {
+                        logoSrc = headerPic;
+                    }
                     if (first.business_name) {
                         storeName = first.business_name;
                     } else if (first.username) {
                         storeName = first.username.replace(/^@+/, '') + "'s Store";
                     }
+                    logoEl.src = logoSrc;
                     nameEl.textContent = storeName;
                     header.classList.remove('d-none');
                 } else {
                     header.classList.add('d-none');
                 }
-
                 data.listings.forEach(listing => {
-                    const isBusiness = listing.is_business_ad;
                     const isBoosted = listing.is_promoted || listing.last_reposted_at;
+                    const isBusinessType = listing.is_business_ad || !!listing.business_name || !!listing.business_logo;
 
                     let cardExtraClasses = 'card h-100 shadow-sm';
-                    if (isBusiness) cardExtraClasses += ' business-listing border-warning';
+                    if (isBusinessType) cardExtraClasses += ' business-listing border-warning';
                     if (isBoosted) cardExtraClasses += ' boosted';
 
+                    // Robust avatar logic: prefer saved profile picture from profile screen
                     let posterHTML = '';
-                    if (isBusiness) {
-                        const logo = listing.business_logo
-                            ? `<img src="${listing.business_logo}" alt="Business Logo" class="rounded-circle me-2" width="36" height="36" style="object-fit:cover; border: 2px solid #E6B800;">`
-                            : `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px; background:#8B4513; color:white; font-weight:700; font-size:0.9rem;">B</div>`;
+                    const profilePicSrc = listing.business_logo || listing.profile_picture || listing.user_profile_picture || listing.avatar || null;
 
+                    if (profilePicSrc) {
+                        const borderColor = listing.business_logo ? '#E6B800' : '#6c757d';
+                        const avatarImg = `<img src="${profilePicSrc}" alt="Profile Picture" class="rounded-circle me-2" width="36" height="36" style="object-fit:cover; border: 2px solid ${borderColor};">`;
+                        const nameText = isBusinessType 
+                            ? (listing.business_name || 'Business')
+                            : `@${(listing.username || '').replace(/^@+/, '')}`;
+                        const badge = isBusinessType 
+                            ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">BUSINESS</span>` 
+                            : '';
+                        const nameLink = isBusinessType 
+                            ? `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`
+                            : `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
+                        
                         posterHTML = `
                             <div class="d-flex align-items-center mb-3">
-                                ${logo}
+                                ${avatarImg}
                                 <div>
-                                    <strong class="text-primary">
-                                        <a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none">
-                                            ${listing.business_name || 'Business'}
-                                        </a>
+                                    <strong class="${isBusinessType ? 'text-primary' : ''}">
+                                        ${nameLink}
                                     </strong>
-                                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">BUSINESS</span>
+                                    ${badge}
                                 </div>
                             </div>`;
                     } else {
+                        // No profile picture saved yet - elegant initial fallback
+                        const initialSource = listing.business_name || listing.username || 'U';
+                        const initial = initialSource.charAt(0).toUpperCase();
+                        const bgColor = isBusinessType ? '#8B4513' : '#6c757d';
+                        const avatarInitial = `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px; background:${bgColor}; color:white; font-weight:700; font-size:0.9rem;">${initial}</div>`;
+                        const nameText = isBusinessType 
+                            ? (listing.business_name || 'Business')
+                            : `@${(listing.username || '').replace(/^@+/, '')}`;
+                        const badge = isBusinessType 
+                            ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">BUSINESS</span>` 
+                            : '';
+                        const nameLink = isBusinessType 
+                            ? `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`
+                            : `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
+                        
                         posterHTML = `
                             <div class="d-flex align-items-center mb-3">
-                                <strong>
-                                    <a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">
-                                        @${(listing.username || '').replace(/^@+/, '')}
-                                    </a>
-                                </strong>
+                                ${avatarInitial}
+                                <div>
+                                    <strong class="${isBusinessType ? 'text-primary' : ''}">
+                                        ${nameLink}
+                                    </strong>
+                                    ${badge}
+                                </div>
                             </div>`;
                     }
 
@@ -305,7 +308,6 @@ document.addEventListener('click', function(e) {
                     else if (adType === 'rental') typeBadge = '<span class="badge bg-info mb-2">FOR RENT</span>';
                     else if (adType === 'services') typeBadge = '<span class="badge bg-primary mb-2">SERVICES</span>';
                     else if (adType === 'announcement') typeBadge = '<span class="badge bg-secondary mb-2">ANNOUNCEMENT</span>';
-
                     let priceHTML = '';
                     const pt = listing.price_type || 'fixed';
                     if (adType === 'rental' && listing.price) {
@@ -321,25 +323,21 @@ document.addEventListener('click', function(e) {
                     } else {
                         priceHTML = `<p class="text-muted small mb-1">Price on request</p>`;
                     }
-
                     const defaultPhoto = '/static/img/default-listing.jpg';
                     const photoSrc = listing.photo_url || defaultPhoto;
-
                     const shareText = `Check out this listing on Volstruis Gids: ${listing.title}`;
                     const shareUrl = `${window.location.origin}${listing.detail_url}`;
                     const whatsappShareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
-
                     const cardHTML = `
                         <div class="col-md-4 mb-4">
-                            <div class="${cardExtraClasses}" style="${isBusiness ? 'border-top: 4px solid #E6B800;' : ''}">
+                            <div class="${cardExtraClasses}" style="${isBusinessType ? 'border-top: 4px solid #E6B800;' : ''}">
                                 ${isBoosted ? '<div class="promoted-banner bg-warning text-dark fw-bold">PROMOTED</div>' : ''}
-                                
+                               
                                 <div style="height:200px; background-color:#f8f9fa; position:relative; overflow:hidden;">
                                     <img src="${photoSrc}" alt="Photo"
                                          style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
                                                 max-width:94%; max-height:94%; object-fit:contain; padding:6px;">
                                 </div>
-
                                 <div class="card-body">
                                     ${typeBadge}
                                     <h5 class="card-title">${listing.title}</h5>
@@ -348,48 +346,40 @@ document.addEventListener('click', function(e) {
                                     ${posterHTML}
                                     <small class="text-muted">${listing.location}</small>
                                 </div>
-
                                 <div class="card-footer bg-transparent border-0 pt-0">
                                     <a href="${whatsappShareLink}" target="_blank"
                                        class="btn btn-success btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
                                         <i class="bi bi-whatsapp"></i>
                                         <span>Share on WhatsApp</span>
                                     </a>
-
-                                    <!-- Updated Ask Grok button with logo -->
                                     <button type="button"
                                             class="btn btn-outline-info btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 grok-ask-btn"
                                             data-grok-listing-id="${listing.id}"
                                             data-grok-title="${listing.title}"
                                             data-grok-description="${listing.description || ''}"
                                             data-grok-area="${listing.location || ''}">
-                                        <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" 
+                                        <img src="{{ url_for('static', filename='img/GrokLogo.png') }}"
                                              alt="Grok" height="16" style="vertical-align: middle;">
                                         <span>Ask Grok</span>
                                     </button>
-
                                     <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100">
                                         View Full Ad →
                                     </a>
                                 </div>
                             </div>
                         </div>`;
-
                     container.innerHTML += cardHTML;
                 });
-
                 hasMore = data.has_more;
                 document.getElementById('load-more-btn').style.display = hasMore ? 'inline-block' : 'none';
             })
             .catch(err => console.error('Error fetching listings:', err));
     }
-
     function applyFilters() {
         currentPage = 1;
         fetchListings(1, false);
         loadPopularCategories();
     }
-
     function resetFilters() {
         document.getElementById('q').value = '';
         document.getElementById('town').value = '';
@@ -404,7 +394,6 @@ document.addEventListener('click', function(e) {
         fetchListings(1, false);
         loadPopularCategories();
     }
-
     function filterByUser(userId) {
         const url = new URL(window.location);
         url.searchParams.set('user_id', userId);
@@ -413,7 +402,6 @@ document.addEventListener('click', function(e) {
         fetchListings(1, false);
         loadPopularCategories();
     }
-
     function filterByCategory(catName) {
         const catEl = document.getElementById('category');
         if (catEl) catEl.value = catName;
@@ -421,13 +409,11 @@ document.addEventListener('click', function(e) {
         fetchListings(1, false);
         loadPopularCategories();
     }
-
     function loadPopularCategories() {
         const q = document.getElementById('q').value.trim();
         const town = document.getElementById('town').value;
         const post_type = document.getElementById('post_type').value;
         const user_id = new URLSearchParams(window.location.search).get('user_id');
-
         let url = `/api/categories`;
         const params = [];
         if (q) params.push(`q=${encodeURIComponent(q)}`);
@@ -435,7 +421,6 @@ document.addEventListener('click', function(e) {
         if (post_type) params.push(`post_type=${post_type}`);
         if (user_id) params.push(`user_id=${user_id}`);
         if (params.length > 0) url += `?${params.join('&')}`;
-
         fetch(url)
             .then(response => {
                 if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -445,9 +430,7 @@ document.addEventListener('click', function(e) {
                 const container = document.getElementById('popular-categories');
                 if (!container) return;
                 container.innerHTML = '';
-
                 const currentCat = document.getElementById('category') ? document.getElementById('category').value.trim() : '';
-
                 data.forEach(cat => {
                     if (cat.count > 0) {
                         const isActive = cat.name === currentCat;
@@ -463,12 +446,10 @@ document.addEventListener('click', function(e) {
             })
             .catch(err => console.error('Error fetching categories:', err));
     }
-
     function loadMore() {
         currentPage++;
         fetchListings(currentPage, true);
     }
-
     window.onload = function() {
         fetchListings(1, false);
         loadPopularCategories();
