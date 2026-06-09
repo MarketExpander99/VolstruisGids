@@ -243,7 +243,7 @@ def create():
                 else:
                     msg = f'Not enough credits. This {"super/business" if is_business else "normal"} listing requires {required_credits} credit(s). Please buy more credits to continue.'
                 flash(msg, 'warning')
-                return render_template('listings/create.html', form=form, editing=False)
+                return redirect(url_for('listings.create'))
 
             current_user.credit_balance -= required_credits
             txn = CreditTransaction(
@@ -315,12 +315,12 @@ def create():
                 return render_template('listings/create.html', form=continue_form, editing=False)
             else:
                 flash(base_msg, 'success')
-                return redirect(url_for('main.index'))
+                return redirect(url_for('main.my_listings'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error saving your listing: {str(e)}', 'danger')
-            return render_template('listings/create.html', form=form, editing=False)
+            return redirect(url_for('listings.create'))
 
     return render_template('listings/create.html', form=form)
 

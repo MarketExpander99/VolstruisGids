@@ -27,6 +27,10 @@
                     <form id="create-form" method="POST" enctype="multipart/form-data" novalidate>
                         {{ form.hidden_tag() }}
 
+                        <!-- Hidden field to reliably capture which submit button was clicked (XHR safety) -->
+                        <!-- NOTE: name changed to "submit_action" to avoid JS form.action shadowing bug -->
+                        <input type="hidden" name="submit_action" id="submit-action" value="post">
+
                         <!-- Post Type -->
                         <div class="mb-4">
                             {{ form.post_type.label(class="form-label fw-bold") }}
@@ -249,20 +253,20 @@
                             {% if current_user.is_business %}
                                 <div class="row g-2">
                                     <div class="col-12 col-md-6">
-                                        <button type="submit" name="action" value="post" 
+                                        <button type="submit" name="submit_action" value="post" 
                                                 class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
                                             <i class="bi bi-plus-circle me-1"></i>Post Listing
                                         </button>
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <button type="submit" name="action" value="create_new" 
+                                        <button type="submit" name="submit_action" value="create_new" 
                                                 class="btn btn-success btn-lg w-100 py-3 fw-semibold">
                                             <i class="bi bi-plus-circle me-1"></i>Post &amp; Create New
                                         </button>
                                     </div>
                                 </div>
                             {% else %}
-                                <button type="submit" name="action" value="post" 
+                                <button type="submit" name="submit_action" value="post" 
                                         class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
                                     <i class="bi bi-plus-circle me-1"></i>Post Listing
                                 </button>
@@ -276,8 +280,20 @@
 </div>
 
 <script>
-    // ========== REAL UPLOAD PROGRESS BAR ==========
+    // ========== RELIABLE ACTION CAPTURE FOR MULTI-BUTTON XHR ==========
     const form = document.getElementById('create-form');
+    const submitActionField = document.getElementById('submit-action');
+    const submitButtons = form ? form.querySelectorAll('button[type="submit"]') : [];
+
+    submitButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (submitActionField) {
+                submitActionField.value = btn.value || 'post';
+            }
+        });
+    });
+
+    // ========== REAL UPLOAD PROGRESS BAR ==========
     const progressContainer = document.getElementById('upload-progress-container');
     const progressBar = document.getElementById('upload-progress-bar');
     const progressText = document.getElementById('progress-text');
@@ -287,11 +303,17 @@
             e.preventDefault();
 
             const formData = new FormData(form);
+
+            // Preserve the 'action' key the backend expects for post vs create_new routing.
+            // This keeps full backward compatibility while fixing the JS name collision.
+            if (submitActionField) {
+                formData.set('action', submitActionField.value || 'post');
+            }
+
             const xhr = new XMLHttpRequest();
 
             // Show progress bar
             if (progressContainer) progressContainer.classList.remove('d-none');
-            const submitButtons = form.querySelectorAll('button[type="submit"]');
             submitButtons.forEach(btn => btn.disabled = true);
 
             xhr.upload.addEventListener('progress', function(evt) {
@@ -304,10 +326,14 @@
 
             xhr.addEventListener('load', function() {
                 if (xhr.status === 200 || xhr.status === 302) {
-                    // Success - redirect to My Listings
-                    window.location.href = "{{ url_for('main.my_listings') }}";
+                    const finalUrl = xhr.responseURL || '';
+                    // create_new or validation/credit error paths return render on /create → reload to show messages
+                    if (finalUrl.includes('/create') || finalUrl.includes('create_listing')) {
+                        window.location.reload();
+                    } else {
+                        window.location.href = "{{ url_for('main.my_listings') }}";
+                    }
                 } else {
-                    // Error - reload to show flash messages
                     window.location.reload();
                 }
             });
@@ -318,12 +344,14 @@
                 if (progressContainer) progressContainer.classList.add('d-none');
             });
 
-            xhr.open('POST', form.action || window.location.href);
+            // Use getAttribute to avoid any future form control name collisions
+            const targetUrl = form.getAttribute('action') || window.location.href;
+            xhr.open('POST', targetUrl);
             xhr.send(formData);
         });
     }
 
-    // Multi-Photo Preview (your existing code - kept intact)
+    // Multi-Photo Preview (kept exactly as you had it)
     const photoInput = document.getElementById('photo');
     const previewContainer = document.getElementById('image-preview');
     let selectedFiles = [];
@@ -424,7 +452,6 @@
     const aiBtn = document.getElementById('ai-improve-btn');
     if (aiBtn) {
         aiBtn.addEventListener('click', async function () {
-            // ... (your existing Grok code remains unchanged)
             const btnText = document.getElementById('ai-btn-text');
             const spinner = document.getElementById('ai-btn-spinner');
             const resultBox = document.getElementById('ai-result');
