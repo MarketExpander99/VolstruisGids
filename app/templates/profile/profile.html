@@ -5,13 +5,42 @@
     <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-7">
             <div class="card shadow-sm">
-                
+               
                 <!-- Updated: Dark header like the rest of the app -->
                 <div class="card-header text-white" style="background-color: #2C3E50;">
                     <h4 class="mb-0"><i class="bi bi-person me-2"></i>My Profile</h4>
                 </div>
 
                 <div class="card-body p-4 p-md-5">
+
+                    <!-- Business Logo / Profile Picture -->
+                    <div class="mb-4 p-4 bg-light rounded-3 border">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-image me-2"></i>Business Logo / Profile Picture
+                        </h6>
+                        
+                        {% if current_user.profile_pic %}
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-1">Current logo:</small>
+                                <img src="{{ current_user.profile_pic }}" 
+                                     class="img-thumbnail shadow-sm" 
+                                     style="max-width: 140px; max-height: 140px; object-fit: cover; border-radius: 10px;">
+                            </div>
+                        {% else %}
+                            <div class="mb-3">
+                                <small class="text-muted">No logo uploaded yet. Upload one below — it will appear on your business listings.</small>
+                            </div>
+                        {% endif %}
+
+                        <div>
+                            {{ form.photo.label(class="form-label fw-semibold") }}
+                            {{ form.photo(class="form-control") }}
+                            {% for error in form.photo.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                            <small class="text-muted d-block mt-1">Recommended: square image (PNG or JPG). Max size ~2MB.</small>
+                        </div>
+                    </div>
 
                     <!-- Credit Balance -->
                     <div class="mb-4 p-4 bg-light rounded-3 border">
@@ -47,9 +76,9 @@
                     {% endwith %}
 
                     <!-- Profile Form -->
-                    <form method="POST">
+                    <form method="POST" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
-                        
+                       
                         <div class="mb-3">
                             {{ form.email.label(class="form-label") }}
                             {{ form.email(class="form-control") }}
@@ -57,7 +86,7 @@
                                 <div class="text-danger small">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+                       
                         <div class="mb-4">
                             {{ form.phone.label(class="form-label") }}
                             {{ form.phone(class="form-control") }}
@@ -80,7 +109,7 @@
     <div class="row mt-5">
         <div class="col-12">
             <h5 class="fw-bold mb-3">📋 Your Active Listings ({{ listings|length }})</h5>
-            
+           
             {% if listings %}
             <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
                 {% for listing in listings %}
@@ -93,7 +122,13 @@
                             {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
                             <img src="{{ photo_src }}" class="card-img-top" style="height: 90px; object-fit: cover;" alt="{{ listing.title }}">
                             <div class="card-body p-3">
-                                <p class="card-text small mb-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3;">
+                                <p class="card-text small mb-1" 
+                                   style="display: -webkit-box; 
+                                          -webkit-line-clamp: 2; 
+                                          line-clamp: 2; 
+                                          -webkit-box-orient: vertical; 
+                                          overflow: hidden; 
+                                          line-height: 1.3;">
                                     {{ listing.description[:90] }}...
                                 </p>
                                 <small class="text-muted">
