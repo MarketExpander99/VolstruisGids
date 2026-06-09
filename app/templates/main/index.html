@@ -2,7 +2,7 @@
 {% block content %}
 <div class="container mt-4">
     <!-- HERO BANNER -->
-    <div class="hero-bg position-relative overflow-hidden rounded-3 mb-5 text-white text-center">
+    <div id="hero-banner" class="hero-bg position-relative overflow-hidden rounded-3 mb-5 text-white text-center">
         <picture class="position-absolute top-0 start-0 w-100 h-100 m-0" style="z-index: 0;">
             <source media="(max-width: 767.98px)" srcset="{{ url_for('static', filename='img/hero-karoo-sunset-mobile.jpg') }}">
             <img src="{{ url_for('static', filename='img/hero-karoo-sunset.jpg') }}"
@@ -18,7 +18,7 @@
             <p class="mb-0 opacity-90">Business &amp; Personal listings • Free to browse • Post your ad today</p>
         </div>
     </div>
-    <h1 class="mb-4">Volstruis Gids - Klein Karoo Classifieds</h1>
+    <h1 id="main-title" class="mb-4">Volstruis Gids - Klein Karoo Classifieds</h1>
     <!-- Filters -->
     <div class="row g-3 mb-4 align-items-end" id="filter-form">
         <input type="hidden" id="category" value="">
@@ -64,7 +64,7 @@
         </div>
     </div>
     <!-- Popular Categories -->
-    <div class="mb-4">
+    <div id="popular-categories-section" class="mb-4">
         <h5 class="text-muted">Popular Categories</h5>
         <div id="popular-categories" class="d-flex flex-wrap gap-2"></div>
     </div>
@@ -78,6 +78,15 @@
                 <h4 id="user-store-name" class="mb-1 fw-bold text-dark"></h4>
                 <small class="text-muted">Store • Klein Karoo</small>
             </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <button type="button" onclick="exitStoreMode()" class="btn btn-outline-secondary btn-sm px-3">
+                ← Back
+            </button>
+            <button type="button" onclick="shareStoreWhatsApp()" class="btn btn-success btn-sm px-3 d-flex align-items-center gap-2">
+                <i class="bi bi-whatsapp"></i>
+                <span>Share My store link</span>
+            </button>
         </div>
     </div>
     <!-- Listings Feed -->
@@ -195,6 +204,53 @@ document.addEventListener('click', function(e) {
 <script>
     let currentPage = 1;
     let hasMore = true;
+
+    function showMainSections() {
+        const hero = document.getElementById('hero-banner');
+        const title = document.getElementById('main-title');
+        const filters = document.getElementById('filter-form');
+        const cats = document.getElementById('popular-categories-section');
+        if (hero) hero.classList.remove('d-none');
+        if (title) title.classList.remove('d-none');
+        if (filters) filters.classList.remove('d-none');
+        if (cats) cats.classList.remove('d-none');
+    }
+
+    function hideMainSections() {
+        const hero = document.getElementById('hero-banner');
+        const title = document.getElementById('main-title');
+        const filters = document.getElementById('filter-form');
+        const cats = document.getElementById('popular-categories-section');
+        if (hero) hero.classList.add('d-none');
+        if (title) title.classList.add('d-none');
+        if (filters) filters.classList.add('d-none');
+        if (cats) cats.classList.add('d-none');
+    }
+
+    function exitStoreMode() {
+        const url = new URL(window.location);
+        url.searchParams.delete('user_id');
+        window.history.pushState({}, '', url);
+        document.getElementById('user-store-header').classList.add('d-none');
+        showMainSections();
+        currentPage = 1;
+        fetchListings(1, false);
+        loadPopularCategories();
+    }
+
+    function shareStoreWhatsApp() {
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('user_id');
+        if (!userId) return;
+        const nameEl = document.getElementById('user-store-name');
+        const storeName = nameEl ? nameEl.textContent.trim() : "this store";
+        const baseUrl = window.location.origin + window.location.pathname;
+        const shareUrl = `${baseUrl}?user_id=${userId}`;
+        const text = `Check out ${storeName} on Volstruis Gids – Klein Karoo Classifieds: ${shareUrl}`;
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.open(waUrl, '_blank');
+    }
+
     function fetchListings(page = 1, append = false) {
         const q = document.getElementById('q').value.trim();
         const town = document.getElementById('town').value;
@@ -235,8 +291,12 @@ document.addEventListener('click', function(e) {
                     logoEl.src = logoSrc;
                     nameEl.textContent = storeName;
                     header.classList.remove('d-none');
+                    hideMainSections();
+                    // Scroll to top so the focused store banner is immediately visible
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
                     header.classList.add('d-none');
+                    showMainSections();
                 }
                 data.listings.forEach(listing => {
                     const isBoosted = listing.is_promoted || listing.last_reposted_at;
