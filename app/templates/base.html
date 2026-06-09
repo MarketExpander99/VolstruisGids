@@ -89,9 +89,11 @@
                             </span>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-warning fw-semibold" href="{{ url_for('profile.buy_credits') }}">
+                            <button type="button" class="nav-link btn btn-link text-warning fw-semibold p-0" 
+                                    data-bs-toggle="modal" data-bs-target="#paymentComingSoonModal"
+                                    style="text-decoration: none; border: none; background: none;">
                                 <i class="bi bi-coin me-1"></i>Buy Credits
-                            </a>
+                            </button>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('auth.logout') }}">
@@ -125,6 +127,37 @@
     </div>
 
     {% block content %}{% endblock %}
+
+    <!-- Payment Coming Soon Modal (global) -->
+    <div class="modal fade" id="paymentComingSoonModal" tabindex="-1" aria-labelledby="paymentComingSoonModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="paymentComingSoonModalLabel">
+                        <i class="bi bi-credit-card-2-front me-2"></i>Payment System On The Way
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="lead mb-3">We're putting the finishing touches on our secure payment gateway (Paystack) so you can buy credits easily and safely. It will be live very soon!</p>
+                    
+                    <div class="alert alert-success border-0">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-gift me-2"></i>Special Offer for Early Business Partners</h6>
+                        <p class="mb-1">The first few businesses in the Klein Karoo (Ladismith, Oudtshoorn, Calitzdorp and surrounds) who actively help advertise VolstruisGids can receive <strong>FREE lifetime access</strong> — unlimited listings, premium features, and more.</p>
+                        <small class="text-muted">In return for some local promotion (Facebook groups, WhatsApp communities, posters, etc.). Your feedback during this soft launch is incredibly valuable.</small>
+                    </div>
+                    
+                    <p class="text-muted small mb-0">Just reach out via WhatsApp support and we'll activate it manually for you right away. Thank you for being part of the testing release — we're building this together!</p>
+                </div>
+                <div class="modal-footer">
+                    <a href="https://wa.me/27810763237" target="_blank" class="btn btn-success">
+                        <i class="bi bi-whatsapp me-1"></i> Contact via WhatsApp
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Mobile Bottom Navigation (hide on scroll down, show on scroll up) -->
     <div id="bottom-nav" class="fixed-bottom d-md-none text-white shadow-lg py-2" style="background-color: #C19A6B;">
@@ -185,27 +218,6 @@
         const topNav = document.getElementById('top-navbar');
         const bottomNav = document.getElementById('bottom-nav');
         const mainFooter = document.getElementById('main-footer');
-
-        function showMessagesComingSoon() {
-            const alertHTML = `
-                <div class="toast align-items-center text-bg-success border-0 position-fixed bottom-0 end-0 m-3" role="alert" style="z-index: 1100;">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            💬 DM / Messages system is next on the roadmap — coming very soon!
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>`;
-            const toastContainer = document.createElement('div');
-            toastContainer.innerHTML = alertHTML;
-            document.body.appendChild(toastContainer.firstElementChild);
-            
-            const toastEl = document.querySelector('.toast');
-            const toast = new bootstrap.Toast(toastEl);
-            toast.show();
-            
-            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-        }
 
         window.addEventListener('scroll', () => {
             const scrollTop = window.scrollY || document.documentElement.scrollTop;
