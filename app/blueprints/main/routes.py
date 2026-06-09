@@ -6,6 +6,7 @@ from app.models.listing import Listing
 from app.models.category import Category
 from app.models.credit_transaction import CreditTransaction
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 from . import main_bp
 import os
 from werkzeug.utils import secure_filename
@@ -130,8 +131,14 @@ def api_listings():
         except Exception:
             pass
 
-    listings = listings_query.order_by(Listing.created_at.desc())\
-        .paginate(page=page, per_page=per_page, error_out=False)
+    # === BOOST / REPROMOTE LOGIC ===
+    # Promoted listings first, then most recent last_reposted_at (falls back to created_at)
+    # This makes a fresh boost bubble the listing back to the top of the grid for ~7 days visibility.
+    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+    listings = listings_query.order_by(
+        Listing.is_promoted.desc(),
+        freshness.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
 
     listings_data = [{
         'id': l.id,
@@ -174,8 +181,6 @@ def api_categories():
     town = request.args.get('town', '').strip()
     user_id = request.args.get('user_id')
 
-    from sqlalchemy import func
-
     cat_query = db.session.query(
         Category.name, func.count(Listing.id).label('count')
     ).join(Listing, Listing.category_id == Category.id
@@ -209,9 +214,12 @@ def api_categories():
 @main_bp.route('/my-listings')
 @login_required
 def my_listings():
+    # Also apply freshness sort so your own boosted listings stay prominent
+    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
     listings = Listing.query.filter_by(user_id=current_user.id)\
-        .order_by(Listing.created_at.desc()).all()
+        .order_by(Listing.is_promoted.desc(), freshness.desc()).all()
     return render_template('main/my_listings.html', listings=listings)
+
 
 @main_bp.route('/robots.txt')
 def robots_txt():
@@ -221,17 +229,21 @@ def robots_txt():
         mimetype='text/plain'
     )
 
+
 @main_bp.route('/terms')
 def terms():
     return render_template('main/terms.html')
+
 
 @main_bp.route('/privacy')
 def privacy():
     return render_template('main/privacy.html')
 
+
 @main_bp.route('/guidelines')
 def guidelines():
     return render_template('main/guidelines.html')
+
 
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])
 @login_required
@@ -353,5 +365,4 @@ Answer the user's question directly about this listing. If the question is unrel
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Unexpected error processing your question.'}), 500
-    
     
