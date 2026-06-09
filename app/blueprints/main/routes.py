@@ -163,7 +163,9 @@ def api_listings():
         'rental_duration_unit': l.rental_duration_unit,
         'is_promoted': l.is_promoted,
         'last_reposted_at': l.last_reposted_at.isoformat() if l.last_reposted_at else None,
-        'listing_type': l.listing_type
+        'listing_type': l.listing_type,
+        # === FIX: Always include profile_pic so owner pictures show on every listing ===
+        'profile_pic': l.user.profile_pic if l.user else None
     } for l in listings.items]
 
     return jsonify({
@@ -365,4 +367,3 @@ Answer the user's question directly about this listing. If the question is unrel
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Unexpected error processing your question.'}), 500
-    

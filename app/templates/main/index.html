@@ -215,7 +215,7 @@ document.addEventListener('click', function(e) {
             .then(data => {
                 const container = document.getElementById('listings-container');
                 if (!append) container.innerHTML = '';
-                // User Store Header - now uses profile picture from profile screen
+                // User Store Header - always try profile_pic first
                 const header = document.getElementById('user-store-header');
                 const logoEl = document.getElementById('user-store-logo');
                 const nameEl = document.getElementById('user-store-name');
@@ -223,7 +223,7 @@ document.addEventListener('click', function(e) {
                     const first = data.listings[0];
                     let logoSrc = '/static/img/default-listing.jpg';
                     let storeName = 'Seller\'s Store';
-                    const headerPic = first.business_logo || first.profile_picture || first.user_profile_picture || first.avatar;
+                    const headerPic = first.profile_pic || first.profile_picture || first.user_profile_pic || first.avatar || first.user_avatar;
                     if (headerPic) {
                         logoSrc = headerPic;
                     }
@@ -240,41 +240,37 @@ document.addEventListener('click', function(e) {
                 }
                 data.listings.forEach(listing => {
                     const isBoosted = listing.is_promoted || listing.last_reposted_at;
-                    const isBusinessType = listing.is_business_ad || !!listing.business_name || !!listing.business_logo;
+                    const isBusinessType = listing.is_business_ad || !!listing.business_name;
 
                     let cardExtraClasses = 'card h-100 shadow-sm';
                     if (isBusinessType) cardExtraClasses += ' business-listing border-warning';
                     if (isBoosted) cardExtraClasses += ' boosted';
 
-                    // Robust avatar logic: prefer saved profile picture from profile screen
                     let posterHTML = '';
-                    const profilePicSrc = listing.business_logo || listing.profile_picture || listing.user_profile_picture || listing.avatar || null;
+                    // Always prefer the owner's profile_pic (from profile screen)
+                    const ownerPic = listing.profile_pic || listing.profile_picture || listing.user_profile_pic || listing.avatar || listing.user_avatar || null;
 
-                    if (profilePicSrc) {
-                        const borderColor = listing.business_logo ? '#E6B800' : '#6c757d';
-                        const avatarImg = `<img src="${profilePicSrc}" alt="Profile Picture" class="rounded-circle me-2" width="36" height="36" style="object-fit:cover; border: 2px solid ${borderColor};">`;
+                    if (ownerPic) {
+                        const borderColor = isBusinessType ? '#E6B800' : '#6c757d';
+                        const avatarImg = `<img src="${ownerPic}" alt="Profile Picture" class="rounded-circle me-2" width="36" height="36" style="object-fit:cover; border: 2px solid ${borderColor};">`;
                         const nameText = isBusinessType 
                             ? (listing.business_name || 'Business')
                             : `@${(listing.username || '').replace(/^@+/, '')}`;
                         const badge = isBusinessType 
                             ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">BUSINESS</span>` 
                             : '';
-                        const nameLink = isBusinessType 
-                            ? `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`
-                            : `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
+                        const nameLink = `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
                         
                         posterHTML = `
                             <div class="d-flex align-items-center mb-3">
                                 ${avatarImg}
                                 <div>
-                                    <strong class="${isBusinessType ? 'text-primary' : ''}">
-                                        ${nameLink}
-                                    </strong>
+                                    <strong>${nameLink}</strong>
                                     ${badge}
                                 </div>
                             </div>`;
                     } else {
-                        // No profile picture saved yet - elegant initial fallback
+                        // Only show initial when no profile picture exists
                         const initialSource = listing.business_name || listing.username || 'U';
                         const initial = initialSource.charAt(0).toUpperCase();
                         const bgColor = isBusinessType ? '#8B4513' : '#6c757d';
@@ -285,17 +281,13 @@ document.addEventListener('click', function(e) {
                         const badge = isBusinessType 
                             ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">BUSINESS</span>` 
                             : '';
-                        const nameLink = isBusinessType 
-                            ? `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`
-                            : `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
+                        const nameLink = `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
                         
                         posterHTML = `
                             <div class="d-flex align-items-center mb-3">
                                 ${avatarInitial}
                                 <div>
-                                    <strong class="${isBusinessType ? 'text-primary' : ''}">
-                                        ${nameLink}
-                                    </strong>
+                                    <strong>${nameLink}</strong>
                                     ${badge}
                                 </div>
                             </div>`;
