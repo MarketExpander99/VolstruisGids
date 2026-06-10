@@ -11,9 +11,15 @@
     <meta property="og:description" content="{{ meta_description }}">
     <meta property="og:type" content="product">
     <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ url_for('listings.detail', listing_id=listing.id) }}">
+    
+    {% set og_image = None %}
     {% if listing.photo_url %}
-    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ listing.photo_url }}">
+        {% set og_image = request.url_root.rstrip('/') ~ listing.photo_url %}
     {% endif %}
+    {% if og_image %}
+    <meta property="og:image" content="{{ og_image }}">
+    {% endif %}
+    
     <meta property="og:site_name" content="VolstruisGids">
 
     <!-- JSON-LD Structured Data for Google -->
@@ -43,7 +49,7 @@
                     <img src="{{ listing.photo_url }}" 
                          class="img-fluid rounded-4 shadow-lg w-100 listing-hero-img"
                          style="max-height: 620px; object-fit: cover; border: 1px solid #eee;"
-                         alt="{{ listing.title }}">
+                         alt="{{ listing.title }} in {{ listing.location }}">
                     <div class="position-absolute top-0 end-0 m-3">
                         <span class="badge bg-dark bg-opacity-75 px-3 py-2 fs-6">
                             {{ listing.post_type|title if listing.post_type else 'Listing' }}
@@ -60,7 +66,7 @@
                     <img src="{{ defaultPhoto }}" 
                          class="img-fluid rounded-4 shadow-lg w-100 listing-hero-img"
                          style="max-height: 620px; object-fit: contain; border: 1px solid #eee; background-color: #FAF4EB; padding: 12px;"
-                         alt="Default listing photo">
+                         alt="Default listing photo - Volstruis Gids">
                     <div class="position-absolute top-0 end-0 m-3">
                         <span class="badge bg-dark bg-opacity-75 px-3 py-2 fs-6">
                             {{ listing.post_type|title if listing.post_type else 'Listing' }}
@@ -74,7 +80,7 @@
                 </div>
             {% endif %}
 
-            <!-- ========== ROBUST MULTI-PHOTO GALLERY (Detail page only) ========== -->
+            <!-- Robust Multi-Photo Gallery -->
             {% if listing.photo_urls %}
                 {% set photos = listing.photo_urls.split(',') | select('ne', '') | list %}
                 {% if photos %}
@@ -88,7 +94,7 @@
                                     <img src="{{ purl }}" 
                                          class="rounded-3 shadow-sm border"
                                          style="width: 120px; height: 120px; object-fit: cover; border-color: #E6B800;"
-                                         alt="Additional photo">
+                                         alt="Additional photo of {{ listing.title }}">
                                 </a>
                             {% endfor %}
                         </div>
@@ -96,7 +102,6 @@
                     </div>
                 {% endif %}
             {% endif %}
-            <!-- ========== END GALLERY ========== -->
         </div>
 
         <!-- Details Column -->
