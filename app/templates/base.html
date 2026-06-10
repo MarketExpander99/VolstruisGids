@@ -6,7 +6,14 @@
     
     <!-- Google Search Console Verification -->
     <meta name="google-site-verification" content="7QDPuvh37oYYsHpC4LzuXzjDu5gVJPsowVZqs6L-CRo" />
-    <title>Volstruis Gids - Klein Karoo Classifieds</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{% block meta_description %}Local classifieds for Oudtshoorn, Ladismith, Calitzdorp and the Klein Karoo. Buy, sell services, and connect safely with trusted local listings.{% endblock %}">
+    <meta name="keywords" content="classifieds, Klein Karoo, Oudtshoorn, Ladismith, Calitzdorp, buy sell local, volstruisgids, Western Cape ads, services, free listings">
+    <meta name="author" content="Volstruis Gids">
+    <meta name="robots" content="index, follow">
+    
+    <title>{% block title %}Volstruis Gids - Klein Karoo Classifieds{% endblock %}</title>
     
     <!-- Favicon / Logo -->
     <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='img/logo.jpg') }}">
@@ -18,6 +25,21 @@
     <!-- Our brand elevation CSS (hero background + colours) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='img/logo.jpg', _external=True) }}{% endblock %}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:site_name" content="Volstruis Gids">
+    <meta property="og:locale" content="en_ZA">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ self.og_title() }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ self.og_description() }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ self.og_image() }}{% endblock %}">
+
     <style>
         /* Smart hide/show on scroll */
         #top-navbar {
