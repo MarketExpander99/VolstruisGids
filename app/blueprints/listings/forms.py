@@ -13,7 +13,8 @@ class ListingForm(FlaskForm):
         ('wanted', '🔍 Looking for'),
         ('rental', '🔄 For Rent / Hire'),
         ('services', '🛠 Services Offered'),
-        ('announcement', '📢 General Announcement')
+        ('announcement', '📢 General Announcement'),
+        ('event', '🎉 Event')
     ], default='sale')
 
     price_type = RadioField('Price Type', validators=[DataRequired()], choices=[
@@ -32,10 +33,13 @@ class ListingForm(FlaskForm):
     town = SelectField('Town', validators=[DataRequired()], choices=[
         ('', 'Select a town...'),
         ('Calitzdorp', 'Calitzdorp'),
+        ('Cape Town', 'Cape Town'),
         ('De Rust', 'De Rust'),
         ('Dysselsdorp', 'Dysselsdorp'),
+        ('George', 'George'),
         ('Groenfontein', 'Groenfontein'),
         ('Ladismith', 'Ladismith'),
+        ('Mossel Bay', 'Mossel Bay'),
         ('Oudtshoorn', 'Oudtshoorn'),
         ('Van Wyksdorp', 'Van Wyksdorp'),
         ('Zoar', 'Zoar')
