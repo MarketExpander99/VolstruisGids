@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <!-- HERO BANNER -->
-    <div id="hero-banner" class="hero-bg position-relative overflow-hidden rounded-3 mb-5 text-white text-center">
+    <!-- HERO BANNER - Level 10 warm premium -->
+    <div id="hero-banner" class="hero-bg position-relative overflow-hidden rounded-4 mb-5 text-white text-center shadow-sm">
         <picture class="position-absolute top-0 start-0 w-100 h-100 m-0" style="z-index: 0;">
             <source media="(max-width: 767.98px)" srcset="{{ url_for('static', filename='img/hero-karoo-sunset-mobile.jpg') }}">
             <img src="{{ url_for('static', filename='img/hero-karoo-sunset.jpg') }}"
@@ -11,93 +11,121 @@
                  style="object-fit: cover; object-position: center; display: block;">
         </picture>
         <div class="hero-overlay position-absolute top-0 start-0 w-100 h-100"
-             style="background: linear-gradient(rgba(44, 62, 80, 0.55), rgba(44, 62, 80, 0.72)); z-index: 1;"></div>
+             style="background: linear-gradient(rgba(44, 62, 80, 0.58), rgba(44, 62, 80, 0.75)); z-index: 1;"></div>
         <div class="hero-content position-relative p-4 p-md-5" style="z-index: 2;">
-            <h1 class="display-4 fw-bold mb-3">Welkom by Volstruis Gids</h1>
-            <p class="lead mb-2">A marketplace built in the Klein Karoo, for the Klein Karoo</p>
+            <h1 class="display-4 fw-bold mb-3" style="text-shadow: 0 2px 8px rgba(0,0,0,0.6);">Welkom by Volstruis Gids</h1>
+            <p class="lead mb-2 fs-5">A marketplace built in the Klein Karoo, for the Klein Karoo</p>
             <p class="mb-0 opacity-90">Business &amp; Personal listings • Free to browse • Post your ad today</p>
         </div>
     </div>
-    <h1 id="main-title" class="mb-4">Volstruis Gids - Klein Karoo Classifieds</h1>
-    <!-- Filters -->
-    <div class="row g-3 mb-4 align-items-end" id="filter-form">
-        <input type="hidden" id="category" value="">
-        <div class="col-md-3">
-            <input type="text" id="q" class="form-control" placeholder="Search title or description..." value="">
-        </div>
-        <div class="col-md-2">
-            <select id="town" class="form-select">
-                <option value="">All Towns</option>
-                <option value="Calitzdorp">Calitzdorp</option>
-                <option value="Cape Town">Cape Town</option>
-                <option value="De Rust">De Rust</option>
-                <option value="Dysselsdorp">Dysselsdorp</option>
-                <option value="George">George</option>
-                <option value="Groenfontein">Groenfontein</option>
-                <option value="Ladismith">Ladismith</option>
-                <option value="Mossel Bay">Mossel Bay</option>
-                <option value="Oudtshoorn">Oudtshoorn</option>
-                <option value="Van Wyksdorp">Van Wyksdorp</option>
-                <option value="Zoar">Zoar</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <select id="post_type" class="form-select">
-                <option value="">All Types</option>
-                <option value="sale">For Sale</option>
-                <option value="wanted">Looking For</option>
-                <option value="rental">For Rent</option>
-                <option value="services">Services Offered</option>
-                <option value="announcement">Announcement</option>
-                <option value="event">Event</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button onclick="applyFilters()" class="btn btn-primary w-100">Apply Filters</button>
-        </div>
-        <div class="col-md-3">
-            <button onclick="resetFilters()" class="btn btn-outline-secondary w-100">Reset All</button>
-        </div>
+
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 id="main-title" class="mb-0 fw-bold" style="font-size: 1.85rem; color: #2C3E50;">Discover in the Klein Karoo</h1>
+        <a href="{{ url_for('listings.create') }}" class="btn btn-primary btn-sm d-none d-md-inline-flex align-items-center gap-2">
+            <i class="bi bi-plus-lg"></i> Post your ad
+        </a>
     </div>
-    <!-- Popular Categories -->
-    <div id="popular-categories-section" class="mb-4">
-        <h5 class="text-muted">Popular Categories</h5>
-        <div id="popular-categories" class="d-flex flex-wrap gap-2"></div>
-    </div>
-    <!-- User Store Header -->
-    <div id="user-store-header" class="mb-4 p-3 rounded-3 d-none" style="background-color: #f8f4eb; border: 1px solid #E6B800;">
-        <div class="d-flex align-items-center">
-            <img id="user-store-logo" src="" alt="Store Logo"
-                 class="rounded-circle me-3" width="60" height="60"
-                 style="object-fit: cover; border: 3px solid #E6B800;">
-            <div>
-                <h4 id="user-store-name" class="mb-1 fw-bold text-dark"></h4>
-                <small class="text-muted">Store • Klein Karoo</small>
+
+    <!-- LEVEL 10 POLISHED FILTERS -->
+    <div class="card border-0 shadow-sm mb-4" id="filter-form" style="border-radius: 16px; background: white;">
+        <div class="card-body p-3 p-md-4">
+            <div class="row g-3 align-items-end">
+                <input type="hidden" id="category" value="">
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-semibold text-muted mb-1">Search</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" id="q" class="form-control border-start-0" placeholder="What are you looking for?" value="">
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Town</label>
+                    <select id="town" class="form-select">
+                        <option value="">All Towns</option>
+                        <option value="Calitzdorp">Calitzdorp</option>
+                        <option value="Cape Town">Cape Town</option>
+                        <option value="De Rust">De Rust</option>
+                        <option value="Dysselsdorp">Dysselsdorp</option>
+                        <option value="George">George</option>
+                        <option value="Groenfontein">Groenfontein</option>
+                        <option value="Ladismith">Ladismith</option>
+                        <option value="Mossel Bay">Mossel Bay</option>
+                        <option value="Oudtshoorn">Oudtshoorn</option>
+                        <option value="Van Wyksdorp">Van Wyksdorp</option>
+                        <option value="Zoar">Zoar</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Type</label>
+                    <select id="post_type" class="form-select">
+                        <option value="">All Types</option>
+                        <option value="sale">For Sale</option>
+                        <option value="wanted">Looking For</option>
+                        <option value="rental">For Rent</option>
+                        <option value="services">Services</option>
+                        <option value="announcement">Announcement</option>
+                        <option value="event">Event</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4 d-flex gap-2">
+                    <button onclick="applyFilters()" class="btn btn-primary flex-fill">Apply Filters</button>
+                    <button onclick="resetFilters()" class="btn btn-outline-secondary flex-fill">Reset</button>
+                </div>
             </div>
         </div>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-            <button type="button" onclick="exitStoreMode()" class="btn btn-outline-secondary btn-sm px-3">
-                ← Back
-            </button>
-            <button type="button" onclick="shareStoreWhatsApp()" class="btn btn-success btn-sm px-3 d-flex align-items-center gap-2">
-                <i class="bi bi-whatsapp"></i>
-                <span>Share My store link</span>
-            </button>
+    </div>
+
+    <!-- Popular Categories - Level 10 polish -->
+    <div id="popular-categories-section" class="mb-4">
+        <div class="d-flex align-items-center mb-2">
+            <h6 class="text-muted mb-0 small fw-semibold text-uppercase">Popular in the Karoo</h6>
+        </div>
+        <div id="popular-categories" class="d-flex flex-wrap gap-2"></div>
+    </div>
+
+    <!-- User Store Header -->
+    <div id="user-store-header" class="mb-4 p-3 rounded-4 d-none shadow-sm" style="background-color: #f8f4eb; border: 1px solid #E6B800;">
+        <div class="d-flex align-items-center flex-wrap gap-3">
+            <img id="user-store-logo" src="" alt="Store Logo"
+                 class="rounded-circle" width="56" height="56"
+                 style="object-fit: cover; border: 3px solid #E6B800;">
+            <div class="flex-grow-1">
+                <h5 id="user-store-name" class="mb-0 fw-bold"></h5>
+                <small class="text-muted">Local store • Klein Karoo</small>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" onclick="exitStoreMode()" class="btn btn-outline-secondary btn-sm px-3">
+                    ← Back to all
+                </button>
+                <button type="button" onclick="shareStoreWhatsApp()" class="btn btn-success btn-sm px-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-whatsapp"></i>
+                    <span>Share store</span>
+                </button>
+            </div>
         </div>
     </div>
+
     <!-- Listings Feed -->
-    <div id="listings-container" class="row"></div>
-    <!-- Load More -->
+    <div id="listings-container" class="row g-3"></div>
+
+    <!-- Load More + States -->
     <div class="text-center my-5">
-        <button id="load-more-btn" onclick="loadMore()" class="btn btn-outline-primary px-5 py-2" style="display: none;">
+        <div id="loading-more" class="d-none mb-3">
+            <div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+            <span class="ms-2 small text-muted">Loading more great finds...</span>
+        </div>
+        <button id="load-more-btn" onclick="loadMore()" class="btn btn-outline-primary px-5 py-2 rounded-pill" style="display: none;">
             Load More Listings
         </button>
+        <div id="end-of-feed" class="text-muted small d-none mt-3">You've reached the end of the listings for now.</div>
     </div>
-    <div class="text-center text-muted small mt-5">
-        Volstruis Gids © 2026 • All listings are user posted • Business listings marked with logo
+
+    <div class="text-center text-muted small mt-4 pb-3">
+        Volstruis Gids • All listings posted by your neighbours in the Klein Karoo
     </div>
 </div>
-<!-- Grok AI Chat Modal -->
+
+<!-- Grok AI Chat Modal (unchanged) -->
 <div class="modal fade" id="grokChatModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
@@ -125,6 +153,7 @@
     </div>
   </div>
 </div>
+
 <script>
 let currentGrokListing = null;
 function openGrokChat(listingId, title, description, area) {
@@ -183,7 +212,6 @@ function sendGrokMessage() {
         appendMessage('error', 'Connection error. Please try again.');
     });
 }
-// Delegated listener for Ask Grok buttons
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('.grok-ask-btn');
     if (!btn) return;
@@ -197,9 +225,11 @@ document.addEventListener('click', function(e) {
     }
 });
 </script>
+
 <script>
     let currentPage = 1;
     let hasMore = true;
+    let isLoading = false;
 
     function showMainSections() {
         const hero = document.getElementById('hero-banner');
@@ -247,7 +277,24 @@ document.addEventListener('click', function(e) {
         window.open(waUrl, '_blank');
     }
 
+    function showLoadingState(append) {
+        const container = document.getElementById('listings-container');
+        if (!append) container.innerHTML = '';
+        const loading = document.getElementById('loading-more');
+        if (loading) loading.classList.remove('d-none');
+        isLoading = true;
+    }
+
+    function hideLoadingState() {
+        const loading = document.getElementById('loading-more');
+        if (loading) loading.classList.add('d-none');
+        isLoading = false;
+    }
+
     function fetchListings(page = 1, append = false) {
+        if (isLoading) return;
+        showLoadingState(append);
+
         const q = document.getElementById('q').value.trim();
         const town = document.getElementById('town').value;
         const post_type = document.getElementById('post_type').value;
@@ -259,6 +306,7 @@ document.addEventListener('click', function(e) {
         if (post_type) url += `&post_type=${post_type}`;
         if (category) url += `&category=${encodeURIComponent(category)}`;
         if (user_id) url += `&user_id=${user_id}`;
+
         fetch(url)
             .then(response => {
                 if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -267,7 +315,7 @@ document.addEventListener('click', function(e) {
             .then(data => {
                 const container = document.getElementById('listings-container');
                 if (!append) container.innerHTML = '';
-                // User Store Header - always try profile_pic first
+
                 const header = document.getElementById('user-store-header');
                 const logoEl = document.getElementById('user-store-logo');
                 const nameEl = document.getElementById('user-store-name');
@@ -276,34 +324,41 @@ document.addEventListener('click', function(e) {
                     let logoSrc = '/static/img/default-listing.jpg';
                     let storeName = 'Seller\'s Store';
                     const headerPic = first.profile_pic || first.profile_picture || first.user_profile_pic || first.avatar || first.user_avatar;
-                    if (headerPic) {
-                        logoSrc = headerPic;
-                    }
-                    if (first.business_name) {
-                        storeName = first.business_name;
-                    } else if (first.username) {
-                        storeName = first.username.replace(/^@+/, '') + "'s Store";
-                    }
+                    if (headerPic) logoSrc = headerPic;
+                    if (first.business_name) storeName = first.business_name;
+                    else if (first.username) storeName = first.username.replace(/^@+/, '') + "'s Store";
                     logoEl.src = logoSrc;
                     nameEl.textContent = storeName;
                     header.classList.remove('d-none');
                     hideMainSections();
-                    // Scroll to top so the focused store banner is immediately visible
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
                     header.classList.add('d-none');
                     showMainSections();
                 }
+
+                if (data.listings.length === 0 && !append) {
+                    container.innerHTML = `
+                        <div class="col-12 text-center py-5">
+                            <i class="bi bi-search display-4 text-muted mb-3"></i>
+                            <h5 class="mb-2">No listings found</h5>
+                            <p class="text-muted small">Try adjusting your search or filters. New ads are posted every day!</p>
+                            <a href="{{ url_for('listings.create') }}" class="btn btn-primary btn-sm mt-2">Post the first ad for this search</a>
+                        </div>`;
+                    document.getElementById('load-more-btn').style.display = 'none';
+                    hideLoadingState();
+                    return;
+                }
+
                 data.listings.forEach(listing => {
                     const isBoosted = listing.is_promoted || listing.last_reposted_at;
                     const isBusinessType = listing.is_business_ad || !!listing.business_name;
 
-                    let cardExtraClasses = 'card h-100 shadow-sm';
-                    if (isBusinessType) cardExtraClasses += ' business-listing border-warning';
+                    let cardExtraClasses = 'card h-100 shadow-sm border-0';
+                    if (isBusinessType) cardExtraClasses += ' business-listing';
                     if (isBoosted) cardExtraClasses += ' boosted';
 
                     let posterHTML = '';
-                    // Always prefer the owner's profile_pic (from profile screen)
                     const ownerPic = listing.profile_pic || listing.profile_picture || listing.user_profile_pic || listing.avatar || listing.user_avatar || null;
 
                     if (ownerPic) {
@@ -313,7 +368,7 @@ document.addEventListener('click', function(e) {
                             ? (listing.business_name || 'Business')
                             : `@${(listing.username || '').replace(/^@+/, '')}`;
                         const badge = isBusinessType 
-                            ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">BUSINESS</span>` 
+                            ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem; font-weight:600;">BUSINESS</span>` 
                             : '';
                         const nameLink = `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
                         
@@ -321,12 +376,11 @@ document.addEventListener('click', function(e) {
                             <div class="d-flex align-items-center mb-3">
                                 ${avatarImg}
                                 <div>
-                                    <strong>${nameLink}</strong>
+                                    <strong class="small">${nameLink}</strong>
                                     ${badge}
                                 </div>
                             </div>`;
                     } else {
-                        // Only show initial when no profile picture exists
                         const initialSource = listing.business_name || listing.username || 'U';
                         const initial = initialSource.charAt(0).toUpperCase();
                         const bgColor = isBusinessType ? '#8B4513' : '#6c757d';
@@ -335,7 +389,7 @@ document.addEventListener('click', function(e) {
                             ? (listing.business_name || 'Business')
                             : `@${(listing.username || '').replace(/^@+/, '')}`;
                         const badge = isBusinessType 
-                            ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">BUSINESS</span>` 
+                            ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem; font-weight:600;">BUSINESS</span>` 
                             : '';
                         const nameLink = `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
                         
@@ -343,7 +397,7 @@ document.addEventListener('click', function(e) {
                             <div class="d-flex align-items-center mb-3">
                                 ${avatarInitial}
                                 <div>
-                                    <strong>${nameLink}</strong>
+                                    <strong class="small">${nameLink}</strong>
                                     ${badge}
                                 </div>
                             </div>`;
@@ -356,6 +410,7 @@ document.addEventListener('click', function(e) {
                     else if (adType === 'rental') typeBadge = '<span class="badge bg-info mb-2">FOR RENT</span>';
                     else if (adType === 'services') typeBadge = '<span class="badge bg-primary mb-2">SERVICES</span>';
                     else if (adType === 'announcement') typeBadge = '<span class="badge bg-secondary mb-2">ANNOUNCEMENT</span>';
+
                     let priceHTML = '';
                     const pt = listing.price_type || 'fixed';
                     if (adType === 'rental' && listing.price) {
@@ -371,46 +426,50 @@ document.addEventListener('click', function(e) {
                     } else {
                         priceHTML = `<p class="text-muted small mb-1">Price on request</p>`;
                     }
+
                     const defaultPhoto = '/static/img/default-listing.jpg';
                     const photoSrc = listing.photo_url || defaultPhoto;
                     const shareText = `Check out this listing on Volstruis Gids: ${listing.title}`;
                     const shareUrl = `${window.location.origin}${listing.detail_url}`;
                     const whatsappShareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+
+                    // Level 10 polished card
                     const cardHTML = `
-                        <div class="col-md-4 mb-4">
-                            <div class="${cardExtraClasses}" style="${isBusinessType ? 'border-top: 4px solid #E6B800;' : ''}">
-                                ${isBoosted ? '<div class="promoted-banner bg-warning text-dark fw-bold">PROMOTED</div>' : ''}
+                        <div class="col-md-4 col-lg-3 mb-3">
+                            <div class="${cardExtraClasses}" style="${isBusinessType ? 'border-top: 5px solid #E6B800;' : ''}">
+                                ${isBoosted ? '<div class="promoted-banner">PROMOTED • Top Spot</div>' : ''}
                                
-                                <div style="height:200px; background-color:#f8f9fa; position:relative; overflow:hidden;">
+                                <div style="height:210px; background-color:#f8f9fa; position:relative; overflow:hidden; border-bottom: 1px solid #eee;">
                                     <img src="${photoSrc}" alt="Photo"
                                          style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
-                                                max-width:94%; max-height:94%; object-fit:contain; padding:6px;">
+                                                max-width:96%; max-height:96%; object-fit:contain; padding:8px;">
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body pb-2">
                                     ${typeBadge}
-                                    <h5 class="card-title">${listing.title}</h5>
-                                    <p class="card-text text-truncate">${listing.description}</p>
+                                    <h6 class="card-title mb-1 fw-semibold" style="line-height:1.3;">${listing.title}</h6>
+                                    <div class="small text-muted mb-2" style="line-height:1.35;">${listing.description ? listing.description.substring(0,95) + (listing.description.length > 95 ? '...' : '') : ''}</div>
                                     ${priceHTML}
                                     ${posterHTML}
-                                    <small class="text-muted">${listing.location}</small>
+                                    <div class="small text-muted d-flex justify-content-between">
+                                        <span>${listing.location}</span>
+                                    </div>
                                 </div>
-                                <div class="card-footer bg-transparent border-0 pt-0">
+                                <div class="card-footer bg-transparent border-0 pt-0 pb-3">
                                     <a href="${whatsappShareLink}" target="_blank"
-                                       class="btn btn-success btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
+                                       class="btn btn-success btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-pill">
                                         <i class="bi bi-whatsapp"></i>
                                         <span>Share on WhatsApp</span>
                                     </a>
                                     <button type="button"
-                                            class="btn btn-outline-info btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 grok-ask-btn"
+                                            class="btn btn-outline-info btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-pill grok-ask-btn"
                                             data-grok-listing-id="${listing.id}"
                                             data-grok-title="${listing.title}"
                                             data-grok-description="${listing.description || ''}"
                                             data-grok-area="${listing.location || ''}">
-                                        <img src="{{ url_for('static', filename='img/GrokLogo.png') }}"
-                                             alt="Grok" height="16" style="vertical-align: middle;">
+                                        <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" alt="Grok" height="15" style="vertical-align: middle;">
                                         <span>Ask Grok</span>
                                     </button>
-                                    <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100">
+                                    <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100 rounded-pill">
                                         View Full Ad →
                                     </a>
                                 </div>
@@ -418,16 +477,30 @@ document.addEventListener('click', function(e) {
                         </div>`;
                     container.innerHTML += cardHTML;
                 });
+
                 hasMore = data.has_more;
-                document.getElementById('load-more-btn').style.display = hasMore ? 'inline-block' : 'none';
+                const loadBtn = document.getElementById('load-more-btn');
+                const endMsg = document.getElementById('end-of-feed');
+                if (loadBtn) loadBtn.style.display = hasMore ? 'inline-block' : 'none';
+                if (endMsg) endMsg.classList.toggle('d-none', hasMore || data.listings.length === 0);
+                hideLoadingState();
             })
-            .catch(err => console.error('Error fetching listings:', err));
+            .catch(err => {
+                console.error('Error fetching listings:', err);
+                hideLoadingState();
+                const container = document.getElementById('listings-container');
+                if (!append && container.innerHTML.trim() === '') {
+                    container.innerHTML = '<div class="col-12 text-center py-5 text-muted">Something went wrong loading listings. Please try again.</div>';
+                }
+            });
     }
+
     function applyFilters() {
         currentPage = 1;
         fetchListings(1, false);
         loadPopularCategories();
     }
+
     function resetFilters() {
         document.getElementById('q').value = '';
         document.getElementById('town').value = '';
@@ -442,6 +515,7 @@ document.addEventListener('click', function(e) {
         fetchListings(1, false);
         loadPopularCategories();
     }
+
     function filterByUser(userId) {
         const url = new URL(window.location);
         url.searchParams.set('user_id', userId);
@@ -450,6 +524,7 @@ document.addEventListener('click', function(e) {
         fetchListings(1, false);
         loadPopularCategories();
     }
+
     function filterByCategory(catName) {
         const catEl = document.getElementById('category');
         if (catEl) catEl.value = catName;
@@ -457,6 +532,7 @@ document.addEventListener('click', function(e) {
         fetchListings(1, false);
         loadPopularCategories();
     }
+
     function loadPopularCategories() {
         const q = document.getElementById('q').value.trim();
         const town = document.getElementById('town').value;
@@ -484,8 +560,9 @@ document.addEventListener('click', function(e) {
                         const isActive = cat.name === currentCat;
                         const btn = document.createElement('button');
                         btn.type = 'button';
-                        btn.className = `btn btn-sm ${isActive ? 'btn-success' : 'btn-outline-secondary'}`;
-                        btn.innerHTML = `${cat.name} <span class="badge ${isActive ? 'bg-light text-dark' : 'bg-secondary'} ms-1">${cat.count}</span>`;
+                        btn.className = `btn btn-sm ${isActive ? 'btn-primary' : 'btn-outline-secondary'} rounded-pill px-3`;
+                        btn.style.fontSize = '0.8rem';
+                        btn.innerHTML = `${cat.name} <span class="badge ${isActive ? 'bg-white text-primary' : 'bg-secondary'} ms-1" style="font-size:0.7rem;">${cat.count}</span>`;
                         btn.onclick = () => filterByCategory(cat.name);
                         btn.title = `Filter to ${cat.name} (${cat.count} listings)`;
                         container.appendChild(btn);
@@ -494,10 +571,13 @@ document.addEventListener('click', function(e) {
             })
             .catch(err => console.error('Error fetching categories:', err));
     }
+
     function loadMore() {
+        if (!hasMore || isLoading) return;
         currentPage++;
         fetchListings(currentPage, true);
     }
+
     window.onload = function() {
         fetchListings(1, false);
         loadPopularCategories();

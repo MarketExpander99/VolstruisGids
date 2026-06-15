@@ -3,17 +3,18 @@
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="card shadow">
-                <div class="card-header bg-success text-white">
-                    <h4 class="mb-0">Join Volstruis Gids</h4>
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
+                <div class="card-header text-white" style="background-color: #2C3E50;">
+                    <h4 class="mb-0"><i class="bi bi-person-plus me-2"></i>Join Volstruis Gids</h4>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4 p-md-5">
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
                                     {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
                             {% endfor %}
                         {% endif %}
@@ -23,21 +24,21 @@
                         {{ form.hidden_tag() }}
                         
                         <div class="mb-3">
-                            {{ form.username.label(class="form-label") }}
-                            {{ form.username(class="form-control") }}
-                            <small class="text-muted">Your @handle will be shown automatically on listings (no need to include @)</small>
+                            {{ form.username.label(class="form-label fw-semibold") }}
+                            {{ form.username(class="form-control form-control-lg") }}
+                            <small class="text-muted">Your @handle will be shown on listings (no need to include @)</small>
                             {% for error in form.username.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                         </div>
                         
                         <div class="mb-3">
-                            {{ form.phone.label(class="form-label") }}
-                            {{ form.phone(class="form-control") }}
+                            {{ form.phone.label(class="form-label fw-semibold") }}
+                            {{ form.phone(class="form-control form-control-lg") }}
                             {% for error in form.phone.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                         </div>
                         
                         <div class="mb-3">
-                            {{ form.email.label(class="form-label") }}
-                            {{ form.email(class="form-control") }}
+                            {{ form.email.label(class="form-label fw-semibold") }}
+                            {{ form.email(class="form-control form-control-lg") }}
                             {% for error in form.email.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                         </div>
 
@@ -47,25 +48,32 @@
                         </div>
 
                         <div id="business-name-group" class="mb-3" style="display: none;">
-                            {{ form.business_name.label(class="form-label") }}
-                            {{ form.business_name(class="form-control") }}
+                            {{ form.business_name.label(class="form-label fw-semibold") }}
+                            {{ form.business_name(class="form-control form-control-lg") }}
                             {% for error in form.business_name.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                         </div>
 
                         <div class="mb-3">
-                            {{ form.password.label(class="form-label") }}
-                            {{ form.password(class="form-control") }}
+                            {{ form.password.label(class="form-label fw-semibold") }}
+                            {{ form.password(class="form-control form-control-lg") }}
                             {% for error in form.password.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                         </div>
                         
-                        <div class="mb-3">
-                            {{ form.password2.label(class="form-label") }}
-                            {{ form.password2(class="form-control") }}
+                        <div class="mb-4">
+                            {{ form.password2.label(class="form-label fw-semibold") }}
+                            {{ form.password2(class="form-control form-control-lg") }}
                             {% for error in form.password2.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                         </div>
 
-                        {{ form.submit(class="btn btn-success btn-lg w-100") }}
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
+                            <i class="bi bi-person-plus me-2"></i>Create Free Account
+                        </button>
                     </form>
+
+                    <div class="text-center mt-4">
+                        <p class="mb-1 small text-muted">Already have an account?</p>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary w-100">Sign In Instead</a>
+                    </div>
                 </div>
             </div>
         </div>

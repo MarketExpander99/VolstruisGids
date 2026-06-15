@@ -29,298 +29,484 @@
 {% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <!-- Navigation -->
-    <div class="mb-4 d-flex flex-wrap gap-2">
-        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
-            ← Back to listings
-        </a>
-        <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary">
-            <i class="bi bi-house me-1"></i>Home
-        </a>
-    </div>
+{% set default_photo = '/static/img/default-listing.jpg' %}
 
-    <div class="row g-5">
-        <!-- Photo Column -->
-        <div class="col-lg-7">
-            {% set defaultPhoto = '/static/img/default-listing.jpg' %}
-            {% if listing.photo_url %}
-                <div class="position-relative">
-                    <img src="{{ listing.photo_url }}" 
-                         class="img-fluid rounded-4 shadow-lg w-100 listing-hero-img"
-                         style="max-height: 620px; object-fit: cover; border: 1px solid #eee;"
-                         alt="{{ listing.title }} in {{ listing.location }}">
-                    <div class="position-absolute top-0 end-0 m-3">
-                        <span class="badge bg-dark bg-opacity-75 px-3 py-2 fs-6">
-                            {{ listing.post_type|title if listing.post_type else 'Listing' }}
-                        </span>
-                        {% if listing.is_promoted or listing.last_reposted_at %}
-                        <span class="badge bg-warning text-dark px-3 py-2 fs-6 ms-1">
-                            <i class="bi bi-rocket-takeoff me-1"></i>PROMOTED
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-            {% else %}
-                <div class="position-relative">
-                    <img src="{{ defaultPhoto }}" 
-                         class="img-fluid rounded-4 shadow-lg w-100 listing-hero-img"
-                         style="max-height: 620px; object-fit: contain; border: 1px solid #eee; background-color: #FAF4EB; padding: 12px;"
-                         alt="Default listing photo - Volstruis Gids">
-                    <div class="position-absolute top-0 end-0 m-3">
-                        <span class="badge bg-dark bg-opacity-75 px-3 py-2 fs-6">
-                            {{ listing.post_type|title if listing.post_type else 'Listing' }}
-                        </span>
-                        {% if listing.is_promoted or listing.last_reposted_at %}
-                        <span class="badge bg-warning text-dark px-3 py-2 fs-6 ms-1">
-                            <i class="bi bi-rocket-takeoff me-1"></i>PROMOTED
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endif %}
+{# Build complete ordered photo list (main + additional) for gallery #}
+{% set all_photos = [] %}
+{% if listing.photo_url %}
+    {% set all_photos = all_photos + [listing.photo_url] %}
+{% endif %}
+{% if listing.photo_urls %}
+    {% for p in listing.photo_urls.split(',') %}
+        {% if p.strip() %}
+            {% set all_photos = all_photos + [p.strip()] %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+{% if not all_photos %}
+    {% set all_photos = [default_photo] %}
+{% endif %}
 
-            <!-- Robust Multi-Photo Gallery -->
-            {% if listing.photo_urls %}
-                {% set photos = listing.photo_urls.split(',') | select('ne', '') | list %}
-                {% if photos %}
-                    <div class="mt-3">
-                        <small class="text-muted d-block mb-2 fw-semibold">
-                            Additional photos ({{ photos|length }})
-                        </small>
-                        <div class="d-flex flex-wrap gap-2 overflow-auto pb-2" style="scrollbar-width: thin;">
-                            {% for purl in photos %}
-                                <a href="{{ purl }}" target="_blank" class="d-block">
-                                    <img src="{{ purl }}" 
-                                         class="rounded-3 shadow-sm border"
-                                         style="width: 120px; height: 120px; object-fit: cover; border-color: #E6B800;"
-                                         alt="Additional photo of {{ listing.title }}">
-                                </a>
-                            {% endfor %}
-                        </div>
-                        <small class="text-muted">Click any photo to view full size in a new tab</small>
-                    </div>
-                {% endif %}
-            {% endif %}
+{% set is_business = listing.is_business_ad %}
+{% set is_promoted = listing.is_promoted or listing.last_reposted_at %}
+
+<div class="listing-detail-page py-4 py-md-5">
+    <div class="container">
+        <!-- Elegant top navigation -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 px-3">
+                <i class="bi bi-arrow-left"></i>
+                <span>Back to all listings</span>
+            </a>
+            <div class="d-none d-md-flex align-items-center text-muted small">
+                <i class="bi bi-geo-alt-fill me-1"></i>
+                <span>Klein Karoo • {{ listing.location }}</span>
+            </div>
         </div>
 
-        <!-- Details Column -->
-        <div class="col-lg-5">
-            <!-- Type Badge -->
-            {% set type_colors = {
-                'sale': 'bg-success',
-                'wanted': 'bg-warning text-dark',
-                'services': 'bg-primary',
-                'announcement': 'bg-info text-dark'
-            } %}
-            <span class="badge {{ type_colors.get(listing.post_type, 'bg-secondary') }} fs-6 px-3 py-2 mb-3">
-                {{ listing.post_type|upper if listing.post_type else 'LISTING' }}
-            </span>
+        <div class="row g-4 g-lg-5">
+            <!-- SPECTACULAR PHOTO GALLERY (Left / Top on mobile) -->
+            <div class="col-lg-7">
+                <div class="listing-detail-hero position-relative rounded-4 overflow-hidden shadow-sm {{ 'business-listing' if is_business else '' }} {{ 'boosted' if is_promoted else '' }}"
+                     style="background-color: #F8F4EB; border: 1px solid #EDE4D6;">
+                    
+                    <!-- Main Hero Image -->
+                    <img id="main-photo"
+                         src="{{ all_photos[0] }}"
+                         class="w-100 listing-detail-hero-img"
+                         style="max-height: 620px; object-fit: contain; display: block; background-color: #F8F4EB;"
+                         alt="{{ listing.title }} in {{ listing.location }} — Volstruis Gids">
 
-            <h1 class="fw-bold mb-2" style="line-height: 1.1;">{{ listing.title }}</h1>
-
-            <!-- Business / Seller Info -->
-            {% if listing.is_business_ad and listing.user %}
-                <div class="d-flex align-items-center mb-3 p-2 rounded-3" style="background: #f8f4eb;">
-                    {% if listing.user.profile_pic %}
-                        <img src="{{ listing.user.profile_pic }}" 
-                             class="rounded-circle me-3" width="48" height="48" 
-                             style="object-fit: cover; border: 3px solid #E6B800;">
-                    {% else %}
-                        <div class="rounded-circle me-3 d-flex align-items-center justify-content-center" 
-                             style="width:48px; height:48px; background:#2C3E50; color:white; font-weight:700;">
-                            {{ (listing.user.business_name or 'B')[0] }}
-                        </div>
-                    {% endif %}
-                    <div>
-                        <strong class="text-primary">{{ listing.user.business_name or listing.user.username }}</strong>
-                        <div class="small text-muted">Verified Business • Klein Karoo</div>
+                    <!-- Premium overlay badges -->
+                    <div class="position-absolute top-0 start-0 m-3">
+                        {% set type_label = (listing.post_type or 'listing')|title %}
+                        {% set type_class = {
+                            'Sale': 'bg-success',
+                            'Wanted': 'bg-warning text-dark',
+                            'Services': 'bg-primary',
+                            'Rental': 'bg-info text-dark',
+                            'Announcement': 'bg-secondary',
+                            'Event': 'bg-dark'
+                        }.get(type_label, 'bg-dark') %}
+                        <span class="badge {{ type_class }} px-3 py-2 fs-6 fw-semibold shadow-sm">
+                            {{ type_label|upper }}
+                        </span>
                     </div>
-                </div>
-            {% else %}
-                <div class="text-muted small mb-3">
-                    Posted by <strong>@{{ (listing.user.username or 'Seller').lstrip('@') if listing.user else 'Seller' }}</strong>
-                </div>
-            {% endif %}
 
-            <!-- Price -->
-            <div class="mb-4">
-                {% if listing.post_type == 'rental' and listing.price %}
-                    <h2 class="fw-bold mb-0" style="color: #2C3E50;">R{{ listing.price|int }}</h2>
-                    {% if listing.rental_duration and listing.rental_duration_unit %}
-                        <small class="text-muted">per {{ listing.rental_duration_unit }} (min {{ listing.rental_duration }})</small>
-                    {% else %}
-                        <small class="text-muted">rental rate</small>
-                    {% endif %}
-                {% elif listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
-                    <div>
-                        <span class="display-6 fw-bold" style="color: #2C3E50;">R{{ listing.min_price|int }}</span>
-                        <span class="text-muted mx-2">—</span>
-                        <span class="display-6 fw-bold" style="color: #2C3E50;">R{{ listing.max_price|int }}</span>
+                    <div class="position-absolute top-0 end-0 m-3 d-flex flex-column align-items-end gap-2">
+                        {% if is_promoted %}
+                            <span class="badge bg-warning text-dark px-3 py-2 fs-6 fw-bold shadow-sm d-flex align-items-center gap-1">
+                                <i class="bi bi-rocket-takeoff"></i>
+                                <span>PROMOTED</span>
+                            </span>
+                        {% endif %}
+                        {% if is_business %}
+                            <span class="badge bg-dark bg-opacity-75 px-3 py-1 small fw-semibold">
+                                <i class="bi bi-building me-1"></i> BUSINESS
+                            </span>
+                        {% endif %}
+                        {% if all_photos|length > 1 %}
+                            <span class="badge bg-white text-dark px-2 py-1 small fw-semibold shadow-sm">
+                                {{ all_photos|length }} photos
+                            </span>
+                        {% endif %}
                     </div>
-                    <small class="text-muted">Price range</small>
-                {% elif listing.price and listing.price > 0 %}
-                    <h2 class="fw-bold mb-0" style="color: #2C3E50;">R{{ listing.price|int }}</h2>
-                {% else %}
-                    <h4 class="fw-semibold text-muted">Price on request</h4>
+
+                    <!-- Subtle premium gradient at bottom for depth -->
+                    <div class="position-absolute bottom-0 start-0 w-100" 
+                         style="height: 38%; background: linear-gradient(to bottom, transparent, rgba(44,62,80,0.06)); pointer-events: none;"></div>
+                </div>
+
+                <!-- INTERACTIVE GALLERY STRIP -->
+                {% if all_photos|length > 1 %}
+                <div class="mt-3">
+                    <div class="d-flex gap-2 overflow-auto pb-2 gallery-strip" style="scrollbar-width: thin;">
+                        {% for idx in range(all_photos|length) %}
+                            {% set purl = all_photos[idx] %}
+                            <img src="{{ purl }}"
+                                 class="gallery-thumb rounded-3 shadow-sm flex-shrink-0 {{ 'active' if idx == 0 else '' }}"
+                                 style="width: 92px; height: 92px; object-fit: cover; cursor: pointer; border: 3px solid {% if idx == 0 %}#E6B800{% else %}#EDE4D6{% endif %};"
+                                 alt="Photo {{ idx + 1 }} of {{ listing.title }}"
+                                 onclick="setMainPhoto('{{ purl }}', this)"
+                                 data-photo-src="{{ purl }}">
+                        {% endfor %}
+                    </div>
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-secondary mt-2 w-100 d-flex align-items-center justify-content-center gap-2"
+                            onclick="openPhotoModal()"
+                            style="font-size: 0.8rem; letter-spacing: 0.3px;">
+                        <i class="bi bi-arrows-fullscreen"></i>
+                        <span>View full gallery ({{ all_photos|length }} photos)</span>
+                    </button>
+                </div>
                 {% endif %}
             </div>
 
-            <!-- Meta -->
-            <div class="d-flex flex-wrap gap-3 text-muted mb-4 small">
-                <div><i class="bi bi-geo-alt-fill me-1"></i> {{ listing.location }}</div>
-                <div><i class="bi bi-clock me-1"></i> {{ listing.created_at.strftime('%d %b %Y') }}</div>
-                <div><i class="bi bi-eye me-1"></i> {{ listing.views or 0 }} views</div>
-            </div>
-
-            <hr class="my-4">
-
-            <!-- Description -->
-            <h5 class="fw-semibold mb-3">Description</h5>
-            <div class="mb-4" style="white-space: pre-line; line-height: 1.8; font-size: 1.05rem; color: #333;">
-                {{ listing.description }}
-            </div>
-
-            <!-- Boost Section (owner only) -->
-            {% if current_user.is_authenticated and current_user.id == listing.user_id %}
-                <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background-color: #f8f4eb;">
-                    <div class="card-body p-4">
-                        <h6 class="fw-bold mb-2">
-                            <i class="bi bi-rocket-takeoff me-2"></i> Boost this listing
-                        </h6>
-                        <p class="small text-muted mb-3">
-                            Boosted listings get more visibility and a special badge.
-                        </p>
-                        {% if listing.is_promoted or listing.last_reposted_at %}
-                            <div class="alert alert-success py-2 px-3 mb-3 small">
-                                This listing is currently promoted.
+            <!-- DETAILS + TRUST + CONTACT (Right) -->
+            <div class="col-lg-5">
+                <!-- Seller / Business Trust Block -->
+                {% if is_business and listing.user %}
+                    <div class="premium-seller-card p-3 rounded-4 mb-4 d-flex align-items-center gap-3"
+                         style="background: linear-gradient(145deg, #FFF9E6 0%, #F8F4EB 100%); border: 2px solid #E6B800;">
+                        {% if listing.user.profile_pic %}
+                            <img src="{{ listing.user.profile_pic }}" 
+                                 class="rounded-circle flex-shrink-0" width="62" height="62"
+                                 style="object-fit: cover; border: 3px solid #E6B800; box-shadow: 0 2px 8px rgba(230,184,0,0.3);">
+                        {% else %}
+                            <div class="rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center fw-bold"
+                                 style="width:62px; height:62px; background:#2C3E50; color:white; font-size:1.55rem; border: 3px solid #E6B800;">
+                                {{ (listing.user.business_name or 'B')[0]|upper }}
                             </div>
                         {% endif %}
-                        <form method="POST" action="{{ url_for('listings.boost', listing_id=listing.id) }}">
-                            <button type="submit" class="btn btn-warning w-100">
-                                <i class="bi bi-rocket me-2"></i> Boost for 7 days
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            {% endif %}
-
-            <hr class="my-4">
-
-            {# Accepted contact methods #}
-            {% set cm = (listing.contact_methods or '').strip() %}
-            {% set methods = (cm.split(',') if cm else ['dm', 'email', 'phone']) | map('trim') | list %}
-
-            <!-- Contact Card -->
-            <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
-                <div class="card-body p-4">
-                    <h6 class="fw-bold mb-3">
-                        Contact the {{ 'Business' if listing.is_business_ad else 'Seller' }}
-                    </h6>
-
-                    <div class="mb-3">
-                        <small class="text-muted d-block mb-1">Seller accepts:</small>
-                        {% if 'dm' in methods %}
-                            <span class="badge bg-warning text-dark me-1"><i class="bi bi-chat-dots me-1"></i>DM</span>
-                        {% endif %}
-                        {% if 'email' in methods %}
-                            <span class="badge bg-primary me-1"><i class="bi bi-envelope me-1"></i>Email</span>
-                        {% endif %}
-                        {% if 'phone' in methods %}
-                            <span class="badge bg-success me-1"><i class="bi bi-whatsapp me-1"></i>Phone/WhatsApp</span>
-                        {% endif %}
-                    </div>
-
-                    {% if 'dm' in methods %}
-                        {% if current_user.is_authenticated and current_user.id != listing.user_id %}
-                            <button type="button" class="btn btn-warning w-100 mb-2 d-flex align-items-center justify-content-center gap-2" 
-                                    data-bs-toggle="modal" data-bs-target="#messageModal">
-                                <i class="bi bi-chat-dots fs-5"></i> <span>DM</span>
-                            </button>
-                        {% elif not current_user.is_authenticated %}
-                            <a href="{{ url_for('auth.login', next=request.path) }}" class="btn btn-outline-warning w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
-                                <i class="bi bi-chat-dots fs-5"></i> <span>Login to DM</span>
-                            </a>
-                        {% endif %}
-                    {% endif %}
-
-                    {% if listing.contact_email and 'email' in methods %}
-                        <a href="mailto:{{ listing.contact_email }}" 
-                           class="btn btn-outline-primary w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
-                            <i class="bi bi-envelope fs-5"></i> 
-                            <span>Email <small class="opacity-75">({{ listing.contact_email }})</small></span>
-                        </a>
-                    {% endif %}
-
-                    {% if listing.contact_phone and 'phone' in methods %}
-                        <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','')|replace('-','')|replace('(','')|replace(')','') }}" 
-                           target="_blank" 
-                           class="btn btn-success w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
-                            <i class="bi bi-whatsapp fs-5"></i> 
-                            <span>WhatsApp <small class="opacity-75">({{ listing.contact_phone }})</small></span>
-                        </a>
-                    {% endif %}
-
-                    {% set has_phone = listing.contact_phone and 'phone' in methods %}
-                    {% set has_email = listing.contact_email and 'email' in methods %}
-                    {% set show_dm_btn = 'dm' in methods and (current_user.is_authenticated and current_user.id != listing.user_id or not current_user.is_authenticated) %}
-                    {% if not has_phone and not has_email and not show_dm_btn %}
-                        <p class="text-muted small mb-0">No direct contact details provided.</p>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Private Message Modal -->
-            {% if 'dm' in methods and current_user.is_authenticated and current_user.id != listing.user_id %}
-            <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="messageModalLabel">
-                                <i class="bi bi-chat-dots me-2"></i>DM this Seller
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <strong class="fs-5 text-dark">{{ listing.user.business_name or listing.user.username }}</strong>
+                                <span class="badge bg-warning text-dark small fw-bold px-2">VERIFIED BUSINESS</span>
+                            </div>
+                            <div class="small text-muted mt-1">Local business • Klein Karoo</div>
                         </div>
-                        <form method="POST" action="{{ url_for('messages.send_message') }}">
-                            <div class="modal-body">
-                                {{ message_form.hidden_tag() }}
-                                <div class="mb-3">
-                                    <label class="form-label small">Your message to <strong>@{{ (listing.user.username or 'the seller').lstrip('@') if listing.user else 'the seller' }}</strong></label>
-                                    <textarea name="text" class="form-control" rows="4" 
-                                              placeholder="Hi, I'm interested in your {{ listing.title }}. Is it still available? ..." required maxlength="2000"></textarea>
-                                    <div class="form-text">Keep it polite. The seller will reply here in the app.</div>
-                                </div>
-                                <div class="small text-muted">
-                                    This starts a private conversation linked to <strong>{{ listing.title }}</strong>.
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-send me-1"></i> Send Message
-                                </button>
-                            </div>
-                        </form>
+                    </div>
+                {% else %}
+                    <div class="d-flex align-items-center gap-2 mb-4 text-muted">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:38px; height:38px; background:#6c757d; color:white; font-weight:700; font-size:1rem;">
+                            {{ (listing.user.username or 'S')[0]|upper if listing.user else 'S' }}
+                        </div>
+                        <div>
+                            <span class="small">Posted by </span>
+                            <strong class="text-dark">@{{ (listing.user.username or 'Seller').lstrip('@') if listing.user else 'Seller' }}</strong>
+                            <div class="small text-muted">Private seller • Klein Karoo</div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Title -->
+                <h1 class="fw-bold mb-2 listing-detail-title" style="line-height: 1.15; font-size: 1.85rem;">
+                    {{ listing.title }}
+                </h1>
+
+                <!-- SPECTACULAR PRICE -->
+                <div class="listing-detail-price mb-3">
+                    {% if listing.post_type == 'rental' and listing.price %}
+                        <div>
+                            <span class="fs-1 fw-bold" style="color: #2C3E50;">R{{ listing.price | int }}</span>
+                        </div>
+                        <div class="text-muted" style="margin-top: -4px;">
+                            per {{ listing.rental_duration_unit or 'period' }}
+                            {% if listing.rental_duration %} (min {{ listing.rental_duration }}) {% endif %}
+                        </div>
+                    {% elif listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
+                        <div class="d-flex align-items-baseline gap-2">
+                            <span class="fs-1 fw-bold" style="color: #2C3E50;">R{{ listing.min_price | int }}</span>
+                            <span class="fs-3 text-muted">—</span>
+                            <span class="fs-1 fw-bold" style="color: #2C3E50;">R{{ listing.max_price | int }}</span>
+                        </div>
+                        <div class="text-muted small">Price range</div>
+                    {% elif listing.price and listing.price > 0 %}
+                        <span class="fs-1 fw-bold" style="color: #2C3E50;">R{{ listing.price | int }}</span>
+                    {% else %}
+                        <span class="fs-4 fw-semibold text-muted">Price on request</span>
+                    {% endif %}
+                </div>
+
+                <!-- Trust meta -->
+                <div class="d-flex flex-wrap gap-3 small text-muted mb-4">
+                    <div><i class="bi bi-geo-alt-fill me-1 text-warning"></i> {{ listing.location }}</div>
+                    <div><i class="bi bi-clock me-1"></i> {{ listing.created_at.strftime('%d %b %Y at %H:%M') if listing.created_at else 'recently' }}</div>
+                    <div><i class="bi bi-eye me-1"></i> {{ listing.views or 0 }} views</div>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-4">
+                    <h6 class="fw-semibold text-uppercase small tracking-wide mb-2" style="letter-spacing: 0.5px; color: #5C6B7A;">Description</h6>
+                    <div class="listing-description" style="white-space: pre-line; line-height: 1.75; font-size: 1.02rem; color: #2C3E50;">
+                        {{ listing.description }}
                     </div>
                 </div>
-            </div>
-            {% endif %}
 
-            <div class="d-grid gap-2">
-                <a href="{{ url_for('main.index') }}" class="btn btn-lg btn-outline-secondary">
-                    ← Back to all listings
-                </a>
+                <!-- Owner-only Boost (refined premium treatment) -->
+                {% if current_user.is_authenticated and current_user.id == listing.user_id %}
+                    <div class="card border-0 mb-4" style="background: #F8F4EB; border-radius: 16px;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="fw-bold mb-1"><i class="bi bi-rocket-takeoff me-2"></i>Boost this ad</h6>
+                                    <p class="small text-muted mb-0">Get the PROMOTED badge + top placement for 7 days.</p>
+                                </div>
+                            </div>
+                            {% if is_promoted %}
+                                <div class="alert alert-success small py-2 mt-3 mb-0">Currently promoted — great visibility!</div>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('listings.boost', listing_id=listing.id) }}" class="mt-3">
+                                <button type="submit" class="btn btn-warning w-100 fw-semibold">
+                                    <i class="bi bi-rocket me-2"></i> Boost for 7 days
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {# Contact methods parsing (exact same logic as before for compatibility) #}
+                {% set cm = (listing.contact_methods or '').strip() %}
+                {% set methods = (cm.split(',') if cm else ['dm', 'email', 'phone']) | map('trim') | list %}
+
+                <!-- PREMIUM CONTACT EXPERIENCE -->
+                <div class="premium-contact-card card border-0 shadow-sm mb-3" style="border-radius: 18px; border-top: 4px solid #E6B800;">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3 d-flex align-items-center">
+                            <span>Contact the {{ 'Business' if is_business else 'Seller' }}</span>
+                        </h6>
+
+                        <div class="mb-3">
+                            <small class="text-uppercase text-muted fw-semibold d-block mb-2" style="font-size:0.7rem; letter-spacing:0.6px;">Accepted ways to reach</small>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if 'dm' in methods %}<span class="badge bg-warning text-dark px-2 py-1">DM in-app</span>{% endif %}
+                                {% if 'email' in methods %}<span class="badge bg-primary px-2 py-1">Email</span>{% endif %}
+                                {% if 'phone' in methods %}<span class="badge bg-success px-2 py-1">WhatsApp / Phone</span>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            {% if 'dm' in methods %}
+                                {% if current_user.is_authenticated and current_user.id != listing.user_id %}
+                                    <button type="button" class="btn btn-lg btn-warning d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold"
+                                            data-bs-toggle="modal" data-bs-target="#messageModal">
+                                        <i class="bi bi-chat-dots fs-5"></i>
+                                        <span>Send private message (DM)</span>
+                                    </button>
+                                {% elif not current_user.is_authenticated %}
+                                    <a href="{{ url_for('auth.login', next=request.path) }}" 
+                                       class="btn btn-lg btn-outline-warning d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold">
+                                        <i class="bi bi-chat-dots fs-5"></i>
+                                        <span>Log in to message privately</span>
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+
+                            {% if listing.contact_phone and 'phone' in methods %}
+                                <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','')|replace('-','')|replace('(','')|replace(')','') }}" 
+                                   target="_blank" 
+                                   class="btn btn-lg btn-success d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold">
+                                    <i class="bi bi-whatsapp fs-5"></i>
+                                    <span>WhatsApp {{ listing.contact_phone }}</span>
+                                </a>
+                            {% endif %}
+
+                            {% if listing.contact_email and 'email' in methods %}
+                                <a href="mailto:{{ listing.contact_email }}" 
+                                   class="btn btn-lg btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold">
+                                    <i class="bi bi-envelope fs-5"></i>
+                                    <span>Email {{ listing.contact_email }}</span>
+                                </a>
+                            {% endif %}
+                        </div>
+
+                        {% if not (listing.contact_phone or listing.contact_email) and not ('dm' in methods and (current_user.is_authenticated or True)) %}
+                            <p class="small text-muted mb-0 mt-2">No direct contact details listed.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Local trust footer + Share -->
+                <div class="text-center small text-muted mb-2">This listing is visible across the Klein Karoo community.</div>
+
+                <div class="listing-share d-flex gap-2 flex-wrap">
+                    <a href="https://wa.me/?text={{ ('Check out this ad on Volstruis Gids: ' ~ listing.title ~ ' — ' ~ request.url) | urlencode }}"
+                       target="_blank"
+                       class="btn btn-sm btn-success flex-fill d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-whatsapp"></i>
+                        <span>Share on WhatsApp</span>
+                    </a>
+                    <button type="button" onclick="copyListingLink()" 
+                            class="btn btn-sm btn-outline-secondary flex-fill d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-link-45deg"></i>
+                        <span>Copy link</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Full-screen Photo Gallery Modal (Bootstrap Carousel) -->
+<div class="modal fade" id="photoGalleryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <h6 class="modal-title text-white small">Photos for {{ listing.title }}</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="photoCarousel" class="carousel slide" data-bs-ride="false">
+                    <div class="carousel-inner">
+                        {% for idx in range(all_photos|length) %}
+                            {% set purl = all_photos[idx] %}
+                            <div class="carousel-item {{ 'active' if idx == 0 else '' }}">
+                                <img src="{{ purl }}" class="d-block w-100" style="max-height: 82vh; object-fit: contain; background: #111;" alt="Photo {{ idx + 1 }}">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if all_photos|length > 1 %}
+                    <button class="carousel-control-prev" type="button" data-bs-target="#photoCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#photoCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer border-0 justify-content-center bg-dark">
+                <small class="text-white-50">{{ all_photos|length }} photos • Tap outside or press ESC to close</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Private Message Modal (unchanged logic & structure for full compatibility) -->
+{% if 'dm' in methods and current_user.is_authenticated and current_user.id != listing.user_id and message_form %}
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px;">
+            <div class="modal-header" style="background-color: #2C3E50; color: white; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title" id="messageModalLabel">
+                    <i class="bi bi-chat-dots me-2"></i> Send Private Message
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('messages.send_message') }}">
+                <div class="modal-body">
+                    {{ message_form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label small">Your message to <strong>@{{ (listing.user.username or 'the seller').lstrip('@') if listing.user else 'the seller' }}</strong></label>
+                        <textarea name="text" class="form-control" rows="4" placeholder="Hi, I'm interested in your {{ listing.title }}. Is it still available?" required maxlength="2000"></textarea>
+                        <div class="form-text">Keep it polite. The seller will reply here in the app.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send me-1"></i> Send Message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    // Level 10 Detail Page - Lightweight interactive gallery (no external deps)
+    function setMainPhoto(src, thumbEl) {
+        const mainImg = document.getElementById('main-photo');
+        if (!mainImg) return;
+        
+        mainImg.style.transition = 'opacity 0.25s ease';
+        mainImg.style.opacity = '0.25';
+        
+        setTimeout(() => {
+            mainImg.src = src;
+            mainImg.style.opacity = '1';
+        }, 180);
+
+        // Update active thumb styling
+        document.querySelectorAll('.gallery-thumb').forEach(el => {
+            el.style.borderColor = '#EDE4D6';
+            el.classList.remove('active');
+        });
+        if (thumbEl) {
+            thumbEl.style.borderColor = '#E6B800';
+            thumbEl.classList.add('active');
+        }
+    }
+
+    function openPhotoModal() {
+        const modalEl = document.getElementById('photoGalleryModal');
+        if (!modalEl) return;
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+
+    function copyListingLink() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            const originalText = event.currentTarget ? event.currentTarget.innerHTML : '';
+            // Create temporary toast-like feedback
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2C3E50;color:white;padding:8px 20px;border-radius:50px;font-size:0.85rem;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.2)';
+            toast.textContent = '✓ Link copied — share anywhere!';
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.3s';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 1700);
+        }).catch(() => {
+            // Fallback
+            prompt('Copy this link:', url);
+        });
+    }
+
+    // Keyboard support for gallery (optional nicety)
+    document.addEventListener('keydown', function(e) {
+        if (e.key === '/' && document.activeElement.tagName === 'BODY') {
+            const firstThumb = document.querySelector('.gallery-thumb');
+            if (firstThumb) {
+                e.preventDefault();
+                firstThumb.click();
+            }
+        }
+    });
+
+    // Make sure first thumb is correctly active on load
+    window.addEventListener('load', function() {
+        const first = document.querySelector('.gallery-thumb');
+        if (first) first.style.borderColor = '#E6B800';
+    });
+</script>
+
 <style>
-.listing-hero-img {
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.listing-hero-img:hover {
-    transform: scale(1.015);
-}
+    .listing-detail-hero-img {
+        transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .listing-detail-hero:hover .listing-detail-hero-img {
+        transform: scale(1.012);
+    }
+    .gallery-thumb {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 3px solid #EDE4D6;
+    }
+    .gallery-thumb:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+        border-color: #E6B800 !important;
+    }
+    .gallery-thumb.active {
+        border-color: #E6B800 !important;
+        box-shadow: 0 0 0 1px #E6B800;
+    }
+    .premium-seller-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .premium-seller-card:hover {
+        transform: translateY(-1px);
+    }
+    .listing-detail-price {
+        font-feature-settings: "tnum";
+    }
+    .listing-description {
+        max-width: 62ch;
+    }
+    .premium-contact-card .btn {
+        font-size: 0.95rem;
+        letter-spacing: 0.3px;
+    }
+    @media (max-width: 767.98px) {
+        .listing-detail-title { font-size: 1.55rem !important; }
+        .listing-detail-hero-img { max-height: 420px !important; }
+        .gallery-strip img { width: 78px; height: 78px; }
+    }
 </style>
 {% endblock %}

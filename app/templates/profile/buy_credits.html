@@ -11,7 +11,7 @@
             </div>
 
             <!-- Current Balance Card -->
-            <div class="card shadow-sm mb-4 border-success">
+            <div class="card shadow-sm mb-4" style="border: 2px solid #E6B800; border-radius: 16px;">
                 <div class="card-body text-center py-4">
                     <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
                         <div>
@@ -21,7 +21,7 @@
                         </div>
                         <div class="vr d-none d-md-block" style="height: 60px;"></div>
                         <div class="text-start">
-                            <span class="badge bg-{{ 'success' if is_business else 'primary' }} fs-6">
+                            <span class="badge bg-{{ 'success' if is_business else 'primary' }} fs-6 mb-2">
                                 {{ account_type_label }} Account
                             </span>
                             <div class="mt-2 small text-muted">{{ max_note }}</div>
@@ -47,8 +47,8 @@
             <div class="row g-4">
                 {% for pkg in packages %}
                 <div class="col-md-6 col-lg-3">
-                    <div class="card h-100 shadow-sm">
-                        <div class="card-header bg-light text-center">
+                    <div class="card h-100 shadow-sm" style="border-radius: 16px;">
+                        <div class="card-header bg-light text-center" style="border-radius: 16px 16px 0 0;">
                             <h5 class="mb-0 fw-semibold">{{ pkg.name }}</h5>
                             {% if pkg.level %}
                                 <span class="badge bg-info mt-1">{{ pkg.level }} Discount</span>
@@ -69,7 +69,7 @@
                             
                             <form method="POST" class="mt-auto">
                                 <input type="hidden" name="package_id" value="{{ pkg.id }}">
-                                <button type="submit" class="btn btn-success w-100 fw-semibold">
+                                <button type="submit" class="btn btn-success w-100 fw-semibold py-2">
                                     Buy Now
                                 </button>
                             </form>

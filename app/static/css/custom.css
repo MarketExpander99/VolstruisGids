@@ -341,3 +341,242 @@ footer {
     background-color: var(--primary-dark);
     transform: translateY(-2px);
 }
+
+/* ============================================================
+   LEVEL 10 — LISTING DETAIL PAGE (Spectacular Klein Karoo)
+   Warm, trustworthy, premium marketplace feel. Mobile-first.
+   ============================================================ */
+
+.listing-detail-page {
+    background-color: var(--bg-light);
+}
+
+.listing-detail-hero {
+    border: 1px solid #EDE4D6;
+    transition: var(--transition);
+}
+
+.listing-detail-hero.business-listing {
+    border-color: #E6B800 !important;
+    box-shadow: 0 10px 35px rgba(230, 184, 0, 0.18);
+}
+
+.listing-detail-hero.boosted {
+    box-shadow: 0 10px 40px rgba(255, 193, 7, 0.2);
+}
+
+.listing-detail-hero-img {
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+}
+
+.listing-detail-hero:hover .listing-detail-hero-img {
+    transform: scale(1.012);
+}
+
+.gallery-strip {
+    -webkit-overflow-scrolling: touch;
+}
+
+.gallery-thumb {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 3px solid #EDE4D6;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.gallery-thumb:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    border-color: #E6B800 !important;
+}
+
+.gallery-thumb.active {
+    border-color: #E6B800 !important;
+    box-shadow: 0 0 0 2px rgba(230, 184, 0, 0.35);
+}
+
+.premium-seller-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.premium-seller-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(230, 184, 0, 0.15);
+}
+
+.listing-detail-price {
+    font-feature-settings: "tnum";
+    padding-bottom: 4px;
+}
+
+.listing-description {
+    color: #2C3E50;
+    max-width: 64ch;
+}
+
+.premium-contact-card {
+    border-top: 4px solid var(--accent-color) !important;
+}
+
+.premium-contact-card .btn {
+    font-size: 0.95rem;
+    letter-spacing: 0.4px;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+}
+
+.listing-share .btn {
+    font-size: 0.8rem;
+    text-transform: none;
+    letter-spacing: normal;
+    padding: 8px 16px;
+    border-radius: 999px;
+}
+
+/* Photo modal polish */
+#photoGalleryModal .carousel-item img {
+    background: #111;
+}
+
+/* Mobile refinements for spectacular experience */
+@media (max-width: 767.98px) {
+    .listing-detail-hero-img {
+        max-height: 420px !important;
+    }
+    .gallery-strip img {
+        width: 78px !important;
+        height: 78px !important;
+    }
+    .listing-detail-title {
+        font-size: 1.55rem !important;
+        line-height: 1.2 !important;
+    }
+    .premium-contact-card .btn {
+        font-size: 0.92rem;
+    }
+}
+
+/* ============================================================
+   LEVEL 10 — BUSINESS VS PERSONAL + PROMOTIONS (Feed & My Listings polish)
+   Stronger visual hierarchy, trustworthy premium treatment
+   ============================================================ */
+
+/* Enhanced business cards in feed/my listings */
+.business-listing {
+    border: 3px solid #E6B800 !important;
+    box-shadow: 0 8px 28px rgba(230, 184, 0, 0.22);
+    position: relative;
+}
+
+.business-listing .card-body {
+    padding-top: 0.75rem;
+}
+
+.business-listing .card-footer {
+    border-top: 1px solid rgba(230, 184, 0, 0.2);
+}
+
+/* Stronger promoted treatment for feed cards */
+.promoted-banner {
+    font-size: 0.6rem;
+    padding: 3px 7px;
+    background: linear-gradient(135deg, #E6B800, #F4D03F);
+    color: #2C3E50;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+}
+
+/* My Listings cards — bring them up to Level 10 */
+.my-listings .card {
+    transition: var(--transition);
+}
+
+.my-listings .business-listing {
+    border-left: 5px solid #E6B800 !important;
+}
+
+.my-listings .promoted-banner {
+    top: 8px;
+    right: 8px;
+}
+
+/* Premium "Business" badge treatment */
+.business-badge {
+    background: linear-gradient(135deg, #E6B800, #F4D03F);
+    color: #2C3E50;
+    font-weight: 700;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+}
+
+/* Promotion sparkle for non-detail cards */
+.boosted {
+    position: relative;
+}
+
+.boosted::after {
+    opacity: 0.75;
+}
+
+/* ============================================================
+   LEVEL 10 — FEED / DISCOVERY POLISH
+   Spectacular, warm, trustworthy discovery experience
+   ============================================================ */
+
+#filter-form .card-body {
+    background: #fff;
+}
+
+#listings-container .card {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+}
+
+#listings-container .card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 14px 32px rgba(44, 62, 80, 0.14);
+}
+
+#listings-container .card-title {
+    font-size: 1.02rem;
+    line-height: 1.3;
+}
+
+#popular-categories .btn {
+    transition: all 0.15s ease;
+}
+
+#popular-categories .btn:hover {
+    transform: translateY(-1px);
+}
+
+#hero-banner {
+    box-shadow: 0 10px 30px rgba(44, 62, 80, 0.15);
+}
+
+#load-more-btn {
+    border-radius: 50px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* Empty state polish */
+#listings-container .col-12 {
+    min-height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Mobile feed polish */
+@media (max-width: 767.98px) {
+    #filter-form .card-body {
+        padding: 0.75rem;
+    }
+    #listings-container .col-md-4 {
+        padding-right: 0.5rem;
+        padding-left: 0.5rem;
+    }
+    .hero-content h1 {
+        font-size: 2rem;
+    }
+}

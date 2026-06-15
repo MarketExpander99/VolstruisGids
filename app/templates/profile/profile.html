@@ -4,15 +4,12 @@
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-7">
-            <div class="card shadow-sm">
-               
-                <!-- Dark header consistent with the rest of the app -->
+            <div class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
                 <div class="card-header text-white" style="background-color: #2C3E50;">
-                    <h4 class="mb-0"><i class="bi bi-person me-2"></i>My Profile</h4>
+                    <h4 class="mb-0"><i class="bi bi-person-circle me-2"></i>My Profile</h4>
                 </div>
 
                 <div class="card-body p-4 p-md-5">
-
                     <!-- Flash Messages -->
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
@@ -25,11 +22,11 @@
                         {% endif %}
                     {% endwith %}
 
-                    <!-- Profile Form (now includes photo upload) -->
+                    <!-- Profile Form -->
                     <form method="POST" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
 
-                        <!-- Business Logo / Profile Picture (now inside form + progress bar) -->
+                        <!-- Business Logo / Profile Picture -->
                         <div class="mb-4 p-4 bg-light rounded-3 border">
                             <h6 class="fw-bold mb-3">
                                 <i class="bi bi-image me-2"></i>Business Logo / Profile Picture
@@ -40,7 +37,7 @@
                                     <small class="text-muted d-block mb-1">Current logo / profile picture:</small>
                                     <img src="{{ current_user.profile_pic }}" 
                                          class="img-thumbnail shadow-sm" 
-                                         style="max-width: 140px; max-height: 140px; object-fit: cover; border-radius: 10px;">
+                                         style="max-width: 140px; max-height: 140px; object-fit: cover; border-radius: 10px; border-color: #E6B800;">
                                 </div>
                             {% else %}
                                 <div class="mb-3">
@@ -57,7 +54,7 @@
                                 <small class="text-muted d-block mt-1">Recommended: square image (PNG or JPG). Max size ~2MB.</small>
                             </div>
 
-                            <!-- Upload Progress Bar (matches create.html experience) -->
+                            <!-- Upload Progress Bar -->
                             <div id="upload-progress" class="mt-3" style="display: none;">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                     <small class="text-muted fw-semibold">Uploading photo...</small>
@@ -95,8 +92,8 @@
 
                         <!-- Email -->
                         <div class="mb-3">
-                            {{ form.email.label(class="form-label") }}
-                            {{ form.email(class="form-control") }}
+                            {{ form.email.label(class="form-label fw-semibold") }}
+                            {{ form.email(class="form-control form-control-lg") }}
                             {% for error in form.email.errors %}
                                 <div class="text-danger small">{{ error }}</div>
                             {% endfor %}
@@ -104,14 +101,14 @@
                        
                         <!-- Phone -->
                         <div class="mb-4">
-                            {{ form.phone.label(class="form-label") }}
-                            {{ form.phone(class="form-control") }}
+                            {{ form.phone.label(class="form-label fw-semibold") }}
+                            {{ form.phone(class="form-control form-control-lg") }}
                             {% for error in form.phone.errors %}
                                 <div class="text-danger small">{{ error }}</div>
                             {% endfor %}
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3" id="save-btn">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold" id="save-btn">
                             <i class="bi bi-check2-circle me-1"></i>Save Changes
                         </button>
                     </form>
@@ -179,14 +176,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!photoInput || !progressContainer || !progressBar || !progressPercent) return;
 
     form.addEventListener('submit', function (e) {
-        // If no new photo selected, allow normal submit (email/phone only changes)
         if (!photoInput.files || photoInput.files.length === 0) {
             return;
         }
 
         e.preventDefault();
 
-        // Show progress bar
         progressContainer.style.display = 'block';
         progressBar.style.width = '0%';
         progressPercent.textContent = '0%';
@@ -198,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         xhr.open('POST', actionUrl, true);
 
-        // Real upload progress
         xhr.upload.onprogress = function (evt) {
             if (evt.lengthComputable) {
                 const percent = Math.round((evt.loaded / evt.total) * 100);
@@ -211,7 +205,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (saveBtn) saveBtn.disabled = false;
 
             if (xhr.status === 200 || xhr.status === 302) {
-                // Success — reload to show the new profile picture preview
                 window.location.reload();
             } else {
                 progressContainer.innerHTML = `
@@ -232,13 +225,11 @@ document.addEventListener('DOMContentLoaded', function () {
         xhr.send(formData);
     });
 
-    // Optional: live local preview when user selects a file (nice UX)
     photoInput.addEventListener('change', function () {
         if (this.files && this.files[0]) {
             const reader = new FileReader();
             reader.onload = function (ev) {
-                // If you want a live preview image, we can add an <img id="live-preview"> later
-                // For now the progress bar + reload on success is sufficient
+                // Live preview could be added here if desired
             };
             reader.readAsDataURL(this.files[0]);
         }

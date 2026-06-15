@@ -208,19 +208,36 @@
                             {{ form.allow_comments.label(class="form-check-label") }}
                         </div>
 
-                        <!-- Multi-Photo Upload -->
+                        <!-- LEVEL 10 SPECTACULAR PHOTO UPLOAD & PREVIEW (Business Quick) -->
                         <div class="mb-4">
-                            {{ form.photo.label(class="form-label fw-semibold") }}
-                            <small class="text-muted d-block mb-2">
-                                First photo free. Additional photos cost 1 extra credit each. Photos auto-fitted to 800×800 square.
-                            </small>
-                            {{ form.photo(class="form-control", id="photo", multiple=True) }}
+                            <label class="form-label fw-bold d-flex align-items-center gap-2">
+                                <span>Photos (up to 6)</span>
+                                <span class="badge bg-warning text-dark small">First free • +1 credit per extra photo</span>
+                            </label>
+                            
+                            <div class="photo-upload-info small text-muted mb-3">
+                                Beautiful square photos perform best for business listings. Drag multiple images here or click to select.
+                            </div>
+
+                            <!-- Premium Drag & Drop Zone -->
+                            <div id="photo-dropzone" 
+                                 class="photo-dropzone border rounded-4 p-4 text-center mb-3"
+                                 style="background: #FFF9E6; border-color: #E6B800; border-style: dashed; cursor: pointer; transition: all 0.2s ease;">
+                                <div class="py-2">
+                                    <i class="bi bi-images display-5 text-warning mb-2 d-block" style="opacity: 0.85;"></i>
+                                    <p class="mb-1 fw-semibold" style="color: #2C3E50;">Drop photos here</p>
+                                    <p class="small text-muted mb-2">JPEG / PNG • max 6 • first becomes the hero shot</p>
+                                </div>
+                            </div>
+
+                            {{ form.photo(class="form-control d-none", id="photo", multiple=True) }}
                             {% for error in form.photo.errors %}
                                 <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
                            
-                            <!-- Multi-photo preview grid -->
-                            <div id="image-preview" class="mt-3"></div>
+                            <!-- Multi-photo preview grid (spectacular) -->
+                            <div id="image-preview" class="photo-preview-grid"></div>
+                            <div id="photo-cost-note" class="small mt-2 text-muted d-none"></div>
                         </div>
 
                         <!-- Updated Main Submit Button -->
@@ -239,70 +256,110 @@
 </div>
 
 <script>
-    // Multi-Photo Preview logic
+    // Multi-Photo Preview logic — Level 10 upgraded (drag & drop + live cost + reorder)
     const photoInput = document.getElementById('photo');
     const previewContainer = document.getElementById('image-preview');
+    const dropzone = document.getElementById('photo-dropzone');
+    const costNote = document.getElementById('photo-cost-note');
     let selectedFiles = [];
+
+    const MAX_PHOTOS = 6;
+
+    function updatePhotoCostNote() {
+        if (!costNote) return;
+        const count = selectedFiles.length;
+        if (count === 0) { costNote.classList.add('d-none'); return; }
+        const extra = Math.max(0, count - 1);
+        let msg = `${count} photo(s). `;
+        if (extra > 0) msg += `<strong>${extra} extra</strong> = ${extra} credit(s). `;
+        else msg += 'First photo free. ';
+        if (count >= MAX_PHOTOS) msg += `<span class="text-warning">Max reached.</span>`;
+        costNote.innerHTML = msg;
+        costNote.classList.remove('d-none');
+    }
 
     function renderPreviews() {
         if (!previewContainer) return;
         previewContainer.innerHTML = '';
-        if (selectedFiles.length === 0) return;
+        if (selectedFiles.length === 0) { updatePhotoCostNote(); return; }
 
         const grid = document.createElement('div');
-        grid.className = 'd-flex flex-wrap gap-3';
+        grid.className = 'd-flex flex-wrap gap-3 photo-preview-grid';
 
         selectedFiles.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const wrapper = document.createElement('div');
-                wrapper.className = 'position-relative';
-                wrapper.style.width = '140px';
+                wrapper.className = 'position-relative photo-preview-card';
+                wrapper.style.width = '148px';
+                wrapper.draggable = true;
+                wrapper.dataset.index = index;
 
                 wrapper.innerHTML = `
-                    <div class="border rounded-3 overflow-hidden shadow-sm" style="background: #f8f4eb;">
-                        <img src="${ev.target.result}"
-                             style="width: 140px; height: 140px; object-fit: cover;"
-                             alt="Photo preview ${index + 1}">
+                    <div class="border rounded-4 overflow-hidden shadow-sm" style="background: #f8f4eb;">
+                        <img src="${ev.target.result}" style="width: 148px; height: 148px; object-fit: cover;" alt="Photo preview ${index + 1}">
                     </div>
-                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-0"
-                            style="width: 22px; height: 22px; line-height: 18px; font-size: 14px;"
-                            title="Remove photo">×</button>
-                    ${index === 0 ? '<div class="position-absolute bottom-0 start-0 m-1"><span class="badge bg-success">Main</span></div>' : ''}
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-0 shadow" style="width:26px;height:26px;line-height:22px;font-size:15px;" title="Remove">×</button>
+                    ${index === 0 ? 
+                        '<div class="position-absolute bottom-0 start-0 m-1"><span class="badge bg-success shadow-sm" style="font-size:0.7rem;">MAIN</span></div>' : 
+                        '<button type="button" class="btn btn-sm btn-outline-secondary position-absolute bottom-0 start-0 m-1 px-2 py-0" style="font-size:0.65rem;line-height:1.1;">Main</button>'}
+                    <div class="position-absolute top-0 start-0 m-1"><span class="badge bg-dark bg-opacity-75" style="font-size:0.65rem;">${index + 1}</span></div>
                 `;
 
-                const removeBtn = wrapper.querySelector('button');
-                removeBtn.onclick = () => {
-                    selectedFiles.splice(index, 1);
-                    updateFileInput();
-                    renderPreviews();
-                };
+                const removeBtn = wrapper.querySelector('button.btn-danger');
+                removeBtn.onclick = (e) => { e.stopImmediatePropagation(); selectedFiles.splice(index, 1); updateFileInput(); renderPreviews(); };
+
+                const makeMain = wrapper.querySelector('button.btn-outline-secondary');
+                if (makeMain) makeMain.onclick = (e) => { e.stopImmediatePropagation(); const m = selectedFiles.splice(index,1)[0]; selectedFiles.unshift(m); updateFileInput(); renderPreviews(); };
+
+                // Drag reorder
+                wrapper.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', index); wrapper.style.opacity='0.6'; });
+                wrapper.addEventListener('dragend', () => wrapper.style.opacity = '1');
+                wrapper.addEventListener('dragover', e => { e.preventDefault(); wrapper.style.border='2px dashed #E6B800'; });
+                wrapper.addEventListener('dragleave', () => wrapper.style.border='');
+                wrapper.addEventListener('drop', e => {
+                    e.preventDefault(); wrapper.style.border='';
+                    const from = parseInt(e.dataTransfer.getData('text/plain'));
+                    if (from === index) return;
+                    const moved = selectedFiles.splice(from,1)[0];
+                    selectedFiles.splice(index,0,moved);
+                    updateFileInput(); renderPreviews();
+                });
 
                 grid.appendChild(wrapper);
             };
             reader.readAsDataURL(file);
         });
-
         previewContainer.appendChild(grid);
-
-        const info = document.createElement('p');
-        info.className = 'text-muted small mt-2 mb-0';
-        info.innerHTML = `${selectedFiles.length} photo(s) selected • First photo will be the main image`;
-        previewContainer.appendChild(info);
+        updatePhotoCostNote();
     }
 
     function updateFileInput() {
-        const dataTransfer = new DataTransfer();
-        selectedFiles.forEach(file => dataTransfer.items.add(file));
-        photoInput.files = dataTransfer.files;
+        const dt = new DataTransfer();
+        selectedFiles.forEach(f => dt.items.add(f));
+        photoInput.files = dt.files;
     }
 
     if (photoInput && previewContainer) {
         photoInput.addEventListener('change', function(e) {
-            const newFiles = Array.from(e.target.files);
-            selectedFiles = [...selectedFiles, ...newFiles];
-            updateFileInput();
-            renderPreviews();
+            const added = Array.from(e.target.files || []);
+            selectedFiles = [...selectedFiles, ...added].slice(0, MAX_PHOTOS);
+            updateFileInput(); renderPreviews();
+        });
+    }
+
+    // Drag & Drop zone (premium)
+    if (dropzone && photoInput) {
+        dropzone.addEventListener('click', () => photoInput.click());
+        ['dragenter','dragover'].forEach(t => dropzone.addEventListener(t, e => { e.preventDefault(); dropzone.style.background='#FFF0CC'; dropzone.style.borderColor='#D4A000'; }));
+        ['dragleave','dragend'].forEach(t => dropzone.addEventListener(t, e => { e.preventDefault(); dropzone.style.background='#FFF9E6'; dropzone.style.borderColor='#E6B800'; }));
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.style.background='#FFF9E6'; dropzone.style.borderColor='#E6B800';
+            const imgs = Array.from(e.dataTransfer.files || []).filter(f => /^image\//.test(f.type));
+            if (!imgs.length) { alert('Only image files please.'); return; }
+            selectedFiles = [...selectedFiles, ...imgs].slice(0, MAX_PHOTOS);
+            updateFileInput(); renderPreviews();
         });
     }
 
