@@ -67,10 +67,13 @@
                             
                             <p class="text-muted small flex-grow-1">{{ pkg.note }}</p>
                             
-                            <form method="POST" class="mt-auto">
+                            <form method="POST" action="{{ url_for('payments.create_checkout') }}" class="mt-auto">
                                 <input type="hidden" name="package_id" value="{{ pkg.id }}">
+                                <input type="hidden" name="credits" value="{{ pkg.credits }}">
+                                <input type="hidden" name="amount" value="{{ pkg.price }}">
+                                <input type="hidden" name="description" value="Buy {{ pkg.credits }} credits - {{ pkg.name }}">
                                 <button type="submit" class="btn btn-success w-100 fw-semibold py-2">
-                                    Buy Now
+                                    Buy Now (Yoco)
                                 </button>
                             </form>
                         </div>

@@ -1,28 +1,33 @@
-{% for listing in listings %}
+﻿{% for listing in listings %}
 {% set isBusiness = listing.is_business_ad %}
 {% set isPromoted = listing.is_promoted or listing.last_reposted_at %}
+{% set pt = listing.post_type or 'sale' %}
 <div class="col-md-6 col-lg-4 mb-4">
-    <div class="card h-100 shadow-sm {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
+    <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
         {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
         {% set img_variant = ' photo' if listing.photo_url else ' no-photo' %}
         <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" alt="{{ listing.title }}" 
              style="height: 200px; width: 100%; background-color: #f8f9fa;">
         
         <div class="card-body d-flex flex-column">
-            <!-- Premium badges -->
+            <!-- v2.0 Post Type + Premium badges (strong at-a-glance indicators) -->
             <div class="mb-2 d-flex flex-wrap gap-1">
-                {% if listing.post_type == 'wanted' %}
-                    <span class="badge bg-warning text-dark">🔍 Looking For</span>
-                {% elif listing.post_type == 'rental' %}
-                    <span class="badge bg-info">🔄 For Rent</span>
-                {% elif listing.post_type == 'announcement' %}
-                    <span class="badge bg-info">📢 Announcement</span>
+                {% if pt == 'wanted' %}
+                    <span class="badge bg-warning text-dark fw-semibold">Looking For</span>
+                {% elif pt == 'rental' %}
+                    <span class="badge bg-info fw-semibold">For Rent</span>
+                {% elif pt == 'services' or pt == 'service' %}
+                    <span class="badge bg-warning text-dark fw-semibold">Service</span>
+                {% elif pt == 'event' %}
+                    <span class="badge bg-secondary fw-semibold">Event</span>
+                {% elif pt == 'announcement' %}
+                    <span class="badge bg-secondary fw-semibold">Notice</span>
                 {% else %}
-                    <span class="badge bg-success">🛒 For Sale</span>
+                    <span class="badge bg-success fw-semibold">For Sale</span>
                 {% endif %}
 
                 {% if isBusiness %}
-                    <span class="badge bg-warning text-dark fw-semibold" style="font-size: 0.65rem;">BUSINESS</span>
+                    <span class="badge business-badge">BUSINESS</span>
                 {% endif %}
                 {% if isPromoted %}
                     <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.65rem;">PROMOTED</span>
@@ -33,10 +38,10 @@
             {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
                 <p class="text-success fw-bold">R{{ listing.min_price|int }} – R{{ listing.max_price|int }}</p>
             {% else %}
-                <p class="text-success fw-bold">R {{ listing.price | int }}</p>
+                <p class="text-success fw-bold">{{ listing.get_display_price() if listing.get_display_price else 'R ' ~ (listing.price | int) }}</p>
             {% endif %}
             <p class="card-text text-muted small">
-                {{ listing.area }} • {{ listing.created_at.strftime('%d %b %Y') }}
+                {{ listing.area }} · {{ listing.created_at.strftime('%d %b %Y') }}
             </p>
             
             <div class="mt-auto">
@@ -46,7 +51,7 @@
                     <i class="bi bi-eye me-1"></i>View
                 </a>
                 
-                <!-- FIXED: Ask Grok button using data attributes (no more broken onclick) -->
+                <!-- FIXED: Ask Grok button using data attributes -->
                 <button type="button" 
                         class="btn btn-outline-info btn-sm grok-ask-btn"
                         data-grok-listing-id="{{ listing.id }}"

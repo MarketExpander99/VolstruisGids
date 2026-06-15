@@ -23,3 +23,16 @@ class Config:
     GROK_API_KEY = os.environ.get('GROK_API_KEY')
     GROK_API_URL = 'https://api.x.ai/v1/chat/completions'
     GROK_MODEL = 'grok-3'   # or 'grok-2-1212' if you prefer
+
+    # === Yoco Checkout API (Paystack removed - pivot to Yoco) ===
+    # Get these from your Yoco Dashboard (https://dashboard.yoco.com)
+    # For development use TEST keys; for production use LIVE keys
+    YOCO_TEST_SECRET_KEY = os.getenv('YOCO_TEST_SECRET_KEY')  # e.g. sk_test_...
+    YOCO_LIVE_SECRET_KEY = os.getenv('YOCO_LIVE_SECRET_KEY')  # e.g. sk_live_...
+    YOCO_WEBHOOK_SECRET = os.getenv('YOCO_WEBHOOK_SECRET')    # for signature verification
+
+    # Active key selection (use TEST in dev, LIVE in prod)
+    YOCO_SECRET_KEY = YOCO_TEST_SECRET_KEY if FLASK_ENV == 'development' else YOCO_LIVE_SECRET_KEY
+
+    YOCO_API_BASE = 'https://api.yoco.com'
+    YOCO_CHECKOUTS_URL = f'{YOCO_API_BASE}/v1/checkouts'

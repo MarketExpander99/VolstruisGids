@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 <div class="container py-5 my-listings">
@@ -14,27 +14,32 @@
             {% for listing in listings %}
             {% set isBusiness = listing.is_business_ad %}
             {% set isPromoted = listing.is_promoted or listing.last_reposted_at %}
+            {% set pt = listing.post_type or 'sale' %}
             <div class="col">
-                <div class="card h-100 shadow-sm {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
+                <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
                     {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
                     {% set img_variant = ' photo' if listing.photo_url else ' no-photo' %}
                     <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" style="height: 180px; width: 100%; background-color: #f8f9fa;" alt="{{ listing.title }}">
                     
                     <div class="card-body d-flex flex-column">
-                        <!-- Premium badges -->
+                        <!-- v2.0 Post Type badges -->
                         <div class="mb-2 d-flex flex-wrap gap-1">
-                            {% if listing.post_type == 'wanted' %}
-                                <span class="badge bg-warning text-dark">🔍 Looking For</span>
-                            {% elif listing.post_type == 'rental' %}
-                                <span class="badge bg-info">🔄 For Rent</span>
-                            {% elif listing.post_type == 'announcement' %}
-                                <span class="badge bg-info">📢 Announcement</span>
+                            {% if pt == 'wanted' %}
+                                <span class="badge bg-warning text-dark fw-semibold">Looking For</span>
+                            {% elif pt == 'rental' %}
+                                <span class="badge bg-info fw-semibold">For Rent</span>
+                            {% elif pt == 'services' or pt == 'service' %}
+                                <span class="badge bg-warning text-dark fw-semibold">Service</span>
+                            {% elif pt == 'event' %}
+                                <span class="badge bg-secondary fw-semibold">Event</span>
+                            {% elif pt == 'announcement' %}
+                                <span class="badge bg-secondary fw-semibold">Notice</span>
                             {% else %}
-                                <span class="badge bg-success">🛒 For Sale</span>
+                                <span class="badge bg-success fw-semibold">For Sale</span>
                             {% endif %}
 
                             {% if isBusiness %}
-                                <span class="badge bg-warning text-dark fw-semibold" style="font-size: 0.65rem;">BUSINESS</span>
+                                <span class="badge business-badge">BUSINESS</span>
                             {% endif %}
                             {% if isPromoted %}
                                 <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.65rem;">PROMOTED</span>
@@ -47,18 +52,18 @@
                             <h6 class="text-success">R{{ listing.min_price|int }} – R{{ listing.max_price|int }}</h6>
                         {% elif listing.price and listing.price > 0 %}
                             <h6 class="text-success">R{{ listing.price }}</h6>
-                        {% elif listing.post_type == 'wanted' %}
-                            <h6 class="text-warning">🔍 Looking For</h6>
+                        {% elif pt == 'wanted' %}
+                            <h6 class="text-warning">Looking For</h6>
                         {% else %}
                             <h6 class="text-muted">No price listed</h6>
                         {% endif %}
                         
                         <p class="text-muted small">{{ listing.location }}</p>
-                        <p class="card-text flex-grow-1">{{ listing.description[:100] }}...</p>
+                        <p class="card-text flex-grow-1">{{ listing.description[:100] if listing.description else '' }}...</p>
                         
                         <div class="mt-auto">
                             <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" 
-                               class="btn btn-outline-primary btn-sm w-100 mb-1">✏️ Edit</a>
+                               class="btn btn-outline-primary btn-sm w-100 mb-1">Edit</a>
                             <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
                                class="btn btn-success btn-sm w-100 mb-2">View Details</a>
                             <form method="POST" action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
