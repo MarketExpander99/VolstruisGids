@@ -21,11 +21,21 @@ logger = logging.getLogger(__name__)
 
 class YocoClient:
     def __init__(self):
-        self.secret_key = current_app.config.get('YOCO_SECRET_KEY')
+        raw_key = current_app.config.get('YOCO_SECRET_KEY')
+        self.secret_key = raw_key.strip() if raw_key else None
         self.api_base = current_app.config.get('YOCO_API_BASE', 'https://api.yoco.com')
         self.checkouts_url = f"{self.api_base}/v1/checkouts"
         if not self.secret_key:
-            raise ValueError("YOCO_SECRET_KEY not configured")
+            raise ValueError("YOCO_SECRET_KEY not configured. Add YOCO_TEST_SECRET_KEY to your .env (get it from Yoco Dashboard > Developers > API keys).")
+        if not self.secret_key.startswith('sk_'):
+            raise ValueError("YOCO_SECRET_KEY must be a secret key starting with 'sk_' (not a publishable key starting with 'pk_'). Copy the Secret key from your Yoco dashboard.")
+
+        # Debug: log prefix only (safe, never log full secret) — dev only
+        flask_env = current_app.config.get('FLASK_ENV')
+        if flask_env == 'development':
+            key_prefix = self.secret_key[:15] + "..." if self.secret_key else "None"
+            print(f"DEBUG: YocoClient __init__ using key starting with {key_prefix} (FLASK_ENV={flask_env}, key length={len(self.secret_key) if self.secret_key else 0})")
+            logger.info(f"YocoClient using key starting with {key_prefix} (FLASK_ENV={flask_env}, key length={len(self.secret_key) if self.secret_key else 0})")
 
     def _headers(self):
         return {
@@ -74,8 +84,22 @@ class YocoClient:
                 "metadata": data.get("metadata", {})
             }
         except requests.RequestException as e:
-            logger.error(f"Yoco create_checkout failed: {str(e)}")
-            raise Exception(f"Yoco API error: {str(e)}") from e
+            error_body = ""
+            if 'response' in locals() and hasattr(response, 'text'):
+                error_body = f" | Response body: {response.text}"
+            logger.error(f"Yoco create_checkout failed: {str(e)}{error_body}")
+            raise Exception(f"Yoco API error: {str(e)}{error_body}") from e
+
+        if not self.secret_key or not self.secret_key.startswith('sk_test_'):
+            raise ValueError("At runtime, YOCO_SECRET_KEY is not a valid test secret key. Check .env and restart.")
+
+        # Extra safety (should not reach if key checks passed)
+        if not self.secret_key or not self.secret_key.startswith('sk_'):
+            raise ValueError("Invalid Yoco secret key format at request time.")
+
+        # Additional safety: if somehow we reach here without key, but shouldn't
+        if not self.secret_key or not self.secret_key.startswith('sk_test_'):
+            logger.warning("Warning: Key may not be a valid test secret key")
 
     def verify_webhook_signature(self, payload: bytes, signature: str) -> bool:
         """
@@ -93,8 +117,18 @@ class YocoClient:
                 payload,
                 hashlib.sha256
             ).hexdigest()
-            # Yoco typically sends signature as hex or 'sha256=xxx'
-            provided = signature.split('=')[-1] if '=' in signature else signature
+
+            # Yoco / Standard Webhooks formats:
+            # - raw hex
+            # - sha256=xxx
+            # - t=...,v1=thesig   (Standard Webhooks style)
+            provided = signature
+            if "=" in provided:
+                # Take the last value after = , or look for v1=
+                if "v1=" in provided:
+                    provided = provided.split("v1=")[-1].split(",")[0].strip()
+                else:
+                    provided = provided.split("=")[-1].strip()
             return hmac.compare_digest(computed, provided)
         except Exception as e:
             logger.error(f"Webhook signature verification error: {e}")
@@ -110,3 +144,81 @@ class YocoClient:
         except Exception as e:
             logger.error(f"Failed to fetch Yoco checkout {checkout_id}: {e}")
             return None
+
+    # ============================================================
+    # WEBHOOK MANAGEMENT (for when you can't use the Yoco UI)
+    # ============================================================
+
+    def register_webhook(self, url: str, name: str = "VolstruisGids", events: list = None):
+        """
+        Register a new webhook endpoint via the Yoco API.
+        The signing secret is returned only ONCE - save it immediately as YOCO_WEBHOOK_SECRET.
+        Returns the full webhook object from Yoco.
+        """
+        # Yoco Checkout/Online API for webhooks uses payments.yoco.com
+        webhook_base = "https://payments.yoco.com/api/webhooks"
+        payload = {
+            "name": name,
+            "url": url,
+        }
+        if events:
+            payload["events"] = events
+        # Some accounts may require events; if not provided Yoco may default or error.
+
+        try:
+            response = requests.post(
+                webhook_base,
+                json=payload,
+                headers=self._headers(),
+                timeout=15
+            )
+            response.raise_for_status()
+            data = response.json()
+            logger.info(f"Yoco webhook registered: {data.get('id')}")
+            print("✅ Webhook registered successfully!")
+            print("   Full response (save the secret if present - shown only once):")
+            print(data)
+            return data
+        except requests.RequestException as e:
+            error_body = ""
+            if hasattr(e, 'response') and e.response is not None:
+                error_body = f" | Response: {e.response.text}"
+            logger.error(f"Yoco register_webhook failed: {str(e)}{error_body}")
+            print(f"❌ Failed to register webhook: {e}{error_body}")
+            raise
+
+    def list_webhooks(self):
+        """List existing webhooks registered for this account."""
+        webhook_base = "https://payments.yoco.com/api/webhooks"
+        try:
+            response = requests.get(
+                webhook_base,
+                headers=self._headers(),
+                timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+            print("Current webhooks:")
+            print(data)
+            return data
+        except Exception as e:
+            logger.error(f"Failed to list Yoco webhooks: {e}")
+            print(f"Error listing webhooks: {e}")
+            return None
+
+    def delete_webhook(self, webhook_id: str):
+        """Delete a webhook by its id."""
+        webhook_base = f"https://payments.yoco.com/api/webhooks/{webhook_id}"
+        try:
+            response = requests.delete(
+                webhook_base,
+                headers=self._headers(),
+                timeout=10
+            )
+            response.raise_for_status()
+            print(f"✅ Deleted webhook {webhook_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete webhook {webhook_id}: {e}")
+            print(f"Error deleting: {e}")
+            return False

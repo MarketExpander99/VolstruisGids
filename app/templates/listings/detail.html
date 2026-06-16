@@ -182,6 +182,26 @@
                     </div>
                 {% endif %}
 
+                <!-- Owner-only "Pay with Yoco" promotion form (spec 1.7) -->
+                {% if current_user.is_authenticated and listing.user_id == current_user.id %}
+                <div class="card mb-3 shadow-sm" style="border: 2px solid var(--accent-gold); border-radius: 12px;">
+                    <div class="card-body py-2">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <strong class="small">Promote this listing</strong>
+                                <div class="text-muted" style="font-size:0.8rem;">Top placement for 7 days</div>
+                            </div>
+                            <form method="POST" action="{{ url_for('payments.create_checkout') }}" class="mb-0">
+                                <input type="hidden" name="listing_id" value="{{ listing.id }}">
+                                <input type="hidden" name="amount" value="99">
+                                <input type="hidden" name="description" value="Promote listing #{{ listing.id }} (7 days)">
+                                <button type="submit" class="btn btn-sm btn-success fw-semibold">Pay with Yoco - R99</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Title -->
                 <h1 class="fw-bold mb-2 listing-detail-title" style="line-height: 1.15;">{{ listing.title }}</h1>
 

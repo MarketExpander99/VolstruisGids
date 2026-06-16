@@ -58,6 +58,16 @@ def main():
         # Create new credit_transactions table (safe - does nothing if exists)
         print("Ensuring credit_transactions table exists...")
         db.create_all()
+
+        # --- CREDIT_TRANSACTIONS status column (added for Yoco fulfillment tracking) ---
+        print("Checking credit_transactions table for status column...")
+        if not column_exists(conn, 'credit_transactions', 'status'):
+            print("  → Adding status column to credit_transactions...")
+            conn.execute(text("ALTER TABLE credit_transactions ADD COLUMN status VARCHAR(20) DEFAULT 'pending'"))
+        else:
+            print("  ✓ status column already exists")
+        
+        conn.close()
         
         print("\n✅ Credit schema update completed successfully!")
         print("   - All new columns added (or already present)")

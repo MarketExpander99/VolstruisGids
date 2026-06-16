@@ -13,6 +13,25 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # === YOCO DEBUG AT STARTUP ===
+    print("=== YOCO CONFIG DEBUG (at app startup) ===")
+    flask_env = app.config.get('FLASK_ENV')
+    yoco_key = app.config.get('YOCO_SECRET_KEY')
+    test_key = app.config.get('YOCO_TEST_SECRET_KEY')
+    live_key = app.config.get('YOCO_LIVE_SECRET_KEY')
+    print(f"FLASK_ENV: {flask_env}")
+    print(f"YOCO_SECRET_KEY present: {bool(yoco_key)}")
+    if yoco_key:
+        print(f"YOCO_SECRET_KEY prefix: {yoco_key[:15]}... (len={len(yoco_key)})")
+    print(f"YOCO_TEST_SECRET_KEY present: {bool(test_key)}")
+    if test_key:
+        print(f"YOCO_TEST_SECRET_KEY prefix: {test_key[:15]}... (len={len(test_key)})")
+    print(f"YOCO_LIVE_SECRET_KEY present: {bool(live_key)}")
+    if live_key:
+        print(f"YOCO_LIVE_SECRET_KEY prefix: {live_key[:15]}... (len={len(live_key)})")
+    print("=== END YOCO DEBUG ===")
+    # === END DEBUG ===
+
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)

@@ -10,6 +10,7 @@ class CreditTransaction(db.Model):
     amount = db.Column(db.Integer, nullable=False)           # positive = purchase, negative = spend
     transaction_type = db.Column(db.String(30), nullable=False)  # purchase, listing, repost, refund, free_quota
     reference = db.Column(db.String(100))    # Yoco transaction id or internal ref
+    status = db.Column(db.String(20), default='pending')  # pending, success, failed, refunded
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationship for easy querying (user.credit_transactions)

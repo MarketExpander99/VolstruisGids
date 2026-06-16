@@ -7,7 +7,7 @@
             <!-- Header -->
             <div class="text-center mb-4">
                 <h2 class="fw-bold">Buy Credits</h2>
-                <p class="text-muted">Pay-as-you-use • 1 free listing per day for personal accounts • Credits never expire</p>
+                <p class="text-muted">Pay-as-you-use via Yoco • Credits never expire • 1 free listing per day for personal accounts</p>
             </div>
 
             <!-- Current Balance Card -->
@@ -24,7 +24,13 @@
                             <span class="badge bg-{{ 'success' if is_business else 'primary' }} fs-6 mb-2">
                                 {{ account_type_label }} Account
                             </span>
-                            <div class="mt-2 small text-muted">{{ max_note }}</div>
+                            <div class="mt-2 small text-muted">
+                                {% if is_business %}
+                                    Business accounts enjoy volume discounts and higher limits.
+                                {% else %}
+                                    Personal accounts: maximum 10 credits per purchase (v1).
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -90,7 +96,7 @@
                     • 1 free listing per day for Personal accounts (resets at midnight SAST)<br>
                     • Normal listing = 1 credit &nbsp;&nbsp;• Super/Business listing = 2 credits<br>
                     • Repost (bump visibility) = 1 credit<br>
-                    <span class="text-muted">Secure payments powered by Yoco (test keys in dev, live keys in production).</span>
+                    <span class="text-muted">Secure payments powered by Yoco. Use test keys (sk_test_...) in development and live keys in production via your .env + FLASK_ENV.</span>
                 </div>
                 <a href="{{ url_for('profile.profile') }}" class="btn btn-outline-secondary btn-sm">← Back to Profile</a>
             </div>

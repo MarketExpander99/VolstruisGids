@@ -53,6 +53,7 @@ def buy_credits():
     """Buy Credits page - powered by Paystack"""
 
     personal_packages = [
+        {"id": "single", "name": "Single Credit", "credits": 1, "price": 10, "note": "Try it out"},
         {"id": "small", "name": "Small", "credits": 5, "price": 55, "note": "Easy entry"},
         {"id": "standard", "name": "Standard", "credits": 10, "price": 99, "note": "Best value for personal"},
     ]
