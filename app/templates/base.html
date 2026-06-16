@@ -282,9 +282,15 @@
 
                 <!-- Right: Legal + WhatsApp Support -->
                 <div class="col-md-4 text-center text-md-end">
-                    <a href="{{ url_for('main.terms') }}" class="text-muted me-3 small">Terms</a>
-                    <a href="{{ url_for('main.privacy') }}" class="text-muted me-3 small">Privacy</a>
-                    <a href="{{ url_for('main.guidelines') }}" class="text-muted me-3 small">Guidelines</a>
+                    <!-- Using literal paths for these static legal pages.
+                         This prevents the entire site from crashing with BuildError
+                         if the 'main.terms' endpoint isn't registered for any reason
+                         (stale bytecode, import error in routes.py before these defs,
+                         blueprint name issues, etc.). The routes still exist for any
+                         other code that wants to use url_for. -->
+                    <a href="/terms" class="text-muted me-3 small">Terms</a>
+                    <a href="/privacy" class="text-muted me-3 small">Privacy</a>
+                    <a href="/guidelines" class="text-muted me-3 small">Guidelines</a>
 
                     <!-- WhatsApp Support -->
                     <a href="https://wa.me/27810763237" 

@@ -231,7 +231,12 @@ def robots_txt():
         mimetype='text/plain'
     )
 
-
+# ============================================================
+# CRITICAL STATIC PAGES — must be early so base.html footer
+# (used by every page including index) can always url_for them.
+# These were missing on the deployed PA version, causing the
+# BuildError for 'main.terms' (and privacy/guidelines).
+# ============================================================
 @main_bp.route('/terms')
 def terms():
     return render_template('main/terms.html')
