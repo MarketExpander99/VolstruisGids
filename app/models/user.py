@@ -2,6 +2,11 @@ from datetime import datetime, date
 from app import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -12,14 +17,14 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=True)
     phone = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    
+
     is_business = db.Column(db.Boolean, default=False)
     business_name = db.Column(db.String(100), nullable=True)
     profile_pic = db.Column(db.String(200), nullable=True)
     bio = db.Column(db.Text, nullable=True)
     location = db.Column(db.String(100), nullable=True)
     posts_today = db.Column(db.Integer, default=0)
-    
+
     account_type = db.Column(db.String(20), default='personal')
     credit_balance = db.Column(db.Integer, default=0)
 
@@ -33,34 +38,44 @@ class User(UserMixin, db.Model):
 
     # ============================================================
     # Daily Free Credit Refresh (+2 credits once per day)
+    # Fully defensive production version - will never break login or run.py
     # ============================================================
     def ensure_daily_free_credits(self):
         """Give the user +2 free credits once per day if they haven't received them today."""
-        today = date.today()
-        start_of_day = datetime.combine(today, datetime.min.time())
+        try:
+            today = date.today()
+            start_of_day = datetime.combine(today, datetime.min.time())
 
-        from app.models.credit_transaction import CreditTransaction
+            from app.models.credit_transaction import CreditTransaction
 
-        already_received = CreditTransaction.query.filter(
-            CreditTransaction.user_id == self.id,
-            CreditTransaction.transaction_type == 'daily_free',
-            CreditTransaction.created_at >= start_of_day
-        ).first()
+            already_received = CreditTransaction.query.filter(
+                CreditTransaction.user_id == self.id,
+                CreditTransaction.transaction_type == 'daily_free',
+                CreditTransaction.created_at >= start_of_day
+            ).first()
 
-        if already_received:
+            if already_received:
+                return False
+
+            self.credit_balance += 2
+
+            tx = CreditTransaction(
+                user_id=self.id,
+                amount=2,
+                transaction_type='daily_free',
+                reference=f'daily_free_{today.isoformat()}'
+            )
+            db.session.add(tx)
+            db.session.commit()
+            return True
+
+        except Exception as exc:
+            db.session.rollback()
+            logger.exception(
+                f"Non-fatal error in ensure_daily_free_credits for user_id="
+                f"{getattr(self, 'id', 'unknown')}: {exc}"
+            )
             return False
-
-        self.credit_balance += 2
-
-        tx = CreditTransaction(
-            user_id=self.id,
-            amount=2,
-            transaction_type='daily_free',
-            reference=f'daily_free_{today.isoformat()}'
-        )
-        db.session.add(tx)
-        db.session.commit()
-        return True
 
     def __repr__(self):
         return f'<User {self.username}>'

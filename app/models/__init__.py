@@ -7,3 +7,6 @@ from app.models.payment import Payment
 from app.models.credit_transaction import CreditTransaction
 
 __all__ = ['User', 'Category', 'Listing', 'Promotion', 'Message', 'Payment', 'CreditTransaction']
+
+from .user import User
+from .credit_transaction import CreditTransaction

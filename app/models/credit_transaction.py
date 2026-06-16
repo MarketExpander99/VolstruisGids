@@ -1,20 +1,25 @@
-from datetime import datetime
+"""
+CreditTransaction model for VolstruisGids
+Tracks all credit movements (daily free grants, purchases, boosts, etc.)
+Klein Karoo community classifieds platform
+"""
+
 from app import db
+from datetime import datetime
 
 
 class CreditTransaction(db.Model):
     __tablename__ = 'credit_transactions'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    amount = db.Column(db.Integer, nullable=False)           # positive = purchase, negative = spend
-    transaction_type = db.Column(db.String(30), nullable=False)  # purchase, listing, repost, refund, free_quota
-    reference = db.Column(db.String(100))    # Yoco transaction id or internal ref
-    status = db.Column(db.String(20), default='pending')  # pending, success, failed, refunded
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    amount = db.Column(db.Integer, nullable=False)
+    transaction_type = db.Column(db.String(50), nullable=False, index=True)  # 'daily_free', 'purchase', 'boost_listing', etc.
+    reference = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
 
-    # Relationship for easy querying (user.credit_transactions)
-    user = db.relationship('User', backref=db.backref('credit_transactions', lazy='dynamic'))
+    # Optional backref if you want easy access from User later
+    # user = db.relationship('User', backref=db.backref('credit_transactions', lazy='dynamic'))
 
     def __repr__(self):
-        return f'<CreditTransaction {self.id} {self.transaction_type} {self.amount}>'
+        return f'<CreditTransaction user_id={self.user_id} type={self.transaction_type} amount={self.amount}>'
