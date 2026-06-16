@@ -509,6 +509,41 @@ Build guarantee passed. Tiny targeted change only in the JS card template. No ne
 
 Task COMPLETE — here is what you should test: Reload the homepage (the live JS feed). Inspect a card's image area (use dev tools). Confirm the background-color #f8f9fa is now on the <img> tag itself (like in _listing_cards.html server cards) rather than the wrapper div. The visual appearance should be identical for consistency. Check with and without photos.
 
+## 2026-06-16 — Yoco CreditTransaction 'status' fix
+
+**Task**: Fix crash " 'status' is an invalid keyword argument for CreditTransaction" that occurred in both MOCK MODE and real Yoco credit purchase paths.
+
+**Files touched** (shell analysis + runtime column inspection performed first):
+- app/models/credit_transaction.py (added the missing `status` column)
+
+**Changes (smallest possible)**:
+- Added `status = db.Column(db.String(20), default='pending', nullable=True)` to CreditTransaction model (to match the `status` usage that already existed in Payment and the Yoco routes + _fulfill logic).
+- The two places in routes.py that were doing `CreditTransaction(..., status='pending')` (MOCK and real path) now succeed.
+- The guards in `_fulfill_credit_purchase` (getattr/hasattr) continue to work and will now actually persist the status.
+
+**Verification** (mandatory, with full activation prefix):
+- pip install -r requirements.txt
+- python -c "from app import create_app ... ; CreditTransaction(status=...) constructor: OK"
+- Exact output:
+  ```
+  === BUILD GUARANTEE PASSED ===
+  App created successfully with zero errors.
+  Registered blueprints: ['auth', 'listings', 'main', 'messages', 'payments', 'profile', 'sitemap']
+  CreditTransaction(status=...) constructor: OK, status= pending
+  CreditTransaction columns: ['id', 'user_id', 'amount', 'transaction_type', 'reference', 'status', 'created_at']
+  ```
+- Zero errors. The debug "MOCK MODE" + previous crash path now reaches DB insert instead of constructor error.
+
+**Build guarantee passed.** This was the root cause of the Yoco credit purchase flow failing when the placeholder test key (or any key hitting the credit branch) was used.
+
+Note: If you have an existing dev DB with old credit_transactions table, the new `status` column may need to be added (SQLite is lenient on new nullable columns for inserts in many cases; otherwise a quick `ALTER TABLE credit_transactions ADD COLUMN status VARCHAR(20) DEFAULT 'pending'` or re-run any prior credit_scheme_update.py script will suffice).
+
+Task COMPLETE — here is what you should test: 
+- Use the buy credits flow (it will likely still hit MOCK MODE because of the old placeholder key in .env).
+- After the purchase simulation, check that no "invalid keyword argument" error is logged.
+- In the success page / DB, a CreditTransaction row should now exist with the reference and (if the fulfill ran) status='success'.
+- The same flow should work for a real (non-mock) Yoco key as well.
+
 ## 2026-06-16 — Saved UI Polish Plan for review
 
 **Task**: Persist the UI polish planning document as a standalone review file at the user's request.

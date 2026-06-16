@@ -16,6 +16,7 @@ class CreditTransaction(db.Model):
     amount = db.Column(db.Integer, nullable=False)
     transaction_type = db.Column(db.String(50), nullable=False, index=True)  # 'daily_free', 'purchase', 'boost_listing', etc.
     reference = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(20), default='pending', nullable=True)  # pending / success (for Yoco credit purchases)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     # Optional backref if you want easy access from User later
