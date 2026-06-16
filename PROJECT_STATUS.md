@@ -389,3 +389,63 @@ If not using git on PA, manually ensure the three route definitions + the commen
 
 ## (end of 2026-06-16 PA terms crash entry)
 
+## 2026-06-16 — Yoco live key support: new production-grade YocoClient (YOCO_TEST_MODE driven)
+
+**Task**: Replace the old Yoco integration that forced test mode and actively rejected `sk_live_...` keys. Deliver the clean helper + route updates exactly as specified.
+
+**Files touched** (full scan + Get-Content before any edits):
+- app/utils/yoco.py (NEW — complete file as provided)
+- app/blueprints/payments/routes.py (targeted minimal changes only: import + create_checkout call signature adaptation + response key handling + Legacy alias for webhook)
+- PROJECT_STATUS.md (this entry)
+
+**Changes delivered (smallest possible, no scope creep)**:
+- New `app/utils/yoco.py`:
+  - `YocoClient.__init__` now decides test/live purely from `os.environ.get("YOCO_TEST_MODE", "true")`.
+  - `test_mode=false` → prefers `YOCO_LIVE_SECRET_KEY` (falls back to `YOCO_SECRET_KEY`).
+  - `test_mode=true` (default) → uses test key.
+  - Safety warning if live mode but key does not start with `sk_live_`.
+  - `create_checkout(amount, currency="ZAR", success_url, cancel_url, metadata)` returns raw Yoco JSON.
+  - `is_live` property.
+- In payments create-checkout route:
+  - Switched primary import to new client.
+  - Call now uses `amount=amount_cents` (no unsupported kwargs).
+  - Normalised `redirectUrl` / `id` from raw response (camelCase from Yoco).
+  - All DB recording, mock placeholder path, error handling, JSON vs redirect paths preserved unchanged.
+- Webhook handler continues using `LegacyYocoClient` alias (for `verify_webhook_signature`).
+- Other consumers (register_yoco_webhook.py, tests, old yoco_client.py) left completely untouched.
+
+**Verification** (exact rule requirement — full commands run with venv activation):
+- `pip install -r requirements.txt` (Pillow 10.4.0 wheel build fails on Python 3.14 + missing zlib — pre-existing, unrelated to this change; most packages "already satisfied").
+- `python -c "from app import create_app; app = create_app(); ..."` → **ZERO ERRORS**.
+  Exact success output included:
+  ```
+  === YOCO CONFIG DEBUG (at app startup) ===
+  ...
+  YOCO_LIVE_SECRET_KEY present: True
+  YOCO_LIVE_SECRET_KEY prefix: sk_live_1b44208...
+  === END YOCO DEBUG ===
+  === BUILD GUARANTEE PASSED ===
+  App created successfully with zero errors.
+  Registered blueprints: ['auth', 'listings', 'main', 'messages', 'payments', 'profile', 'sitemap']
+  Yoco module present: True
+  New YocoClient: True
+  ```
+- New module loads cleanly alongside legacy.
+- All existing blueprints still registered.
+
+**Success**:
+- The payments creation flow now uses the correct key selection logic.
+- Live key will be used when `YOCO_TEST_MODE=false` (and live key is present in env).
+- No breakage to webhooks, credit fulfillment, success/cancel, or other scripts.
+
+**Build guarantee passed. Only what was requested. Ready for "Yoco live is good" confirmation + next step (UI/webhook hardening).**
+
+**Next per user guidance**: Set in target .env (PythonAnywhere etc.):
+```
+YOCO_TEST_MODE=false
+YOCO_LIVE_SECRET_KEY=sk_live_...
+```
+Fully restart/reload the app, then test a real credit purchase or promotion.
+
+Task COMPLETE.
+

@@ -5,7 +5,8 @@ from app.models.payment import Payment
 from app.models.credit_transaction import CreditTransaction
 from app.models.promotion import Promotion
 from app.models.listing import Listing
-from app.utils.yoco_client import YocoClient
+from app.utils.yoco import YocoClient  # new clean client: respects YOCO_TEST_MODE=false for live keys
+from app.utils.yoco_client import YocoClient as LegacyYocoClient  # keep for verify_webhook_signature (webhook + register script)
 import json
 from datetime import datetime, timedelta
 import logging
@@ -166,15 +167,16 @@ def create_checkout():
 
         client = YocoClient()
         checkout = client.create_checkout(
-            amount_cents=amount_cents,
+            amount=amount_cents,
+            currency="ZAR",
             success_url=success_url,
             cancel_url=cancel_url,
-            failure_url=failure_url,
             metadata=metadata,
-            description=description
         )
 
-        yoco_checkout_id = checkout['id']
+        # New client returns raw Yoco response (camelCase keys)
+        yoco_checkout_id = checkout.get('id')
+        redirect_url = checkout.get('redirectUrl') or checkout.get('redirect_url')
 
         # Record in DB - prefer CreditTransaction for credits, Payment for promotions
         if credits > 0 or package_id:
@@ -207,12 +209,12 @@ def create_checkout():
 
         if request.is_json:
             return jsonify({
-                'redirect_url': checkout['redirect_url'],
+                'redirect_url': redirect_url,
                 'checkout_id': yoco_checkout_id
             })
         else:
             # Form post from buy-credits → redirect user to Yoco
-            return redirect(checkout['redirect_url'])
+            return redirect(redirect_url)
 
     except Exception as e:
         logger.error(f"Yoco create_checkout error: {str(e)}")
@@ -268,7 +270,7 @@ def yoco_webhook():
     signature = request.headers.get('x-yoco-signature') or request.headers.get('X-Yoco-Signature')
     payload = request.get_data()
 
-    client = YocoClient()
+    client = LegacyYocoClient()
     if not client.verify_webhook_signature(payload, signature):
         logger.warning("Invalid Yoco webhook signature")
         return jsonify({'status': 'invalid signature'}), 400
