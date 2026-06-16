@@ -10,27 +10,27 @@
              style="height: 200px; width: 100%; background-color: #f8f9fa;">
         
         <div class="card-body d-flex flex-column">
-            <!-- v2.0 Post Type + Premium badges (strong at-a-glance indicators) -->
+            <!-- v2.0 Post Type badges — now using the design system classes from custom.css -->
             <div class="mb-2 d-flex flex-wrap gap-1">
                 {% if pt == 'wanted' %}
-                    <span class="badge bg-warning text-dark fw-semibold">Looking For</span>
+                    <span class="badge wanted-badge">Looking For</span>
                 {% elif pt == 'rental' %}
-                    <span class="badge bg-info fw-semibold">For Rent</span>
+                    <span class="badge rental-badge">For Rent</span>
                 {% elif pt == 'services' or pt == 'service' %}
-                    <span class="badge bg-warning text-dark fw-semibold">Service</span>
+                    <span class="badge service-badge">Service</span>
                 {% elif pt == 'event' %}
-                    <span class="badge bg-secondary fw-semibold">Event</span>
+                    <span class="badge event-badge">Event</span>
                 {% elif pt == 'announcement' %}
-                    <span class="badge bg-secondary fw-semibold">Notice</span>
+                    <span class="badge announcement-badge">Notice</span>
                 {% else %}
-                    <span class="badge bg-success fw-semibold">For Sale</span>
+                    <span class="badge sale-badge">For Sale</span>
                 {% endif %}
 
                 {% if isBusiness %}
                     <span class="badge business-badge">BUSINESS</span>
                 {% endif %}
                 {% if isPromoted %}
-                    <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.65rem;">PROMOTED</span>
+                    <span class="badge promoted-badge">PROMOTED</span>
                 {% endif %}
             </div>
 
@@ -63,7 +63,7 @@
                 
                 {% if current_user.is_authenticated and listing.user_id == current_user.id %}
                 <form action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
-                      method="POST" style="display: inline;"
+                      method="POST" class="d-inline"
                       onsubmit="return confirm('Delete this listing permanently?');">
                     <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete</button>
                 </form>

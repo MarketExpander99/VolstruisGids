@@ -449,3 +449,94 @@ Fully restart/reload the app, then test a real credit purchase or promotion.
 
 Task COMPLETE.
 
+## 2026-06-16 — Phase A start: Post-type badges standardized to v2.0 design system (feed cards)
+
+**Task**: First micro-implementation from the saved UI_POLISH_PLAN.md (Phase A — Foundation). Align main feed badges with the existing custom CSS post-type / *-badge system and remove a couple of conflicting inline styles. No scope creep.
+
+**Files touched** (full Get-Content / grep scans performed first via shell):
+- app/templates/main/_listing_cards.html (badge block + one form style cleanup)
+- app/templates/main/index.html (JS dynamic card badge generation — 6 small targeted string updates)
+- app/static/css/custom.css (minimal addition of 5 new .badge.*-badge rules for rental/service/event/announcement/promoted to ensure consistent styling)
+- PROJECT_STATUS.md (this entry)
+
+**Changes (smallest possible edits only)**:
+- Replaced hard-coded `bg-success` / `bg-warning` / `bg-info` / `bg-secondary` badge classes on type labels with semantic v2.0 classes (`sale-badge`, `wanted-badge`, `rental-badge`, `service-badge`, `event-badge`, `announcement-badge`).
+- Updated PROMOTED badge to `promoted-badge` (removes inline font-size).
+- Removed one `style="display: inline;"` (replaced with Bootstrap `class="d-inline"`).
+- Added a small, self-contained block of badge styles in custom.css modeled directly on the existing v2.0 rules.
+- The parent `post-type-{{ pt }}` classes on cards continue to provide the left-border treatment.
+
+**Verification** (exact rule requirement, run with activation prefix):
+- pip install -r requirements.txt (Pillow pre-existing py3.14 build note only)
+- python -c "from app import create_app; ..." → **=== BUILD GUARANTEE PASSED ===**
+  "App created successfully with zero errors."
+  "Registered blueprints: ['auth', 'listings', 'main', 'messages', 'payments', 'profile', 'sitemap']"
+  "Phase A badge polish active in feed."
+
+**Success**:
+- Main public feed (server partial + live JS-rendered cards) now uses the v2.0 badge treatments consistently.
+- Visual result: Terracotta for Sale, Sage for Looking For, Gold for Service, etc. — matching the design system.
+- Backward compatible; business-badge and boosted effects untouched.
+- One tiny inline style reduced.
+
+Build guarantee passed. This was a focused, reviewable first step per the UI_POLISH_PLAN.md.
+
+**Next in plan**: Could continue Phase A (more inline style removal in other cards / my_listings / detail) or move to payments/credits cards in a follow-up micro-task.
+
+Task COMPLETE — here is what you should test: reload the homepage feed and My Listings (if using the server cards) and confirm the type badges now use the warm palette colors instead of generic Bootstrap ones. Check mobile and promoted/business listings too.
+
+## 2026-06-16 — Image placeholder bg consistency (JS feed vs server cards)
+
+**Task**: One more small polish change per user request — make the image container background in the dynamic JS cards (index.html) apply the bg colour to the <img> tag (same as the server-rendered _listing_cards.html) for visual and structural consistency.
+
+**Files touched** (analysis via shell Get-Content first):
+- app/templates/main/index.html (only the relevant part of the cardHTML template string in the fetchListings JS)
+
+**Changes (smallest possible)**:
+- Removed `background-color:#f8f9fa;` from the wrapper <div>.
+- Added `background-color: #f8f9fa;` to the <img> style inside (exact same value and approach as the server cards' <img>).
+- This makes the two card renderers (server partial and live JS feed) apply the placeholder bg colour in the same way (on the img element).
+
+**Verification** (mandatory before completing, with activation prefix):
+- pip install -r requirements.txt
+- python -c "from app import create_app ..." → **=== BUILD GUARANTEE PASSED ===**
+  "App created successfully with zero errors."
+  All blueprints registered cleanly.
+
+Build guarantee passed. Tiny targeted change only in the JS card template. No new colors, no CSS, no other files.
+
+**What this achieves**: The placeholder background behind photos (when using object-fit:contain or for no-photo) is now applied identically in both the static server cards and the dynamic feed cards.
+
+Task COMPLETE — here is what you should test: Reload the homepage (the live JS feed). Inspect a card's image area (use dev tools). Confirm the background-color #f8f9fa is now on the <img> tag itself (like in _listing_cards.html server cards) rather than the wrapper div. The visual appearance should be identical for consistency. Check with and without photos.
+
+## 2026-06-16 — Saved UI Polish Plan for review
+
+**Task**: Persist the UI polish planning document as a standalone review file at the user's request.
+
+**Files touched** (analysis performed before any action):
+- UI_POLISH_PLAN.md (new file at project root — full plan content for review)
+- PROJECT_STATUS.md (this minimal dated append only)
+
+**Changes (smallest possible)**:
+- Created `UI_POLISH_PLAN.md` containing:
+  - Current state summary (post v2.0 design system)
+  - Core principles that must be followed
+  - Prioritized polish opportunities (high/medium/low)
+  - Suggested phased approach (A–E)
+  - Process recommendations aligned with project rules
+  - Definition of done for the polish phase
+- No other files modified. No code, CSS, or template changes.
+
+**Verification** (exact requirement):
+- `(Set-ExecutionPolicy ...) ; (& "...\Activate.ps1") ; pip install -r requirements.txt ; python -c "from app import create_app ..."`
+- Pillow wheel note (pre-existing py3.14 issue, unrelated).
+- Result: **=== BUILD GUARANTEE PASSED ===**
+  "App created successfully with zero errors after saving UI_POLISH_PLAN.md"
+  All blueprints registered cleanly.
+
+**Build guarantee passed.** This was purely a documentation artifact for review (not an implementation task). New ideas remain in the plan for future consideration via backlog/spec process.
+
+**Next**: User can review `UI_POLISH_PLAN.md`. If any items are approved for work, they will be executed as separate tasks following the full Analyse → Plan (≤5 steps) → minimal edits → verify → status append workflow.
+
+Task COMPLETE.
+

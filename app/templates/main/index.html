@@ -360,12 +360,12 @@ document.addEventListener('click', function(e) {
 
                     const adType = listing.ad_type || listing.post_type || 'sale';
                     let typeBadge = '';
-                    if (adType === 'wanted') typeBadge = '<span class="badge bg-warning text-dark fw-semibold mb-2">Looking For</span>';
-                    else if (adType === 'services' || adType === 'service') typeBadge = '<span class="badge bg-warning text-dark fw-semibold mb-2">Service</span>';
-                    else if (adType === 'event') typeBadge = '<span class="badge bg-secondary fw-semibold mb-2">Event</span>';
-                    else if (adType === 'rental') typeBadge = '<span class="badge bg-info fw-semibold mb-2">For Rent</span>';
-                    else if (adType === 'announcement') typeBadge = '<span class="badge bg-secondary fw-semibold mb-2">Notice</span>';
-                    else typeBadge = '<span class="badge bg-success fw-semibold mb-2">For Sale</span>';
+                    if (adType === 'wanted') typeBadge = '<span class="badge wanted-badge mb-2">Looking For</span>';
+                    else if (adType === 'services' || adType === 'service') typeBadge = '<span class="badge service-badge mb-2">Service</span>';
+                    else if (adType === 'event') typeBadge = '<span class="badge event-badge mb-2">Event</span>';
+                    else if (adType === 'rental') typeBadge = '<span class="badge rental-badge mb-2">For Rent</span>';
+                    else if (adType === 'announcement') typeBadge = '<span class="badge announcement-badge mb-2">Notice</span>';
+                    else typeBadge = '<span class="badge sale-badge mb-2">For Sale</span>';
 
                     let priceHTML = '';
                     const pt = listing.price_type || 'fixed';
@@ -392,8 +392,8 @@ document.addEventListener('click', function(e) {
                         <div class="col-md-6 col-lg-4 mb-3">
                             <div class="${cardExtraClasses}" ${isBusinessType ? 'style="border-top: 5px solid #E6B800;"' : ''}>
                                 ${isBoosted ? '<div class="promoted-banner">PROMOTED · Top Spot</div>' : ''}
-                                <div style="height:210px; background-color:#f8f9fa; position:relative; overflow:hidden; border-bottom: 1px solid #eee;">
-                                    <img src="${listing.photo_url || '/static/img/default-listing.jpg'}" alt="${listing.title}" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); max-width:96%; max-height:96%; object-fit:contain; padding:8px;">
+                                <div style="height:210px; position:relative; overflow:hidden; border-bottom: 1px solid #eee;">
+                                    <img src="${listing.photo_url || '/static/img/default-listing.jpg'}" alt="${listing.title}" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); max-width:96%; max-height:96%; object-fit:contain; padding:8px; background-color: #f8f9fa;">
                                 </div>
                                 <div class="card-body pb-2">
                                     ${typeBadge}

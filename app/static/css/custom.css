@@ -347,6 +347,35 @@ a:hover {
   font-weight: 700;
   font-size: 0.65rem;
   padding: 0.1rem 0.5rem;
+}
+
+/* === Phase A polish: additional direct badge classes for v2.0 consistency ===
+   These complement the existing .post-type-xxx .badge rules so badges look
+   correct even when rendered outside full post-type card context (e.g. JS feed).
+*/
+.badge.rental-badge {
+  background-color: #5f7a6e !important; /* muted sage variant for "For Rent" */
+  color: #fff !important;
+}
+.badge.service-badge {
+  background-color: var(--accent-gold) !important;
+  color: #2C2522 !important;
+  font-weight: 700;
+}
+.badge.event-badge {
+  background-color: #8d5f3e !important; /* warm sienna */
+  color: #fff !important;
+}
+.badge.announcement-badge {
+  background-color: #6c5f57 !important;
+  color: #fff !important;
+}
+.badge.promoted-badge {
+  background: linear-gradient(135deg, var(--accent-gold), #E8C96B) !important;
+  color: #2C2522 !important;
+  font-weight: 700;
+  font-size: 0.65rem;
+}
   border-radius: 3px;
 }
 
