@@ -458,6 +458,11 @@ footer, #main-footer {
   .hero-bg { min-height: 240px; }
 }
 
+/* Tidy hero text block: centered readable width on desktop, full on mobile (continues Phase A polish) */
+.hero-content .hero-text {
+  max-width: 720px;
+}
+
 .listings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

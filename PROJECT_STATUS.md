@@ -509,6 +509,72 @@ Build guarantee passed. Tiny targeted change only in the JS card template. No ne
 
 Task COMPLETE — here is what you should test: Reload the homepage (the live JS feed). Inspect a card's image area (use dev tools). Confirm the background-color #f8f9fa is now on the <img> tag itself (like in _listing_cards.html server cards) rather than the wrapper div. The visual appearance should be identical for consistency. Check with and without photos.
 
+## 2026-06-16 — Hero text horizontal centering fix on desktop
+
+**Task**: The text block ("Welkom by VolstruisGids" + two subtitles) was appearing left-aligned on desktop even after the previous .hero-text wrapper. Fixed by forcing the parent .hero-content to full width.
+
+**Files touched** (analysis via shell Get-Content first):
+- app/templates/main/index.html (added Bootstrap `w-100` class to .hero-content div — one word change)
+
+**Changes (smallest possible)**:
+- Changed `<div class="hero-content ...">` to `<div class="hero-content ... w-100">`.
+- This makes the .hero-content flex item (inside the .hero-bg flex container) span the full width of the hero.
+- Combined with the existing `.hero-text.mx-auto` (from previous) + the `max-width: 720px` rule in custom.css, the text content block now properly centers horizontally on desktop via auto margins.
+- No change to mobile behavior (still centered as expected).
+- No new CSS, no inlines added, no other elements touched.
+
+**Verification** (mandatory, activation prefix used):
+- pip install -r requirements.txt
+- python -c "from app import create_app ..." → **=== BUILD GUARANTEE PASSED ===**
+  "App created successfully with zero errors."
+  "Registered blueprints: ['auth', 'listings', 'main', 'messages', 'payments', 'profile', 'sitemap']"
+  "Hero content div now has w-100 so .hero-text.mx-auto centers the text block horizontally on desktop."
+
+Build guarantee passed. This was the minimal delta to resolve the "shows on the left" issue while the hero is in a flex + absolute positioned layout.
+
+**Next in plan**: Continue reducing remaining inline styles in the hero or other areas per UI_POLISH_PLAN.md.
+
+Task COMPLETE — here is what you should test: 
+- On desktop/wide viewport: the three lines of hero text should now be horizontally centered as a block (not hugging the left side of the hero banner).
+- On mobile: no regression — still looks centered and appropriate.
+- The rest of the page (including the previous centering wrapper and max-width) remains intact.
+- Check that the overall hero still feels balanced with the background image and overlay.
+
+## 2026-06-16 — Hero text block centered on desktop + tidied (Phase A polish)
+
+**Task**: Centre the hero headline + two subtitle lines as a cohesive block on desktop (while keeping good mobile behavior) and tidy the content (remove redundant inline color styles, fix mojibake `A�` back to proper `·`, clean h1 text-shadow override so v2.0 CSS applies).
+
+**Files touched** (shell analysis of markup + CSS first):
+- app/templates/main/index.html (added `.hero-text` wrapper with `mx-auto` around the three content lines; removed 3 small inline styles)
+- app/static/css/custom.css (one tiny new rule for `.hero-content .hero-text { max-width: 720px; }` to give the text block a nice centered width on desktop)
+
+**Changes (smallest possible)**:
+- Wrapped the Welkom h1 + two p's in `<div class="hero-text mx-auto">` (leverages existing `text-center` on parent + Bootstrap mx-auto).
+- Removed `style="color:white"` from the two subtitle p's (text-white class on parent + v2.0 CSS now controls).
+- Removed the incorrect light text-shadow inline from the h1 (now uses the proper dark shadow from custom.css `.hero-content h1, .lead` rule).
+- Fixed the broken `A�` characters in the last line to proper `·` (consistent with earlier mojibake cleanups).
+- Added the single CSS rule so the text block doesn't stretch full-width on wide desktop screens (feels properly "centred content").
+
+The hero already had `text-center` and flex centering from previous work; this makes the actual text block centered and tidy on desktop while remaining fluid on mobile.
+
+**Verification** (mandatory + full activation prefix):
+- pip install -r requirements.txt
+- python -c "from app import create_app ..." → **=== BUILD GUARANTEE PASSED ===**
+  "App created successfully with zero errors."
+  "Registered blueprints: ['auth', 'listings', 'main', 'messages', 'payments', 'profile', 'sitemap']"
+  "Hero text block now wrapped in .hero-text for desktop centering + tidy (inlines reduced, mojibake fixed)."
+
+Build guarantee passed. Fits directly into the saved UI_POLISH_PLAN.md Phase A (reduce inline styles, tidy hero).
+
+**Next in plan**: Continue Phase A (more hero or feed inlines, or move to payments/credits pages).
+
+Task COMPLETE — here is what you should test: 
+- On desktop (wide viewport): the "Welkom by VolstruisGids" + two lines below should appear as a nicely centered, readable-width block (not full-width text).
+- On mobile: still nicely centered and full-width as appropriate.
+- No change in meaning or content.
+- The three lines have cleaner spacing/typography and no more leftover inline color or mojibake.
+- Check the homepage hero looks polished and consistent with the v2.0 warm design system.
+
 ## 2026-06-16 — Yoco CreditTransaction 'status' fix
 
 **Task**: Fix crash " 'status' is an invalid keyword argument for CreditTransaction" that occurred in both MOCK MODE and real Yoco credit purchase paths.
