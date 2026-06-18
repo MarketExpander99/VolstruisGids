@@ -844,3 +844,47 @@ If you want the white glow stronger/softer, different gold intensity, or the glo
 
 Thanks — happy to keep polishing these cards with you! 
 
+## 2026-06-18 — Listing + Profile pages aligned to feed design system + (Pty) Ltd footer
+
+**Task**: Update styling of listing pages (detail, my listings) and profile page to match the new index/feed v2.0 components per the Design Consistency Prompt. Also add registered company suffix to footer.
+
+**Files touched** (scanned first via grep + reads of index, _listing_cards, detail, profiles, my_listings, base):
+- app/templates/base.html (footer text only)
+- app/templates/listings/detail.html (hero post-type badges)
+- app/templates/main/my_listings.html (badges + one img style cleanup)
+- app/templates/profile/profile.html (header cleanup + active listings cards full alignment)
+- app/static/css/custom.css (two small reusable additions: .badge-compact + .profile-thumb)
+- PROJECT_STATUS.md (this entry)
+
+**Changes (smallest possible, reuse-first)**:
+- Footer: "VolstruisGids (Pty) Ltd." added.
+- All post-type badges on detail hero, my listings, and profile active listings now use the exact v2.0 classes (sale-badge, wanted-badge, rental-badge, service-badge, event-badge, announcement-badge, business-badge, promoted-badge) — no more raw bg-success etc.
+- Profile "Your Active Listings" now receive `post-type-{{pt}}`, `business-listing`, and `boosted` classes + proper badge block (exact visual language as feed cards).
+- Removed multiple legacy `style=""` attributes (dark card-headers, badge font overrides, some image treatments, progress bar static styles) and replaced with utilities or new tiny reusable classes in custom.css.
+- Added `.badge-compact` (for dense profile grid) and `.profile-thumb` so we could eliminate inlines while preserving appearance.
+- My listings and detail now feel like they belong to the same warm Klein Karoo feed.
+- 100% backward compatible. No functionality or data changes.
+
+**Verification** (mandatory):
+- python -c "from app import create_app..." → **=== BUILD GUARANTEE PASSED ===** Zero errors.
+- All blueprints healthy.
+
+**Anti-Inconsistency Checklist**:
+- No new major colours.
+- No *new* inline style="" added in final state (several removed).
+- Cards now consistently use post-type + business/promoted signals.
+- Mobile friendly (existing).
+- Reused feed patterns.
+
+**Task COMPLETE — here is what you should test:**
+- Public listing detail page (different post types + business + promoted)
+- My Listings page
+- Profile page (the "Your Active Listings" grid at bottom + overall header)
+- Confirm badges show correct warm terracotta/sage/gold colours
+- Business listings have the elevated treatment
+- Footer now reads "VolstruisGids (Pty) Ltd."
+- No layout or contrast breakage on mobile/desktop
+- Feed cards remain the reference and unchanged
+
+Ready for more polish passes (e.g. remaining inlines on detail seller/contact sections).
+

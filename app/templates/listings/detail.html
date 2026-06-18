@@ -77,33 +77,34 @@
                          style="max-height: 620px; object-fit: contain; display: block; background-color: #F8F4EB;"
                          alt="{{ listing.title }} in {{ listing.location }} - Volstruis Gids">
 
-                    <!-- v2.0 Clear Post Type Treatment at the top -->
+                    <!-- v2.0 Clear Post Type Treatment at the top (matching feed design) -->
                     <div class="position-absolute top-0 start-0 m-3">
                         {% if pt == 'wanted' %}
-                            <span class="badge bg-warning text-dark px-3 py-2 fs-6 fw-semibold shadow-sm">LOOKING FOR</span>
+                            <span class="badge wanted-badge px-3 py-2 fs-6 fw-semibold shadow-sm">LOOKING FOR</span>
                         {% elif pt == 'services' or pt == 'service' %}
-                            <span class="badge bg-warning text-dark px-3 py-2 fs-6 fw-semibold shadow-sm">SERVICE</span>
+                            <span class="badge service-badge px-3 py-2 fs-6 fw-semibold shadow-sm">SERVICE</span>
                         {% elif pt == 'event' %}
-                            <span class="badge bg-secondary px-3 py-2 fs-6 fw-semibold shadow-sm">EVENT</span>
+                            <span class="badge event-badge px-3 py-2 fs-6 fw-semibold shadow-sm">EVENT</span>
                         {% elif pt == 'rental' %}
-                            <span class="badge bg-info px-3 py-2 fs-6 fw-semibold shadow-sm">FOR RENT</span>
+                            <span class="badge rental-badge px-3 py-2 fs-6 fw-semibold shadow-sm">FOR RENT</span>
                         {% elif pt == 'announcement' %}
-                            <span class="badge bg-secondary px-3 py-2 fs-6 fw-semibold shadow-sm">NOTICE</span>
+                            <span class="badge announcement-badge px-3 py-2 fs-6 fw-semibold shadow-sm">NOTICE</span>
                         {% else %}
-                            <span class="badge bg-success px-3 py-2 fs-6 fw-semibold shadow-sm">FOR SALE</span>
+                            <span class="badge sale-badge px-3 py-2 fs-6 fw-semibold shadow-sm">FOR SALE</span>
                         {% endif %}
                     </div>
 
                     <div class="position-absolute top-0 end-0 m-3 d-flex flex-column align-items-end gap-2">
                         {% if is_promoted %}
-                            <span class="badge bg-warning text-dark px-3 py-2 fs-6 fw-bold shadow-sm d-flex align-items-center gap-1">
+                            <span class="badge promoted-badge px-3 py-2 fs-6 fw-bold shadow-sm d-flex align-items-center gap-1">
                                 <i class="bi bi-rocket-takeoff"></i>
                                 <span>PROMOTED</span>
                             </span>
                         {% endif %}
                         {% if is_business %}
-                            <span class="badge bg-dark bg-opacity-75 px-3 py-1 small fw-semibold">
-                                <i class="bi bi-building me-1"></i> BUSINESS
+                            <span class="badge business-badge px-3 py-1 small fw-semibold d-flex align-items-center gap-1">
+                                <i class="bi bi-building me-1"></i>
+                                <span>BUSINESS</span>
                             </span>
                         {% endif %}
                         {% if all_photos|length > 1 %}

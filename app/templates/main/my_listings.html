@@ -19,30 +19,30 @@
                 <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
                     {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
                     {% set img_variant = ' photo' if listing.photo_url else ' no-photo' %}
-                    <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" style="height: 180px; width: 100%; background-color: #f8f9fa;" alt="{{ listing.title }}">
+                    <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" alt="{{ listing.title }}">
                     
                     <div class="card-body d-flex flex-column">
-                        <!-- v2.0 Post Type badges -->
+                        <!-- v2.0 Post Type badges (matching feed) -->
                         <div class="mb-2 d-flex flex-wrap gap-1">
                             {% if pt == 'wanted' %}
-                                <span class="badge bg-warning text-dark fw-semibold">Looking For</span>
+                                <span class="badge wanted-badge">Looking For</span>
                             {% elif pt == 'rental' %}
-                                <span class="badge bg-info fw-semibold">For Rent</span>
+                                <span class="badge rental-badge">For Rent</span>
                             {% elif pt == 'services' or pt == 'service' %}
-                                <span class="badge bg-warning text-dark fw-semibold">Service</span>
+                                <span class="badge service-badge">Service</span>
                             {% elif pt == 'event' %}
-                                <span class="badge bg-secondary fw-semibold">Event</span>
+                                <span class="badge event-badge">Event</span>
                             {% elif pt == 'announcement' %}
-                                <span class="badge bg-secondary fw-semibold">Notice</span>
+                                <span class="badge announcement-badge">Notice</span>
                             {% else %}
-                                <span class="badge bg-success fw-semibold">For Sale</span>
+                                <span class="badge sale-badge">For Sale</span>
                             {% endif %}
 
                             {% if isBusiness %}
                                 <span class="badge business-badge">BUSINESS</span>
                             {% endif %}
                             {% if isPromoted %}
-                                <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.65rem;">PROMOTED</span>
+                                <span class="badge promoted-badge">PROMOTED</span>
                             {% endif %}
                         </div>
 
