@@ -321,8 +321,8 @@
 
                 <!-- Dedicated Share section - polished premium look -->
                 <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background: #faf7f0;">
-                    <div class="card-body p-3">
-                        <div class="d-flex align-items-center mb-2">
+                    <div class="card-body p-2">
+                        <div class="d-flex align-items-center mb-1">
                             <i class="bi bi-share fs-6 text-muted me-2"></i>
                             <span class="fw-semibold small text-muted">Share this ad</span>
                         </div>
@@ -334,22 +334,22 @@
                             </button>
                             <a href="https://wa.me/?text={{ (listing.title + ' on Volstruis Gids: ' + request.url) | urlencode }}" 
                                target="_blank"
-                               class="btn btn-sm btn-success d-flex align-items-center gap-2 px-3 py-2 rounded-pill">
-                                <i class="bi bi-whatsapp fs-5"></i>
+                               class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill" style="font-size:0.72rem;">
+                                <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
                                 <span>Share on WhatsApp</span>
                             </a>
                             <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url | urlencode }}" 
                                target="_blank"
-                               class="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-pill"
-                               style="background-color: #1877F2; color: #fff; border: none;">
-                                <i class="bi bi-facebook fs-5"></i>
+                               class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill"
+                               style="background-color: #1877F2; color: #fff; border: none; font-size:0.72rem;">
+                                <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
                                 <span>Share on Facebook</span>
                             </a>
                             <a href="https://twitter.com/intent/tweet?text={{ (listing.title + ' on Volstruis Gids') | urlencode }}&amp;url={{ request.url | urlencode }}" 
                                target="_blank"
-                               class="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-pill"
-                               style="background-color: #000000; color: #fff; border: none;">
-                                <i class="bi bi-twitter-x fs-5"></i>
+                               class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill"
+                               style="background-color: #000000; color: #fff; border: none; font-size:0.72rem;">
+                                <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
                                 <span>Share on X</span>
                             </a>
                         </div>
