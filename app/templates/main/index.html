@@ -83,21 +83,45 @@
 
     <!-- User Store Header -->
     <div id="user-store-header" class="mb-4 p-3 rounded-4 d-none shadow-sm" style="background-color: #f8f4eb; border: 1px solid #E6B800;">
-        <div class="d-flex align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-start flex-wrap gap-3">
             <img id="user-store-logo" src="" alt="Store Logo"
                  class="rounded-circle" width="56" height="56"
                  style="object-fit: cover; border: 3px solid #E6B800;">
             <div class="flex-grow-1">
                 <h5 id="user-store-name" class="mb-0 fw-bold"></h5>
                 <small class="text-muted">Local store · Klein Karoo</small>
+
+                <!-- Share section moved under logo/name, in frame for consistency with cards/detail -->
+                <div class="mt-2" style="background: #faf7f0; border-radius: 10px; padding: 6px 8px; max-width: 280px;">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-share fs-6 text-muted me-2"></i>
+                        <span class="fw-semibold small text-muted">Share this store</span>
+                    </div>
+                    <div class="d-flex flex-column gap-1">
+                        <button type="button" onclick="shareStoreWhatsApp()" 
+                                class="btn btn-sm btn-success d-flex align-items-center gap-2 px-3 py-2 rounded-pill" title="Share this store on WhatsApp">
+                            <i class="bi bi-whatsapp fs-5"></i>
+                            <span>Share on WhatsApp</span>
+                        </button>
+                        <button type="button" onclick="shareStoreFacebook()" 
+                                class="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
+                                style="background-color: #1877F2; color: #fff; border: none;" title="Share this store on Facebook">
+                            <i class="bi bi-facebook fs-5"></i>
+                            <span>Share on Facebook</span>
+                        </button>
+                        <button type="button" onclick="shareStoreX()" 
+                                class="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
+                                style="background-color: #000000; color: #fff; border: none;" title="Share this store on X">
+                            <i class="bi bi-twitter-x fs-5"></i>
+                            <span>Share on X</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="d-flex gap-2">
-                <button type="button" onclick="exitStoreMode()" class="btn btn-outline-secondary btn-sm px-3">
-                    ← Back to all
-                </button>
-                <button type="button" onclick="shareStoreWhatsApp()" class="btn btn-success btn-sm px-3 d-flex align-items-center gap-2">
-                    <i class="bi bi-whatsapp"></i>
-                    <span>Share store</span>
+
+            <div class="d-flex align-items-center gap-1 flex-wrap">
+                <button type="button" onclick="exitStoreMode()" class="btn btn-outline-secondary btn-sm px-2">
+                    ← Back
                 </button>
             </div>
         </div>
@@ -328,6 +352,29 @@ document.addEventListener('click', function(e) {
         window.open(waUrl, '_blank');
     }
 
+    function shareStoreFacebook() {
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('user_id');
+        if (!userId) return;
+        const baseUrl = window.location.origin + window.location.pathname;
+        const shareUrl = `${baseUrl}?user_id=${userId}`;
+        const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+        window.open(fbUrl, '_blank');
+    }
+
+    function shareStoreX() {
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('user_id');
+        if (!userId) return;
+        const nameEl = document.getElementById('user-store-name');
+        const storeName = nameEl ? nameEl.textContent.trim() : 'this store';
+        const baseUrl = window.location.origin + window.location.pathname;
+        const shareUrl = `${baseUrl}?user_id=${userId}`;
+        const text = `Check out ${storeName} on Volstruis Gids — Klein Karoo Classifieds`;
+        const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+        window.open(xUrl, '_blank');
+    }
+
     function showLoadingState(append) {
         const container = document.getElementById('listings-container');
         if (!append) container.innerHTML = '';
@@ -440,6 +487,8 @@ document.addEventListener('click', function(e) {
                     const shareText = `Check out this listing on Volstruis Gids: ${listing.title}`;
                     const shareUrl = `${window.location.origin}${listing.detail_url}`;
                     const whatsappShareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+                    const facebookShareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+                    const xShareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
 
                     // Clean card
                     const cardHTML = `
@@ -460,10 +509,6 @@ document.addEventListener('click', function(e) {
                                     </div>
                                 </div>
                                 <div class="card-footer bg-transparent border-0 pt-0 pb-3">
-                                    <a href="${whatsappShareLink}" target="_blank" class="btn btn-success btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-pill">
-                                        <i class="bi bi-whatsapp"></i>
-                                        <span>Share on WhatsApp</span>
-                                    </a>
                                     <button type="button" class="btn btn-outline-info btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-pill grok-ask-btn"
                                             data-grok-listing-id="${listing.id}"
                                             data-grok-title="${(listing.title || '').replace(/"/g, '&quot;')}"
@@ -475,6 +520,33 @@ document.addEventListener('click', function(e) {
                                     <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100 rounded-pill">
                                         View Full Ad
                                     </a>
+                                </div>
+
+                                <!-- Share section right at the very bottom of the card (UI consistent with detail page) -->
+                                <div style="background: #faf7f0; border-radius: 10px; padding: 6px 8px; margin: 0 0 8px 0;">
+                                    <div class="d-flex align-items-center mb-1 px-1">
+                                        <i class="bi bi-share fs-6 text-muted me-2"></i>
+                                        <span class="fw-semibold small text-muted">Share this ad</span>
+                                    </div>
+                                    <div class="d-flex flex-column gap-1">
+                                        <a href="${whatsappShareLink}" target="_blank" 
+                                           class="btn btn-sm btn-success d-flex align-items-center gap-2 px-3 py-2 rounded-pill" title="Share on WhatsApp">
+                                            <i class="bi bi-whatsapp fs-5"></i>
+                                            <span>Share on WhatsApp</span>
+                                        </a>
+                                        <a href="${facebookShareLink}" target="_blank" 
+                                           class="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
+                                           style="background-color: #1877F2; color: #fff; border: none;" title="Share on Facebook">
+                                            <i class="bi bi-facebook fs-5"></i>
+                                            <span>Share on Facebook</span>
+                                        </a>
+                                        <a href="${xShareLink}" target="_blank" 
+                                           class="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
+                                           style="background-color: #000000; color: #fff; border: none;" title="Share on X">
+                                            <i class="bi bi-twitter-x fs-5"></i>
+                                            <span>Share on X</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>`;

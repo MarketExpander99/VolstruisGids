@@ -31,23 +31,82 @@ Volstruis Gids gives them a **better home**:
 ### Quick Start (Development)
 
 ```bash
-# 1. Clone
+# 1. Clone + enter folder
 git clone https://github.com/MarketExpander99/VolstruisGids.git
 cd VolstruisGids
+```
 
-# 2. Virtual environment (recommended)
-python -m venv venv
-venv\Scripts\activate    # Windows
-# source venv/bin/activate  # macOS/Linux
+#### Easiest way on Windows (recommended)
 
-# 3. Install
+Just run one of these helper scripts — they automatically use the correct Python from the virtual environment and install dependencies for you. No activation headaches.
+
+**PowerShell:**
+```powershell
+.\start-dev.ps1
+```
+
+**Command Prompt / double-click:**
+```cmd
+start-dev.bat
+```
+
+These scripts will:
+- Create `.venv` if missing
+- Install `requirements.txt` (including `requests`)
+- Run `python run.py` using the venv Python
+
+#### Manual steps (all platforms)
+
+```bash
+# 2. Create virtual environment (only once)
+python -m venv .venv
+```
+
+**Activate (only if not using the helper scripts above):**
+
+- **PowerShell (Windows):**  
+  `(Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned) ; & ".\.venv\Scripts\Activate.ps1"`
+
+- **cmd.exe (Windows):**  
+  `.venv\Scripts\activate.bat`
+
+- **macOS / Linux:**  
+  `source .venv/bin/activate`
+
+```bash
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Environment
+# 4. Copy and edit environment file (add your real keys)
 cp .env.example .env
 
-# 5. Database
+# 5. Apply database migrations
 python -m flask db upgrade
 
-# 6. Run
+# 6. Run the dev server
 python run.py
+```
+
+**Tip:** After `git pull` or editing requirements, re-run `pip install -r requirements.txt` (or just use `start-dev.ps1` / `start-dev.bat`).
+
+`python run.py` will now **automatically switch** to the correct `.venv` Python on Windows if you forget to activate. You should rarely see the old ModuleNotFoundError anymore.
+
+**Still getting "No module named 'requests'"?**
+
+You are using the wrong Python. Run this diagnostic in your terminal:
+
+```powershell
+cd C:\Users\ebenc\Documents\XAIFV\Projects\VolstruisGids
+python --version
+python -c "import sys; print('Python executable:', sys.executable)"
+python -c "import requests" 2>&1 || echo "requests is MISSING in this python"
+```
+
+Then use the helper script instead of plain `python run.py`.
+
+**Nuclear option (recreate venv cleanly):**
+```powershell
+Remove-Item -Recurse -Force .venv -ErrorAction SilentlyContinue
+python -m venv .venv
+.\start-dev.ps1
+```
