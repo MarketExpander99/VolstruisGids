@@ -718,6 +718,52 @@ The post-type badges still provide clear type signals. Boosted sparkle continues
 
 If the cream tone or shadow strength needs dialing (lighter/darker, more/less gold in shadow), just say and we tweak with tiny CSS change.
 
+## 2026-06-18 — Animated thin glowing borders on cards (gold business / white promoted)
+
+**Task**: Fix glowing border placement (was appearing around image area) and switch to proper animated thin border technique around the whole card. Updated colors per feedback:
+- Gold animated glowing thin border for business listings.
+- White animated glowing thin border for *any* promoted cards.
+
+**Files touched** (full scan of card templates + CSS):
+- `app/static/css/custom.css` (only)
+
+**Changes** (smallest possible, targeted):
+- Switched from box-shadow-only glow (which was diffuse) to `::before` pseudo-element for a crisp thin border that follows the card's shape and border-radius.
+- Added `@keyframes borderGlow` (subtle opacity pulse on the glow for nice animation).
+- Gold (`var(--accent-gold)`) for `.card.business-listing`.
+- White for `.card.boosted` (any promoted takes white).
+- When a card is both, promoted white wins.
+- Kept elevation box-shadows for the "float".
+- Small attribute selector to neutralize the JS image wrapper's `border-bottom` so the frame clearly belongs to the whole card.
+- No changes to any templates or JS card builders.
+
+The border is now a thin line + soft glow, animated, precisely around the card container (not trapped to the photo section).
+
+**Verification** (exact activation):
+```
+(Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned) ; (& "...\Activate.ps1") ; pip install -r requirements.txt ; python -c "from app import create_app..."
+```
+- Pillow pre-existing failure only.
+- `=== BUILD GUARANTEE PASSED ===`
+- Blueprints clean.
+
+**Build guarantee passed.**
+
+**Task COMPLETE — here is what you should test:**
+- All listing cards in feed, My Listings, profile.
+- Business (non-promoted) cards: nice gold thin animated glowing border framing the *entire* card.
+- Promoted cards (personal or business): white thin animated glowing border.
+- Animation should be a gentle pulse on the glow.
+- The frame should clearly surround the full card height (image + body + footer), not just hug the photo.
+- Sparkle on promoted still works on top.
+- Regular cards unchanged.
+
+This should look much cleaner now.
+
+If you want the animation speed different, thicker/thinner line, more intense glow, or priority change (gold even on promoted business cards), just say — one more tiny edit away.
+
+Thanks for the clear feedback! 
+
 ## 2026-06-18 — Business cards: warmer background + refined floating shadow
 
 **Task**: Iterate on business listing cards per user feedback. Switch to a warmer cream background tone and enhance the CSS shadow for a stronger "float" effect. Kept no-border approach.

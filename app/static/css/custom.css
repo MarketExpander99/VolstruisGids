@@ -271,33 +271,43 @@ a:hover {
   color: #fff !important;
 }
 
-/* Business — Warm cream background + floating shadow (no border) */
+/* Business listing cards: gold animated glowing thin border */
 .card.business-listing {
   background-color: #FDF6E9;
   border: none;
-  box-shadow: 
-    0 0 0 1.5px #fff,
-    0 0 9px 3px rgba(255, 255, 255, 0.5),
-    0 12px 36px rgba(44, 37, 34, 0.07), 
-    0 4px 14px rgba(201, 162, 39, 0.09);
-}
-.card.business-listing:hover {
-  transform: translateY(-3px);
-  box-shadow: 
-    0 0 0 1.5px #fff,
-    0 0 13px 5px rgba(255, 255, 255, 0.65),
-    0 20px 45px rgba(44, 37, 34, 0.09), 
-    0 6px 18px rgba(201, 162, 39, 0.14);
+  box-shadow: 0 12px 36px rgba(44, 37, 34, 0.07), 0 4px 14px rgba(201, 162, 39, 0.09);
+  position: relative;
 }
 
-/* Promoted / Boosted sparkle — refined */
+.card.business-listing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--accent-gold);
+  border-radius: inherit;
+  box-shadow: 0 0 8px 2px var(--accent-gold);
+  pointer-events: none;
+  z-index: 1;
+  animation: borderGlow 2s ease-in-out infinite alternate;
+}
+
+/* Promoted cards: white animated glowing thin border (any promoted) */
 .card.boosted {
   position: relative;
   overflow: hidden;
-  box-shadow: 
-    0 0 0 2px var(--accent-gold),
-    0 0 14px 5px rgba(201, 162, 39, 0.55),
-    0 10px 30px rgba(44, 37, 34, 0.08);
+  box-shadow: 0 10px 30px rgba(44, 37, 34, 0.08);
+}
+
+.card.boosted::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid #fff;
+  border-radius: inherit;
+  box-shadow: 0 0 8px 2px rgba(255,255,255,0.6);
+  pointer-events: none;
+  z-index: 1;
+  animation: borderGlow 2s ease-in-out infinite alternate;
 }
 .boosted::after {
   content: '';
@@ -321,6 +331,17 @@ a:hover {
 @keyframes sparkle-sweep {
   0% { transform: translateX(-160%) translateY(-70%) rotate(22deg); }
   100% { transform: translateX(420%) translateY(-70%) rotate(22deg); }
+}
+
+@keyframes borderGlow {
+  from { opacity: 0.65; }
+  to { opacity: 1; }
+}
+
+/* Clean up inner image wrapper border on special cards so the glowing frame is clearly around the whole card */
+.card.business-listing > div[style*="border-bottom"],
+.card.boosted > div[style*="border-bottom"] {
+  border-bottom: none !important;
 }
 
 /* Promoted banner — warmer, refined */
