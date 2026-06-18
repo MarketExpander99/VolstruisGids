@@ -73,27 +73,27 @@
             <!-- Share section right at the very bottom of the card (exact styling match to detail page) -->
             {% set detail_abs = url_for('listings.detail', listing_id=listing.id, _external=True) %}
             {% set share_text = 'Check out this listing on Volstruis Gids: ' ~ listing.title %}
-            <div style="background: #faf7f0; border-radius: 10px; padding: 4px 6px; margin: 0 8px 6px 8px;">
+            <div style="background: #faf7f0; border-radius: 10px; padding: 6px 10px; margin: 0 8px 6px 8px;">
                 <div class="d-flex align-items-center mb-1 px-1">
                     <i class="bi bi-share fs-6 text-muted me-2"></i>
                     <span class="fw-semibold small text-muted">Share this ad</span>
                 </div>
-                <div class="d-flex flex-column gap-1">
+                <div class="d-flex flex-column gap-1" style="align-items: flex-start;">
                     <a href="https://wa.me/?text={{ (share_text + ' ' + detail_abs) | urlencode }}" target="_blank" 
-                       class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill" style="font-size:0.72rem;" title="Share on WhatsApp">
-                        <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
+                       class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill" style="font-size:0.65rem; width: 48%; justify-content: flex-start;" title="Share on WhatsApp">
+                        <i class="bi bi-whatsapp" style="font-size:0.8rem;"></i>
                         <span>Share on WhatsApp</span>
                     </a>
                     <a href="https://www.facebook.com/sharer/sharer.php?u={{ detail_abs | urlencode }}" target="_blank" 
                        class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill" 
-                       style="background-color: #1877F2; color: #fff; border: none; font-size:0.72rem;" title="Share on Facebook">
-                        <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
+                       style="background-color: #1877F2; color: #fff; border: none; font-size:0.65rem; width: 48%; justify-content: flex-start;" title="Share on Facebook">
+                        <i class="bi bi-facebook" style="font-size:0.8rem;"></i>
                         <span>Share on Facebook</span>
                     </a>
                     <a href="https://twitter.com/intent/tweet?text={{ share_text | urlencode }}&url={{ detail_abs | urlencode }}" target="_blank" 
                        class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill" 
-                       style="background-color: #000000; color: #fff; border: none; font-size:0.72rem;" title="Share on X">
-                        <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
+                       style="background-color: #000000; color: #fff; border: none; font-size:0.65rem; width: 48%; justify-content: flex-start;" title="Share on X">
+                        <i class="bi bi-twitter-x" style="font-size:0.8rem;"></i>
                         <span>Share on X</span>
                     </a>
                 </div>
