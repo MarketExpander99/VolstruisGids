@@ -641,3 +641,160 @@ Task COMPLETE — here is what you should test:
 
 Task COMPLETE.
 
+## 2026-06-18 — Listing cards business borders: consistent all-round gold frame
+
+**Task**: Remove the thick left gold border override on `.business-listing`. Give business cards a clean, consistent gold frame on all sides (per user preference: "same all round").
+
+Strictly visual polish — no functionality changes.
+
+**Files touched** (full scan performed first via grep):
+- `app/static/css/custom.css`
+- `app/templates/main/index.html`
+
+**Changes** (smallest possible edits):
+- Updated main `.business-listing` rule: removed `border-left: 6px solid ... !important`, now `border: 2px solid var(--accent-gold);` + tuned gold-tinted shadow.
+- Deleted the obsolete `.my-listings .business-listing { border-left... }` override.
+- Removed the conflicting inline `style="border-top: 5px solid #E6B800;"` from the dynamic JS card template in `index.html`.
+
+All card renderers (`_listing_cards.html`, `my_listings.html`, JS feed, profile cards) now use the updated consistent treatment via the class.
+
+**Verification** (exact rule requirement):
+```
+(Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned) ; (& "...\Activate.ps1") ; pip install -r requirements.txt ; python -c "from app import create_app..."
+```
+- Pillow wheel failure (pre-existing py3.14/Windows, non-blocking).
+- `from app import create_app` → **=== BUILD GUARANTEE PASSED ===**
+- All 7 blueprints registered cleanly.
+- Yoco config healthy.
+
+**Build guarantee passed.** 100% backward compatible. Existing `business-listing` and `boosted` classes continue to work.
+
+**Task COMPLETE — here is what you should test:**
+- Main homepage feed (server-rendered cards + live JS fetch cards)
+- My Listings page
+- Profile page "Your Active Listings" small cards
+- Business ads should now show a clean, even gold border/frame on all sides (no more heavy left edge dominating).
+- Post-type badges and other functionality untouched.
+- Hover lift + gold shadow still present.
+
+Ready for any follow-up tweaks (e.g. slightly different top emphasis if you prefer top+bottom only instead).
+
+## 2026-06-18 — Business listing cards: warm background + floating shadow (no border)
+
+**Task**: Give business account posts a distinct warm cream background, remove all line borders, and use a layered floating shadow so they feel elevated/premium. Strictly visual. Builds on the previous all-round border work.
+
+**Files touched** (scanned via grep + read before edit):
+- `app/static/css/custom.css` (only)
+
+**Changes** (smallest possible):
+- Replaced `.business-listing` (and hover) completely:
+  - `background-color: #FDF9F2;` (warm subtle cream, different from regular white cards)
+  - `border: none;`
+  - Layered soft shadow with gentle gold accent for float
+  - Hover adds lift (`translateY(-3px)`) + stronger floating shadow
+- No template or JS changes needed (existing `business-listing` class + `border-0` already present on dynamic cards)
+
+The post-type badges still provide clear type signals. Boosted sparkle continues to work on top.
+
+**Verification** (using your exact prefix):
+```
+(Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned) ; (& "...\Activate.ps1") ; pip install -r requirements.txt ; python -c "from app import create_app..."
+```
+- Pillow build failure (expected, pre-existing).
+- `=== BUILD GUARANTEE PASSED ===`
+- All blueprints registered.
+- New style active.
+
+**Build guarantee passed.** 100% backward compatible for `business-listing` class.
+
+**Task COMPLETE — here is what you should test:**
+- Homepage feed (regular + JS-loaded cards)
+- My Listings
+- Profile active listings
+- Business cards should now have a soft warm cream background (#FDF9F2), **zero borders**, and a nice elevated floating shadow.
+- Regular (personal) cards stay white with normal border/shadow.
+- Business + Promoted combination should still look good.
+- Hover should give a gentle lift.
+
+If the cream tone or shadow strength needs dialing (lighter/darker, more/less gold in shadow), just say and we tweak with tiny CSS change.
+
+## 2026-06-18 — Business cards: warmer background + refined floating shadow
+
+**Task**: Iterate on business listing cards per user feedback. Switch to a warmer cream background tone and enhance the CSS shadow for a stronger "float" effect. Kept no-border approach.
+
+**Files touched**:
+- `app/static/css/custom.css` (single targeted rule update)
+
+**Changes** (smallest possible):
+- Background: `#FDF6E9` (warmer golden cream vs previous `#FDF9F2` — better matches the earthy/gold business identity and --bg-warm palette).
+- Refined shadows for more pronounced floating feel:
+  - Normal: `0 12px 36px rgba(44, 37, 34, 0.07), 0 4px 14px rgba(201, 162, 39, 0.09)`
+  - Hover: stronger spread + lift
+- No other files touched. Existing class usage and boosted sparkle unaffected.
+
+**Verification** (exact activation prefix):
+```
+(Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned) ; (& "...\Activate.ps1") ; pip install -r requirements.txt ; python -c "from app import create_app..."
+```
+- Pillow note only (pre-existing).
+- `=== BUILD GUARANTEE PASSED ===`
+- Blueprints clean.
+
+**Build guarantee passed.**
+
+**Task COMPLETE — here is what you should test:**
+- All business cards (homepage feed, My Listings, profile listings).
+- Warmer, more golden cream background (#FDF6E9).
+- Stronger floating layered shadow (no hard borders).
+- Good contrast on text/badges, hover lift feels premium.
+- Regular personal cards remain unchanged (white + subtle border).
+
+**Cornflower blue option?**
+If you prefer a light cornflower / soft blue instead (e.g. `#E8F0F8` or `#DCE8F5`), tell me the exact feel and I'll swap the hex in one tiny edit. Warm stayed on-brand for now.
+
+This keeps full compatibility with v2.0 design tokens and post-type badges.
+
+## 2026-06-18 — Glowing borders on business & promoted listing cards
+
+**Task**: Add glowing borders using CSS `box-shadow`:
+- Soft glowing **white** border for all `.business-listing` cards.
+- Glowing **gold** border for any `.boosted` (promoted) listings.
+- Gold takes precedence when a business listing is also promoted.
+
+**Files touched** (scanned first):
+- `app/static/css/custom.css` (only)
+
+**Changes** (smallest possible):
+- Scoped new glows to `.card.business-listing` and `.card.boosted` (only affects actual listing cards, not the detail hero).
+- Layered glow rings + blur + the existing floating/elevation shadows.
+- White glow for business (soft premium look on the warm cream bg).
+- Gold glow (using `--accent-gold`) for promoted (stronger, vibrant).
+- No new classes, no template/JS/HTML changes — reuses the existing `business-listing` + `boosted` logic already present in all card renderers.
+- Preserved sparkle animation on promoted.
+
+**Verification** (exact activation command + build):
+```
+(Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned) ; (& "...\Activate.ps1") ; pip install -r requirements.txt ; python -c "from app import create_app..."
+```
+- Pillow wheel error (pre-existing, non-blocking).
+- `=== BUILD GUARANTEE PASSED ===`
+- All blueprints registered cleanly.
+
+**Build guarantee passed.** 100% backward compatible.
+
+**Task COMPLETE — here is what you should test:**
+- Homepage feed cards (both static and JS dynamic)
+- My Listings
+- Profile active listings
+- Business (non-promoted) cards → glowing white border + cream bg + float
+- Any promoted cards (business or personal) → glowing gold border + sparkle
+- Combined business + promoted → gold glow wins
+- Hover states still lift nicely
+- No breakage to post-type colors/badges or regular cards
+
+The glows are pure CSS (multiple box-shadow layers) so they render smoothly without extra DOM.
+
+If you want the white glow stronger/softer, different gold intensity, or the glow only on certain sides, just describe it!
+
+Thanks — happy to keep polishing these cards with you! 
+

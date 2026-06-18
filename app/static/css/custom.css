@@ -271,21 +271,33 @@ a:hover {
   color: #fff !important;
 }
 
-/* Business — Stronger gold elevation (kept from v1, evolved) */
-.business-listing {
-  border: 1px solid var(--accent-gold) !important;
-  border-left: 6px solid var(--accent-gold) !important;
-  box-shadow: 0 8px 28px rgba(201, 162, 39, 0.18);
+/* Business — Warm cream background + floating shadow (no border) */
+.card.business-listing {
+  background-color: #FDF6E9;
+  border: none;
+  box-shadow: 
+    0 0 0 1.5px #fff,
+    0 0 9px 3px rgba(255, 255, 255, 0.5),
+    0 12px 36px rgba(44, 37, 34, 0.07), 
+    0 4px 14px rgba(201, 162, 39, 0.09);
 }
-.business-listing:hover {
-  box-shadow: 0 14px 38px rgba(201, 162, 39, 0.26);
-  border-color: #B48C1F !important;
+.card.business-listing:hover {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 0 0 1.5px #fff,
+    0 0 13px 5px rgba(255, 255, 255, 0.65),
+    0 20px 45px rgba(44, 37, 34, 0.09), 
+    0 6px 18px rgba(201, 162, 39, 0.14);
 }
 
 /* Promoted / Boosted sparkle — refined */
-.boosted {
+.card.boosted {
   position: relative;
   overflow: hidden;
+  box-shadow: 
+    0 0 0 2px var(--accent-gold),
+    0 0 14px 5px rgba(201, 162, 39, 0.55),
+    0 10px 30px rgba(44, 37, 34, 0.08);
 }
 .boosted::after {
   content: '';
@@ -537,10 +549,7 @@ footer, #main-footer {
   border-bottom: none;
 }
 
-/* My listings specific */
-.my-listings .business-listing {
-  border-left: 6px solid var(--accent-gold) !important;
-}
+
 
 /* Empty state container */
 #listings-container .col-12 {

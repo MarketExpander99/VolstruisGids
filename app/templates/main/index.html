@@ -392,7 +392,7 @@ document.addEventListener('click', function(e) {
                     // Clean card
                     const cardHTML = `
                         <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="${cardExtraClasses}" ${isBusinessType ? 'style="border-top: 5px solid #E6B800;"' : ''}>
+                            <div class="${cardExtraClasses}">
                                 ${isBoosted ? '<div class="promoted-banner">PROMOTED · Top Spot</div>' : ''}
                                 <div style="height:210px; position:relative; overflow:hidden; border-bottom: 1px solid #eee;">
                                     <img src="${listing.photo_url || '/static/img/default-listing.jpg'}" alt="${listing.title}" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); max-width:96%; max-height:96%; object-fit:contain; padding:8px; background-color: #f8f9fa;">
