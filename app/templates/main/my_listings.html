@@ -16,14 +16,14 @@
             {% set isPromoted = listing.is_promoted or listing.last_reposted_at %}
             {% set pt = listing.post_type or 'sale' %}
             <div class="col">
-                <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
+                <div class="card h-100 shadow-sm business-listing {{ 'boosted' if isPromoted else '' }}">
                     {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
                     {% set img_variant = ' photo' if listing.photo_url else ' no-photo' %}
                     <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" alt="{{ listing.title }}">
                     
                     <div class="card-body d-flex flex-column">
                         <!-- v2.0 Post Type badges (matching feed) -->
-                        <div class="mb-2 d-flex flex-wrap gap-1">
+                        <div class="mb-3 d-flex flex-wrap gap-1">
                             {% if pt == 'wanted' %}
                                 <span class="badge wanted-badge">Looking For</span>
                             {% elif pt == 'rental' %}
@@ -46,29 +46,29 @@
                             {% endif %}
                         </div>
 
-                        <h5 class="card-title">{{ listing.title }}</h5>
+                        <h5 class="card-title mb-2">{{ listing.title }}</h5>
                         
                         {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
-                            <h6 class="text-success">{{ listing.min_price | currency }} – {{ listing.max_price | currency }}</h6>
+                            <h6 class="text-success mb-1">{{ listing.min_price | currency }} – {{ listing.max_price | currency }}</h6>
                         {% elif listing.price and listing.price > 0 %}
-                            <h6 class="text-success">{{ listing.price | currency }}</h6>
+                            <h6 class="text-success mb-1">{{ listing.price | currency }}</h6>
                         {% elif pt == 'wanted' %}
-                            <h6 class="text-warning">Looking For</h6>
+                            <h6 class="text-warning mb-1">Looking For</h6>
                         {% else %}
-                            <h6 class="text-muted">No price listed</h6>
+                            <h6 class="text-muted mb-1">No price listed</h6>
                         {% endif %}
                         
-                        <p class="text-muted small">{{ listing.location }}</p>
-                        <p class="card-text flex-grow-1">{{ listing.description[:100] if listing.description else '' }}...</p>
+                        <p class="text-muted small mb-2">{{ listing.location }}</p>
+                        <p class="card-text flex-grow-1 mb-3">{{ listing.description[:120] if listing.description else '' }}...</p>
                         
-                        <div class="mt-auto">
-                            <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" 
-                               class="btn btn-outline-primary btn-sm w-100 mb-1">Edit</a>
+                        <div class="mt-auto d-grid gap-2">
                             <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
-                               class="btn btn-success btn-sm w-100 mb-2">View Details</a>
+                               class="btn btn-outline-primary btn-sm">View Details</a>
+                            <a href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}" 
+                               class="btn btn-outline-secondary btn-sm">Edit</a>
                             <form method="POST" action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
                                   onsubmit="return confirm('Delete this listing?');" class="d-inline">
-                                <button type="submit" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash me-1"></i>Delete</button>
+                                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete</button>
                             </form>
                         </div>
                     </div>

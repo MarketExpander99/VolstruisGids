@@ -497,6 +497,38 @@ Task COMPLETE — here is what you should test: reload the homepage feed and My 
 - Added `background-color: #f8f9fa;` to the <img> style inside (exact same value and approach as the server cards' <img>).
 - This makes the two card renderers (server partial and live JS feed) apply the placeholder bg colour in the same way (on the img element).
 
+## 2026-06-19 — Bugfix only: Create listing not appearing in feed + Grok "not a json" error
+
+**Task**: Fix exactly two bugs reported on the create listings page (nothing else touched):
+1. Newly created listings do not appear in the public feed.
+2. "Improve with Grok" / optimise returns a not-a-JSON error.
+
+**Files touched** (shell scans before any code changes):
+- app/blueprints/listings/routes.py
+- PROJECT_STATUS.md (this entry)
+
+**Analysis**:
+- Feed (`/api/listings`) strictly filters `filter_by(is_active=True)`.
+- Grok improve parses AI response with `pyjson.loads` after minimal strip; fails when model returns non-pure-JSON (extra text, markdown wrappers).
+- Creation code in `create()` and quick path did not explicitly set `is_active=True` (relied on model default which can be unreliable post-migration).
+
+**Smallest fixes**:
+- Added `is_active=True` explicitly in both `Listing(...)` constructors (create and quick_create paths).
+- Wrapped the Grok `loads` in try/except + `re.search(r'\{[\s\S]*\}', cleaned)` fallback to robustly extract JSON even if model adds surrounding text.
+
+**Verification** (exact project rules):
+- Shell scans (`Select-String`, file lists) before edits.
+- `pip install -r requirements.txt --prefer-binary`
+- `python -c "from app import create_app; app = create_app(); print('=== BUILD GUARANTEE PASSED ===')"` → **ZERO ERRORS**. Blueprints registered.
+
+**Task COMPLETE — here is what you should test:**
+- Create a listing (via normal or quick path).
+- It should now appear in the public homepage feed (may need hard refresh on / or wait for the AJAX load).
+- "Improve with Grok" button on the create form should succeed and return improved title/description/price without "not a json" error.
+- No other pages, no UI changes, no additional features. 
+
+Only the two reported items were addressed. Build clean.
+
 **Verification** (mandatory before completing, with activation prefix):
 - pip install -r requirements.txt
 - python -c "from app import create_app ..." → **=== BUILD GUARANTEE PASSED ===**
@@ -1105,4 +1137,34 @@ This brings the create flow into the v2.5 warm Klein Karoo design system. Ready 
 - Price / Min / Max fields format nicely to e.g. 1,234.00 on blur.
 - Rental Duration is numeric input.
 - All functionality (price visibility logic, Grok, submit) still works perfectly.
+
+## 2026-06-19 — My Listings page polish: thin gold border + tidy formatting
+
+**Task**: Replace left-sided post-type borders with the thin gold frame treatment on my-listings cards. Clean up and tidy card formatting/placement. Apply golden-ratio-inspired spacing where it makes sense.
+
+**Files touched** (full shell scans first):
+- app/templates/main/my_listings.html
+- PROJECT_STATUS.md
+
+**Changes (smallest possible)**:
+- Removed `post-type-{{ pt }}` class; always apply `business-listing` so every card gets the full thin glowing gold `::before` frame (replaces the colored left border).
+- Tidied card-body: increased key spacing (mb-3 for badges and description), used `d-grid gap-2` for action buttons (cleaner stacked layout, golden-ratio friendly spacing).
+- Reordered actions (View → Edit → Delete) for better UX hierarchy.
+- Slightly improved description length and removed redundant w-100 on some buttons (grid handles width).
+- No new CSS; reuses existing business-listing gold treatment and v2 spacing patterns.
+
+**Verification**:
+- Shell scans confirmed removal of post-type class and addition of business-listing + d-grid.
+- `pip install -r requirements.txt` + `python -c "from app import create_app..."` → **BUILD GUARANTEE PASSED**, zero errors.
+
+**Task COMPLETE — here is what you should test:**
+- Log in and go to My Listings.
+- All cards (personal + business) now have the thin gold animated border frame instead of colored left side border.
+- Card content has cleaner breathing room (badges, price, description, actions).
+- Action buttons are neatly stacked with consistent gaps.
+- Works for promoted listings too.
+- Empty state unchanged.
+- Compare to feed cards for consistency. Mobile responsive. 
+
+Golden ratio used lightly in spacing choices for visual harmony. Project looking sharp!
 

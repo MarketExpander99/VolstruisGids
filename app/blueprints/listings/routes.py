@@ -13,6 +13,7 @@ from datetime import datetime, date
 from app.models.credit_transaction import CreditTransaction
 import requests
 import json as pyjson
+import re
 
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -130,7 +131,15 @@ Return ONLY valid JSON with these exact keys (no extra text, no markdown):
         content = resp.json()['choices'][0]['message']['content']
 
         cleaned = content.strip().replace('```json', '').replace('```', '').strip()
-        improved = pyjson.loads(cleaned)
+        try:
+            improved = pyjson.loads(cleaned)
+        except Exception:
+            # Robust JSON extraction if model adds extra text
+            match = re.search(r'\{[\s\S]*\}', cleaned)
+            if match:
+                improved = pyjson.loads(match.group(0))
+            else:
+                raise
 
         return jsonify({
             'success': True,
@@ -255,6 +264,7 @@ def create():
             allow_comments=form.allow_comments.data,
             post_type=form.post_type.data,
             is_business_ad=current_user.is_business,
+            is_active=True,
             listing_type=listing_type,
             rental_duration=rental_duration,
             rental_duration_unit=rental_duration_unit
@@ -485,6 +495,7 @@ def quick_create():
             allow_comments=form.allow_comments.data,
             post_type=form.post_type.data,
             is_business_ad=True,
+            is_active=True,
             listing_type='super',
             rental_duration=rental_duration,
             rental_duration_unit=rental_duration_unit
