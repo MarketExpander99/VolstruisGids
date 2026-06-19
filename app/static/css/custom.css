@@ -456,6 +456,33 @@ a:hover {
   margin-bottom: 6px;
 }
 
+/* Round option pills for Post Type / Price Type (create form) */
+.option-pill {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.95rem;
+}
+.option-pill:has(input:checked),
+.option-pill input:checked ~ span {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.option-pill input {
+  display: none;
+}
+
+/* Square checkboxes (contact methods) */
+.checkbox-square .form-check-input {
+  border-radius: 4px !important;
+  width: 1.1em;
+  height: 1.1em;
+}
+
 /* ============================================
    NAV + FOOTER + MOBILE BOTTOM NAV
    ============================================ */

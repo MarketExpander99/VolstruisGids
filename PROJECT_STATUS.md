@@ -1046,3 +1046,63 @@ python -c "from app import create_app; ..." → BUILD GUARANTEE PASSED, zero err
 - On mobile (narrow viewport): the bottom sticky bar no longer has the big full-width WhatsApp button (only message button if available). The main bottom menu/nav should be visible again.
 - No breakage to sharing functionality.
 
+## 2026-06-19 — v2.5 Polish: Create Listing page (header + thin gold border)
+
+**Task**: Fix unreadable black/dark header (#2C3E50) on create/quick_create forms. Apply consistent v2.5 thin gold border + warm business card treatment (matching listing detail polish) to the main form section.
+
+**Files touched** (full shell scans via Get-ChildItem + Select-String first):
+- app/templates/listings/create.html
+- app/templates/listings/quick_create.html
+- PROJECT_STATUS.md
+
+**Changes (smallest possible)**:
+- Removed inline `style="background-color: #2C3E50;"` from both card-headers (now uses global `.card-header` warm terracotta + white for consistency and readability).
+- Added `business-listing` class to the main outer form cards (triggers the exact thin gold animated `::before` frame + warm #FDF6E9 bg used on detail contact/seller cards and feed business listings).
+- No other changes (Grok polish section, photo dropzone, form fields, JS already had gold accents; kept all inline styles minimal impact).
+
+**Verification** (exact rules):
+- Full shell scans before edits.
+- `pip install -r requirements.txt --prefer-binary` (Pillow pre-existing note).
+- `python -c "from app import create_app; app = create_app()"` → **BUILD GUARANTEE PASSED**, zero errors. Blueprints healthy.
+
+**Task COMPLETE — here is what you should test:**
+- Go to /listings/create (personal) and /listings/quick_create (business if logged in as business).
+- Header no longer dark blackish — now warm consistent terracotta.
+- The entire form card now has the thin glowing gold border frame exactly like business cards on feed + contact section on detail.
+- Warm cream bg on the card.
+- Form remains fully functional (post type, price, Grok polish, photos, submit).
+- Mobile + desktop. Compare visually to polished detail page for consistency.
+- No impact on editing mode or other pages.
+
+This brings the create flow into the v2.5 warm Klein Karoo design system. Ready for more pages if needed!
+
+## 2026-06-19 — v2.5 Polish: Create form — round options, square checkboxes, input formatting
+
+**Task**: Fix elliptical stretched option buttons and checkboxes on create/quick_create. Make radios round pills, checkboxes square. Add proper input formatting (email type, price ###,###.00, numeric fields).
+
+**Files touched** (shell scans performed):
+- app/templates/listings/create.html
+- app/templates/listings/quick_create.html
+- app/static/css/custom.css
+- PROJECT_STATUS.md
+
+**Changes (smallest possible)**:
+- Added `.option-pill` CSS for nice round pill-style radio options (with :has checked state).
+- Added `.checkbox-square` + override for proper square checkboxes.
+- Replaced list-group stretched markup for Post Type / Price Type with flex pill options, and Contact Methods with standard form-check squares.
+- Added `type="email"` to contact email.
+- Added `type="number"` + `onblur="formatPrice(this)"` to price and rental fields.
+- Added lightweight `formatPrice()` JS (en-ZA locale formatting to ###,###.00) in both create templates.
+
+**Verification**:
+- Full shell scan + `pip install -r ...` + `python -c "from app import create_app..."` → **BUILD GUARANTEE PASSED** (zero errors).
+
+**Task COMPLETE — here is what you should test:**
+- /listings/create and /listings/quick_create
+- Post Type and Price Type options now appear as attractive round pills.
+- Contact method options are normal square checkboxes (not stretched rectangles).
+- Email field accepts email formatting/validation.
+- Price / Min / Max fields format nicely to e.g. 1,234.00 on blur.
+- Rental Duration is numeric input.
+- All functionality (price visibility logic, Grok, submit) still works perfectly.
+
