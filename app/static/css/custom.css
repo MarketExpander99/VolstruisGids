@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-/* app/static/css/custom.css
+﻿/* app/static/css/custom.css
  * VolstruisGids v2.0 — Complete Design System (Phase 1)
  * Warm, grounded, premium Klein Karoo marketplace identity
  * Earthy terracotta + sage + refined gold on creamy warm background
@@ -689,69 +688,31 @@ footer, #main-footer {
   }
 }
 
-/* Share Section - Final Polish */
-.share-section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 0.4rem 0.6rem;
-  margin-top: 0.4rem;
+/* === Premium Share Buttons Polish === */
+.share-buttons .btn,
+.card-footer .btn[style*="background-color"],
+.card .btn[style*="background-color:#1877F2"],
+.card .btn[style*="background-color:#000"],
+.card-footer a.btn-success,
+.card-footer a[style*="background-color"] {
+  transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.share-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.5rem;
-  padding: 6px 8px;
-  cursor: pointer;
-  user-select: none;
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
-  transition: background-color 0.2s ease;
-}
-.share-header:hover {
-  background-color: #F8F1E9;
+.share-buttons .btn:hover,
+.card-footer .btn[style*="background-color"]:hover,
+.card .btn[style*="background-color:#1877F2"]:hover,
+.card .btn[style*="background-color:#000"]:hover,
+.card-footer a.btn-success:hover,
+.card-footer a[style*="background-color"]:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
 }
 
-.share-header span {
-  font-size: 0.9rem;
-  font-weight: 600;
+.share-group {
+  background: #faf7f0;
+  border: 1px solid #e8e0d4;
+  border-radius: 999px;
 }
-
-.share-header i {
-  font-size: 1rem;
-}
-
-.share-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.25s ease-out;
-  padding-top: 0;
-}
-
-.share-buttons.show {
-  max-height: 220px;
-  opacity: 1;
-  padding-top: 0.5rem;
-}
-
-.share-buttons .btn {
-  font-size: 0.78rem !important;
-  padding: 6px 14px !important;
-  min-height: 32px;
-  border-radius: var(--radius-pill) !important;
-}
-
-/* Small improvement for the detail page copy button if needed */
-#copy-link-btn {
-  border-radius: var(--radius-pill) !important;
-}
-=======
-/* ... full css from previous edit ... (abbreviated for token limit - assume full push in real) */
->>>>>>> 7343eda8a6c7b190c35a6de343de0fbf0463a600
