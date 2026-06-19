@@ -758,3 +758,26 @@ footer, #main-footer {
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* Share container should match the card's background color */
+/* Personal listings: white (var(--surface)) */
+/* Business listings: #FDF6E9 (matches .card.business-listing) */
+.share-container {
+  border-radius: 10px;
+  padding: 4px 6px;
+}
+
+.card .share-container {
+  background-color: var(--surface); /* white for personal */
+}
+
+.card.business-listing .share-container {
+  background-color: #FDF6E9; /* matches business card */
+}
+
+/* For non-card contexts like detail page share and storefront header */
+.standalone-share {
+  background-color: #FDF6E9; /* warm like business / store */
+  border-radius: 10px;
+  padding: 4px 6px;
+}

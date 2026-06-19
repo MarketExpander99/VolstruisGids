@@ -310,7 +310,7 @@
                 </div>
 
                 <!-- Dedicated Share section -->
-                <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background: #faf7f0;">
+                <div class="card border-0 shadow-sm mb-4 standalone-share" style="border-radius: 16px; background: {{ '#FDF6E9' if is_business else 'var(--surface)' }};">
                     <div class="card-body p-2">
                         <div class="d-flex align-items-center mb-1 px-1 share-header" onclick="toggleShareButtons(this)">
                             <i class="bi bi-share fs-6 text-muted me-2"></i>

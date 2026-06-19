@@ -73,7 +73,7 @@
             <!-- Share section right at the very bottom of the card (exact styling match to detail page) -->
             {% set detail_abs = url_for('listings.detail', listing_id=listing.id, _external=True) %}
             {% set share_text = 'Check out this listing on Volstruis Gids: ' ~ listing.title %}
-            <div style="background: #faf7f0; border-radius: 10px; padding: 4px 6px; margin: 0 8px 6px 8px;">
+            <div class="share-container" style="margin: 0 8px 6px 8px;">
                 <div class="d-flex align-items-center mb-1 px-1 share-header" onclick="toggleShareButtons(this)">
                     <i class="bi bi-share fs-6 text-muted me-2"></i>
                     <span class="fw-semibold small text-muted">Share this ad</span>
