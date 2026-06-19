@@ -61,18 +61,28 @@ class Listing(db.Model):
         return f'<Listing {self.title}>'
     
     def get_display_price(self):
-        """Return human-readable price string for templates and API responses."""
+        """Return human-readable price string for templates and API responses.
+        Formatted with thousands separator and 2 decimals, e.g. R 1,234.00
+        """
+        def fmt(val):
+            if val is None:
+                return "0.00"
+            try:
+                return f"{float(val):,.2f}"
+            except (ValueError, TypeError):
+                return str(val)
+
         if self.post_type == 'rental' and self.price is not None:
             duration = self.rental_duration or 1
             unit = self.rental_duration_unit or 'day'
             unit_label = {'day': 'day', 'week': 'week', 'month': 'month'}.get(unit, 'day')
-            return f"R{int(self.price)} per {unit_label} (min {duration} {unit_label}s)"
+            return f"R {fmt(self.price)} per {unit_label} (min {duration} {unit_label}s)"
         if self.price_type == 'range' and self.min_price is not None and self.max_price is not None:
-            return f"R{int(self.min_price)} - R{int(self.max_price)}"
+            return f"R {fmt(self.min_price)} – R {fmt(self.max_price)}"
         if self.price_type == 'negotiable':
             return "Negotiable"
         if self.price is not None:
-            return f"R{int(self.price)}"
+            return f"R {fmt(self.price)}"
         if self.price_type == 'free':
             return "Free"
         return "Price on request"

@@ -35,11 +35,7 @@
             </div>
 
             <h5 class="card-title">{{ listing.title }}</h5>
-            {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
-                <p class="text-success fw-bold">R{{ listing.min_price|int }} – R{{ listing.max_price|int }}</p>
-            {% else %}
-                <p class="text-success fw-bold">{{ listing.get_display_price() if listing.get_display_price else 'R ' ~ (listing.price | int) }}</p>
-            {% endif %}
+            <p class="text-success fw-bold">{{ listing.get_display_price() }}</p>
             <p class="card-text text-muted small">
                 {{ listing.area }} · {{ listing.created_at.strftime('%d %b %Y') }}
             </p>
@@ -68,34 +64,35 @@
                     <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete</button>
                 </form>
                 {% endif %}
-            </div>
 
-            <!-- Share section right at the very bottom of the card (exact styling match to detail page) -->
-            {% set detail_abs = url_for('listings.detail', listing_id=listing.id, _external=True) %}
-            {% set share_text = 'Check out this listing on Volstruis Gids: ' ~ listing.title %}
-            <div class="share-container" style="margin: 0 8px 6px 8px;">
-                <div class="d-flex align-items-center mb-1 px-1 share-header" onclick="toggleShareButtons(this)">
-                    <i class="bi bi-share fs-6 text-muted me-2"></i>
-                    <span class="fw-semibold small text-muted">Share this ad</span>
-                </div>
-                <div class="share-buttons-container flex-column gap-1" style="display:none;">
-                    <a href="https://wa.me/?text={{ (share_text + ' ' + detail_abs) | urlencode }}" target="_blank" 
-                       class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" title="Share on WhatsApp">
-                        <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
-                        <span>Share on WhatsApp</span>
-                    </a>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ detail_abs | urlencode }}" target="_blank" 
-                       class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
-                       style="background-color: #1877F2; color: #fff; border: none;" title="Share on Facebook">
-                        <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
-                        <span>Share on Facebook</span>
-                    </a>
-                    <a href="https://twitter.com/intent/tweet?text={{ share_text | urlencode }}&url={{ detail_abs | urlencode }}" target="_blank" 
-                       class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
-                       style="background-color: #000000; color: #fff; border: none;" title="Share on X">
-                        <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
-                        <span>Share on X</span>
-                    </a>
+                {% set detail_abs = url_for('listings.detail', listing_id=listing.id, _external=True) %}
+                {% set share_text = 'Check out this listing on Volstruis Gids: ' ~ listing.title %}
+
+                <!-- Share section (icon + buttons) -->
+                <div class="share-container" style="margin: 10px 0 0 0; padding: 0;">
+                    <div class="d-flex align-items-center justify-content-center mb-1 share-header w-100" onclick="toggleShareButtons(this)">
+                        <i class="bi bi-share fs-6 text-muted me-2"></i>
+                        <span class="fw-semibold small text-muted">Share this ad</span>
+                    </div>
+                    <div class="share-buttons-container flex-column gap-1" style="display:none; padding: 0; align-items: center;">
+                        <a href="https://wa.me/?text={{ (share_text + ' ' + detail_abs) | urlencode }}" target="_blank" 
+                           class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" title="Share on WhatsApp">
+                            <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
+                            <span>Share on WhatsApp</span>
+                        </a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ detail_abs | urlencode }}" target="_blank" 
+                           class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
+                           style="background-color: #1877F2; color: #fff; border: none;" title="Share on Facebook">
+                            <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
+                            <span>Share on Facebook</span>
+                        </a>
+                        <a href="https://twitter.com/intent/tweet?text={{ share_text | urlencode }}&url={{ detail_abs | urlencode }}" target="_blank" 
+                           class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
+                           style="background-color: #000000; color: #fff; border: none;" title="Share on X">
+                            <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
+                            <span>Share on X</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

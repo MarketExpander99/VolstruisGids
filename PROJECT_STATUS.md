@@ -888,3 +888,161 @@ Thanks — happy to keep polishing these cards with you!
 
 Ready for more polish passes (e.g. remaining inlines on detail seller/contact sections).
 
+## 2026-06-19 — Share buttons width/font consistency + remove Yoco promote button on detail
+
+**Task**: Make share buttons on storefront (index ?user_id) and listing detail page match the button width, padding, font size and overall size of the share buttons in home page listing cards. Also remove the leftover owner "Pay with Yoco - R99" button from the detail page (credits boost flow remains).
+
+**Files touched**:
+- `app/templates/listings/detail.html` — removed Yoco pay card, updated share container to flex-column + max-width constraint + standardized copy link + social buttons to use identical classes/padding/icon-size/text as cards.
+- `app/static/css/custom.css` — improved share button sizing rules: column layout buttons now fill their container (consistent substantial width), added max-width guards on .share-container and detail/store wrappers to ensure uniform button widths across surfaces. Row fallback preserved.
+- Minor comment update in `_listing_cards.html`.
+
+**Changes**:
+- Storefront was already aligned in markup; detail now matches exactly (flex-column, px-2 py-1, 0.9rem icons, "Share on WhatsApp" etc).
+- Copy link on detail also uses the matched size.
+- CSS ensures buttons have same rendered width/font wherever the share UI is used in column mode.
+- Yoco "Pay with Yoco" button gone from detail (owner can still boost via credits or the buy credits page).
+
+**Verification**:
+```
+python -c "from app import create_app; app = create_app(); print('OK')"
+```
+- App starts clean, no template errors.
+- Diff minimal and targeted.
+
+**Task COMPLETE — here is what you should test:**
+- Homepage feed listing cards → click "Share this ad" header → buttons slide out (stacked)
+- Add `?user_id=...` or a business store header on / → its share buttons (should now be same width/font)
+- Any listing detail page → "Share this ad" section (now uses column + constrained + identical buttons + Copy link same size)
+- Owner detail: the Yoco promote card is gone (Boost with credits card remains above contact)
+- All share buttons look the same size (font ~0.72rem on labels, matching pill padding/height, icon size)
+- No other Yoco buttons on public detail surfaces.
+- Toggle animation and copy still work.
+
+## 2026-06-19 — Detail hero + post-type borders now match homepage listing cards
+
+**Task**: The `.listing-detail-hero` (and other left-border elements) border must match the design on the homepage listing cards — including the thin gold glowing frame for business listings.
+
+**Files touched** (full shell scans performed first per rules):
+- app/static/css/custom.css (targeted, minimal)
+
+**Changes (smallest possible)**:
+- Extended the shared 5px left border rule to `.listing-detail-hero` and `.card[class*="post-type-"]` (so all current card usages + the hero get the exact same left accent treatment the "listing cards border" system defines).
+- Removed the duplicate "strong" 6px `!important` overrides that were specific to the hero (these were the source of the visual mismatch and could fight the business gold frame).
+- Business `.listing-detail-hero.business-listing` + `::before` gold frame (already present) now cleanly controls the thin gold border for business cases.
+- No other files touched. No template edits.
+
+**Verification**:
+- Shell scans (Select-String on css + templates) before edits.
+- `pip install -r requirements.txt --prefer-binary` (pre-existing Pillow note).
+- `python -c "from app import create_app; app = create_app(); print('=== BUILD GUARANTEE PASSED ===')"` → ZERO errors, all 7 blueprints OK.
+
+**Task COMPLETE — here is what you should test:**
+- Listing detail hero for sale/wanted/service/etc: left border now 5px in the post-type color (matches cards).
+- Business listing on detail: the thin gold animated frame (no conflicting thick left).
+- Promoted business combos.
+- Confirm my-listings, profile active listings, feed cards unchanged and consistent.
+- No breakage to shadows, rounded-4, image, badges or promoted treatment on the hero.
+
+## 2026-06-19 (follow-up) — Thin gold border on Contact the Seller card
+
+**Request**: Apply the same thin gold border (from the updated card/hero system) to the `.premium-contact-card` ("Contact the Seller" box) on the listing detail page.
+
+**File touched**:
+- `app/static/css/custom.css`
+
+**Changes (smallest)**:
+- Added `position: relative` + `::before` glowing thin gold frame (exact 1.5px + box-shadow + animation as used by `.card.business-listing`) to `.premium-contact-card` (and seller variant for completeness).
+- Removed the old 4px top-border only rules that were not matching the full thin frame design.
+- The frame now consistently appears on the contact card element the user highlighted.
+
+**Verification**:
+- `python -c "from app import create_app..."` → BUILD GUARANTEE PASSED, zero errors.
+
+**Task COMPLETE — here is what you should test:**
+- On any listing detail: the "Contact the Seller" (or Contact the Business) card now has the thin glowing gold border frame around it.
+- Matches the business card treatment and the hero updates.
+- Works for both personal and business seller listings (gold frame applied to the contact action card).
+- Buttons and content inside remain fully interactive.
+- Hover lift still works. Compare visually to feed business cards.
+
+## 2026-06-19 (follow-up) — Share header width on index cards matches View Full Ad button
+
+**Request**: Make the width of the "Share this ad" header section (`<div class="... share-header">`) the same as the "View Full Ad" `w-100 rounded-pill` button on the index page (feed) cards.
+
+**Files touched**:
+- `app/static/css/custom.css`
+- `app/templates/main/_listing_cards.html`
+- `app/templates/main/index.html`
+
+**Changes (smallest possible)**:
+- CSS: Made `.card-footer .share-container` full width (removed restrictive max-width for card footers) and forced `.card-footer .share-header { width: 100%; }`.
+- Added `w-100` class to the share-header div in both the server-rendered card partial and the dynamic JS card template (to match the sibling View Full Ad button exactly).
+- No changes to button logic, JS toggle, or other pages (storefront/detail left as-is per request scope).
+
+**Verification**:
+```
+python -c "from app import create_app; app = create_app(); print('=== BUILD GUARANTEE PASSED ===')"
+```
+→ Zero errors.
+
+**Task COMPLETE — here is what you should test:**
+- Homepage index feed cards (dynamic + any server cards): the "Share this ad" header line now spans the same full width as the "View Full Ad" button above it.
+- Click area for toggling share buttons feels aligned with the other action buttons (Ask Grok + View Full Ad).
+- The share buttons below still drop down in the column (consistent with prior polish).
+- Personal and business cards.
+- No impact on other share headers (storefront "Share this store" etc.).
+
+## 2026-06-19 (follow-up) — Align share section width on listing detail to Contact the Seller card
+
+**Request**: Make the share section (the card-body p-2 with "Share this ad" header + buttons) the same width as the Contact the Seller card-body (p-4), and ensure it's centered.
+
+**Files touched**:
+- `app/templates/listings/detail.html`
+- `app/static/css/custom.css`
+
+**Changes (smallest possible)**:
+- Removed the `max-width: 280px` that was artificially narrowing the dedicated share card on detail (now matches the full width of sibling `premium-contact-card` and other cards in the col-lg-5 sidebar).
+- Added `w-100` to the share-header on detail (consistent with previous card alignments).
+- Added CSS override so buttons in `.standalone-share` are full width (`max-width: none`) to match the `w-100` WhatsApp button in the contact section.
+- Added `justify-content-center` to all share buttons on detail so icon+text is centered inside the full-width pills (matching the style of the contact button).
+
+**Verification**:
+```
+python -c "from app import create_app; ..." → BUILD GUARANTEE PASSED, zero errors.
+```
+
+**Task COMPLETE — here is what you should test:**
+- Listing detail page: the "Share this ad" section (header + Copy/WhatsApp/FB/X buttons) now has the same card width as the "Contact the Seller" section above it.
+- The header and buttons fill the width (no more 280px cap).
+- Content inside the share buttons is centered.
+- The share-header remains centered.
+- Matches visually in the sidebar column. Works for business/personal listings.
+- No change to index cards or other pages.
+
+## 2026-06-19 (follow-up) — Standardize share button widths + remove mobile WhatsApp from sticky bar
+
+**Request**: 
+- Make the share buttons on detail page (the ones with Copy link + socials) the exact same width as the share buttons on the index page cards.
+- Remove the giant WhatsApp button from the bottom sticky mobile actions bar on detail (so bottom menu is visible again).
+
+**Files touched**:
+- `app/templates/listings/detail.html`
+- `app/static/css/custom.css`
+
+**Changes (smallest possible)**:
+- Removed the `max-width: none` override for `.standalone-share` share buttons (so they now inherit the same `max-width: 220px` rule used by index card share buttons in `.flex-column`).
+- Cleaned up the share button classes on detail to exactly match index card markup: `d-flex align-items-center gap-2 ...` (no explicit justify-content-center, since CSS already forces center) + added matching `title` attributes.
+- Removed the entire WhatsApp conditional block from the `.sticky-detail-actions` mobile bar (kept only Message Privately / Login if applicable).
+
+**Verification**:
+```
+python -c "from app import create_app; ..." → BUILD GUARANTEE PASSED, zero errors.
+```
+
+**Task COMPLETE — here is what you should test:**
+- Listing detail page share section: the individual share buttons (WhatsApp, Facebook, X, Copy link) are now the same width as the ones shown in index page listing cards.
+- They should be capped at ~220px and centered within the share area.
+- On mobile (narrow viewport): the bottom sticky bar no longer has the big full-width WhatsApp button (only message button if available). The main bottom menu/nav should be visible again.
+- No breakage to sharing functionality.
+

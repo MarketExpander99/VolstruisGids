@@ -91,7 +91,7 @@
 
             <!-- Price -->
             {% if listing.post_type == 'rental' and listing.price %}
-                <h2 class="fw-bold mb-1" style="color: #2C3E50;">R{{ listing.price | int }}</h2>
+                <h2 class="fw-bold mb-1" style="color: #2C3E50;">{{ listing.price | currency }}</h2>
                 {% if listing.rental_duration and listing.rental_duration_unit %}
                     <small class="text-muted">per {{ listing.rental_duration_unit }} (minimum {{ listing.rental_duration }})</small>
                 {% else %}
@@ -99,11 +99,11 @@
                 {% endif %}
             {% elif listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
                 <h2 class="fw-bold mb-1" style="color: #2C3E50;">
-                    R{{ listing.min_price | int }} — R{{ listing.max_price | int }}
+                    {{ listing.min_price | currency }} — {{ listing.max_price | currency }}
                 </h2>
                 <small class="text-muted">Price range</small>
             {% elif listing.price and listing.price > 0 %}
-                <h2 class="fw-bold mb-4" style="color: #2C3E50;">R{{ listing.price | int }}</h2>
+                <h2 class="fw-bold mb-4" style="color: #2C3E50;">{{ listing.price | currency }}</h2>
             {% else %}
                 <h4 class="text-muted mb-4">Price on request</h4>
             {% endif %}

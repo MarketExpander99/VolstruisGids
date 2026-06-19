@@ -93,7 +93,7 @@
 
                 <!-- Share section moved under logo/name, in frame for consistency with cards/detail -->
                 <div class="mt-2 standalone-share" style="max-width: 280px;">
-                    <div class="d-flex align-items-center mb-1 px-1 share-header" onclick="toggleShareButtons(this)">
+                    <div class="d-flex align-items-center mb-1 share-header" onclick="toggleShareButtons(this)">
                         <i class="bi bi-share fs-6 text-muted me-2"></i>
                         <span class="fw-semibold small text-muted">Share this store</span>
                     </div>
@@ -143,7 +143,7 @@
     </div>
 
     <div class="text-center text-muted small mt-4 pb-3">
-        VolstruisGids · All listings posted by your neighbours in the Klein Karoo
+        VolstruisGids (Pty) Ltd. · All listings posted by your neighbours in the Klein Karoo
     </div>
 </div>
 
@@ -431,6 +431,14 @@ document.addEventListener('click', function(e) {
                     return;
                 }
 
+                // Price formatter (shared, matches server currency filter + model)
+                function fmtAmount(v) {
+                    if (v === null || v === undefined || v === '') return '';
+                    const n = parseFloat(v);
+                    if (isNaN(n)) return '';
+                    return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
                 data.listings.forEach(listing => {
                     const isBusinessType = listing.is_business_ad;
                     const isBoosted = listing.is_promoted || listing.last_reposted_at;
@@ -473,11 +481,12 @@ document.addEventListener('click', function(e) {
                     if (adType === 'rental' && listing.price) {
                         const dur = listing.rental_duration || '';
                         const unit = listing.rental_duration_unit || 'day';
-                        priceHTML = `<p class="fw-bold text-success mb-1">R${listing.price} per ${unit}${dur ? ' (min ' + dur + ')' : ''}</p>`;
+                        const p = fmtAmount(listing.price);
+                        priceHTML = `<p class="fw-bold text-success mb-1">R ${p} per ${unit}${dur ? ' (min ' + dur + ')' : ''}</p>`;
                     } else if (pt === 'fixed' && listing.price && listing.price > 0) {
-                        priceHTML = `<p class="fw-bold text-success mb-1">R${listing.price}</p>`;
+                        priceHTML = `<p class="fw-bold text-success mb-1">R ${fmtAmount(listing.price)}</p>`;
                     } else if (pt === 'range' && listing.min_price != null && listing.max_price != null) {
-                        priceHTML = `<p class="fw-bold text-success mb-1">R${listing.min_price} – R${listing.max_price}</p>`;
+                        priceHTML = `<p class="fw-bold text-success mb-1">R ${fmtAmount(listing.min_price)} – R ${fmtAmount(listing.max_price)}</p>`;
                     } else if (adType === 'wanted') {
                         priceHTML = `<p class="text-warning small mb-1">Price flexible</p>`;
                     } else {
@@ -520,32 +529,32 @@ document.addEventListener('click', function(e) {
                                     <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100 rounded-pill">
                                         View Full Ad
                                     </a>
-                                </div>
 
-                                <!-- Share section right at the very bottom of the card (UI consistent with detail page) -->
-                                <div class="share-container" style="margin: 0 0 6px 0;">
-                                    <div class="d-flex align-items-center mb-1 px-1 share-header" onclick="toggleShareButtons(this)">
-                                        <i class="bi bi-share fs-6 text-muted me-2"></i>
-                                        <span class="fw-semibold small text-muted">Share this ad</span>
-                                    </div>
-                                    <div class="share-buttons-container flex-column gap-1" style="display:none;">
-                                        <a href="${whatsappShareLink}" target="_blank" 
-                                           class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" title="Share on WhatsApp">
-                                            <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
-                                            <span>Share on WhatsApp</span>
-                                        </a>
-                                        <a href="${facebookShareLink}" target="_blank" 
-                                           class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
-                                           style="background-color: #1877F2; color: #fff; border: none;" title="Share on Facebook">
-                                            <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
-                                            <span>Share on Facebook</span>
-                                        </a>
-                                        <a href="${xShareLink}" target="_blank" 
-                                           class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
-                                           style="background-color: #000000; color: #fff; border: none;" title="Share on X">
-                                            <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
-                                            <span>Share on X</span>
-                                        </a>
+                                    <!-- Share section (icon + buttons) left-aligned with the View Full Ad button -->
+                                    <div class="share-container" style="margin: 10px 0 0 0; padding: 0;">
+                                        <div class="d-flex align-items-center justify-content-center mb-1 share-header w-100" onclick="toggleShareButtons(this)">
+                                            <i class="bi bi-share fs-6 text-muted me-2"></i>
+                                            <span class="fw-semibold small text-muted">Share this ad</span>
+                                        </div>
+                                        <div class="share-buttons-container flex-column gap-1" style="display:none; padding: 0; align-items: center;">
+                                            <a href="${whatsappShareLink}" target="_blank" 
+                                               class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" title="Share on WhatsApp">
+                                                <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
+                                                <span>Share on WhatsApp</span>
+                                            </a>
+                                            <a href="${facebookShareLink}" target="_blank" 
+                                               class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
+                                               style="background-color: #1877F2; color: #fff; border: none;" title="Share on Facebook">
+                                                <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
+                                                <span>Share on Facebook</span>
+                                            </a>
+                                            <a href="${xShareLink}" target="_blank" 
+                                               class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
+                                               style="background-color: #000000; color: #fff; border: none;" title="Share on X">
+                                                <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
+                                                <span>Share on X</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

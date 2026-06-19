@@ -80,4 +80,15 @@ def create_app(config_class=Config):
             return {'unread_messages_count': unread_count}
         return {'unread_messages_count': 0}
 
+    # Currency / price filter: R 1,234.00 format for easy reading
+    def currency(value):
+        if value is None or value == '':
+            return ''
+        try:
+            val = float(value)
+            return f"R {val:,.2f}"
+        except (ValueError, TypeError):
+            return f"R {value}"
+    app.template_filter('currency')(currency)
+
     return app

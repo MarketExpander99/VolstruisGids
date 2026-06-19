@@ -463,7 +463,8 @@
                     else if (fixedPrice) fixedPrice.value = data.suggested_price;
                 }
                 if (data.price_reason) {
-                    priceReasonEl.innerHTML = `<strong>Grok suggested price:</strong> R${Number(data.suggested_price || 0).toLocaleString()} — ${data.price_reason}`;
+                    const suggested = Number(data.suggested_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    priceReasonEl.innerHTML = `<strong>Grok suggested price:</strong> R ${suggested} — ${data.price_reason}`;
                     resultBox.classList.remove('d-none');
                 }
 

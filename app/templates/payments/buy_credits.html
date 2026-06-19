@@ -68,7 +68,7 @@
                             </div>
                             
                             <div class="mb-3">
-                                <span class="h4 fw-bold">R{{ pkg.price }}</span>
+                                <span class="h4 fw-bold">{{ pkg.price | currency }}</span>
                                 <div class="small text-muted">R{{ "%.2f"|format(pkg.price / pkg.credits) }} per credit</div>
                             </div>
                             

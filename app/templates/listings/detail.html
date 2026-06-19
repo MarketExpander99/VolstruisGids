@@ -55,7 +55,7 @@
     <div class="container">
         <!-- Elegant top navigation -->
         <div class="d-flex align-items-center justify-content-between mb-4">
-            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 px-3">
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 px-3 rounded-pill">
                 <i class="bi bi-arrow-left"></i>
                 <span>Back to all listings</span>
             </a>
@@ -134,7 +134,7 @@
                         {% endfor %}
                     </div>
                     <button type="button" 
-                            class="btn btn-sm btn-outline-secondary mt-2 w-100 d-flex align-items-center justify-content-center gap-2"
+                            class="btn btn-sm btn-outline-secondary mt-2 w-100 d-flex align-items-center justify-content-center gap-2 rounded-pill"
                             onclick="openPhotoModal()"
                             style="font-size: 0.8rem; letter-spacing: 0.3px;">
                         <i class="bi bi-arrows-fullscreen"></i>
@@ -146,10 +146,9 @@
 
             <!-- DETAILS + STRONGER SELLER TRUST / STOREFRONT (Right) -->
             <div class="col-lg-5">
-                <!-- v2.0 Stronger Seller / Business Storefront Section -->
+                <!-- Seller / Business Storefront Section - matches main page business cards -->
                 {% if is_business and listing.user %}
-                    <div class="premium-seller-card p-3 rounded-4 mb-4 d-flex align-items-center gap-3"
-                         style="background: linear-gradient(145deg, #FFF9E6 0%, #F8F4EB 100%); border: 2px solid var(--accent-gold);">
+                    <div class="card business-listing shadow-sm mb-4 p-3 d-flex align-items-center gap-3 rounded-4">
                         {% if listing.user.profile_pic %}
                             <img src="{{ listing.user.profile_pic }}" 
                                  class="rounded-circle flex-shrink-0" width="62" height="62"
@@ -170,37 +169,19 @@
                         </div>
                     </div>
                 {% else %}
-                    <div class="d-flex align-items-center gap-2 mb-4 p-2 rounded-3" style="background: #f8f4eb; border: 1px solid var(--border);">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                             style="width:42px; height:42px; background:#6c757d; color:white; font-weight:700; font-size:1.1rem;">
-                            {{ (listing.user.username or 'S')[0]|upper if listing.user else 'S' }}
-                        </div>
-                        <div>
-                            <span class="small text-muted">Posted by </span>
-                            <strong class="text-dark">@{{ (listing.user.username or 'Seller').lstrip('@') if listing.user else 'Seller' }}</strong>
-                            <div class="small text-muted">Private seller · Klein Karoo</div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                <!-- Owner-only "Pay with Yoco" promotion form (spec 1.7) -->
-                {% if current_user.is_authenticated and listing.user_id == current_user.id %}
-                <div class="card mb-3 shadow-sm" style="border: 2px solid var(--accent-gold); border-radius: 12px;">
-                    <div class="card-body py-2">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                            <div>
-                                <strong class="small">Promote this listing</strong>
-                                <div class="text-muted" style="font-size:0.8rem;">Top placement for 7 days</div>
+                    <div class="card shadow-sm mb-4 p-2 rounded-3" style="background: #f8f4eb; border: 1px solid var(--border);">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:42px; height:42px; background:#6c757d; color:white; font-weight:700; font-size:1.1rem;">
+                                {{ (listing.user.username or 'S')[0]|upper if listing.user else 'S' }}
                             </div>
-                            <form method="POST" action="{{ url_for('payments.create_checkout') }}" class="mb-0">
-                                <input type="hidden" name="listing_id" value="{{ listing.id }}">
-                                <input type="hidden" name="amount" value="99">
-                                <input type="hidden" name="description" value="Promote listing #{{ listing.id }} (7 days)">
-                                <button type="submit" class="btn btn-sm btn-success fw-semibold">Pay with Yoco - R99</button>
-                            </form>
+                            <div>
+                                <span class="small text-muted">Posted by </span>
+                                <strong class="text-dark">@{{ (listing.user.username or 'Seller').lstrip('@') if listing.user else 'Seller' }}</strong>
+                                <div class="small text-muted">Private seller · Klein Karoo</div>
+                            </div>
                         </div>
                     </div>
-                </div>
                 {% endif %}
 
                 <!-- Title -->
@@ -209,18 +190,18 @@
                 <!-- Price (v2.0 refined) -->
                 {% if listing.post_type == 'rental' and listing.price %}
                     <div class="listing-detail-price mb-3">
-                        <h2 class="fw-bold mb-1" style="color: var(--text-primary);">R{{ listing.price | int }}</h2>
+                        <h2 class="fw-bold mb-1" style="color: var(--text-primary);">{{ listing.price | currency }}</h2>
                         {% if listing.rental_duration and listing.rental_duration_unit %}
                             <small class="text-muted">per {{ listing.rental_duration_unit }} (min {{ listing.rental_duration }})</small>
                         {% endif %}
                     </div>
                 {% elif listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
                     <div class="listing-detail-price mb-3">
-                        <h2 class="fw-bold mb-1" style="color: var(--text-primary);">R{{ listing.min_price | int }} – R{{ listing.max_price | int }}</h2>
+                        <h2 class="fw-bold mb-1" style="color: var(--text-primary);">{{ listing.min_price | currency }} – {{ listing.max_price | currency }}</h2>
                         <small class="text-muted">Price range</small>
                     </div>
                 {% elif listing.price and listing.price > 0 %}
-                    <h2 class="fw-bold mb-4 listing-detail-price" style="color: var(--text-primary);">R{{ listing.price | int }}</h2>
+                    <h2 class="fw-bold mb-4 listing-detail-price" style="color: var(--text-primary);">{{ listing.price | currency }}</h2>
                 {% else %}
                     <h4 class="text-muted mb-4">Price on request</h4>
                 {% endif %}
@@ -244,9 +225,9 @@
 
                 <hr class="my-4">
 
-                <!-- Boost Section (owner only) - unchanged functionality -->
+                <!-- Boost Section (owner only) - matches main page card style -->
                 {% if current_user.is_authenticated and current_user.id == listing.user_id %}
-                    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background-color: #f8f4eb;">
+                    <div class="card {{ 'business-listing' if is_business else '' }} {{ 'boosted' if is_promoted else '' }} shadow-sm mb-4" style="border-radius: 16px;">
                         <div class="card-body p-4">
                             <h6 class="fw-bold mb-2">
                                 <i class="bi bi-rocket-takeoff me-2"></i> Boost this listing
@@ -270,8 +251,8 @@
                     </div>
                 {% endif %}
 
-                <!-- Contact Section (v2.0 warmer presentation) -->
-                <div class="card premium-contact-card border-0 shadow-sm mb-4" style="border-radius: 16px; border-top: 4px solid var(--primary) !important;">
+                <!-- Contact Section - matches main page card style -->
+                <div class="card {{ 'business-listing' if is_business else '' }} premium-contact-card border-0 shadow-sm mb-4" style="border-radius: 16px;">
                     <div class="card-body p-4">
                         <h5 class="fw-bold mb-3">
                             Contact the {{ 'Business' if is_business else 'Seller' }}
@@ -284,14 +265,14 @@
                         <!-- Private Message -->
                         {% if message_form %}
                             {% if current_user.is_authenticated %}
-                                <button type="button" class="btn btn-primary btn-lg w-100 mb-3 d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold"
+                                <button type="button" class="btn btn-primary btn-lg w-100 mb-3 d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold rounded-pill"
                                         data-bs-toggle="modal" data-bs-target="#dmModal">
                                     <i class="bi bi-chat-dots fs-5"></i>
                                     <span>Message Privately</span>
                                 </button>
                             {% else %}
                                 <a href="{{ url_for('auth.login', next=request.url) }}" 
-                                   class="btn btn-lg btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold w-100 mb-3">
+                                   class="btn btn-lg btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold w-100 mb-3 rounded-pill">
                                     <i class="bi bi-chat-dots fs-5"></i>
                                     <span>Log in to message privately</span>
                                 </a>
@@ -301,7 +282,7 @@
                         {% if listing.contact_phone and 'phone' in methods %}
                             <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','')|replace('-','')|replace('(','')|replace(')','') }}" 
                                target="_blank" 
-                               class="btn btn-lg btn-success d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold w-100 mb-2">
+                               class="btn btn-lg btn-success d-flex align-items-center justify-content-center gap-2 py-3 fw-semibold w-100 mb-2 rounded-pill">
                                 <i class="bi bi-whatsapp fs-5"></i>
                                 <span>WhatsApp {{ listing.contact_phone }}</span>
                             </a>
@@ -309,36 +290,36 @@
                     </div>
                 </div>
 
-                <!-- Dedicated Share section -->
-                <div class="card border-0 shadow-sm mb-4 standalone-share" style="border-radius: 16px; background: {{ '#FDF6E9' if is_business else 'var(--surface)' }};">
+                <!-- Dedicated Share section - matches home page cards exactly -->
+                <div class="card border-0 shadow-sm mb-4 {{ 'business-listing' if is_business else '' }} standalone-share" style="border-radius: 16px;">
                     <div class="card-body p-2">
-                        <div class="d-flex align-items-center mb-1 px-1 share-header" onclick="toggleShareButtons(this)">
+                        <div class="d-flex align-items-center justify-content-center mb-1 share-header w-100" onclick="toggleShareButtons(this)">
                             <i class="bi bi-share fs-6 text-muted me-2"></i>
                             <span class="fw-semibold small text-muted">Share this ad</span>
                         </div>
-                        <div class="share-buttons-container flex-row flex-wrap gap-2" style="display:none;">
+                        <div class="share-buttons-container flex-column gap-1" style="display:none; padding: 0; align-items: center;">
                             <button type="button" onclick="copyListingLink(event)" 
-                                    class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 rounded-pill share-btn">
-                                <i class="bi bi-link-45deg"></i>
+                                    class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" title="Copy link">
+                                <i class="bi bi-link-45deg" style="font-size:0.9rem;"></i>
                                 <span>Copy link</span>
                             </button>
                             <a href="https://wa.me/?text={{ (listing.title + ' on Volstruis Gids: ' + request.url) | urlencode }}" 
                                target="_blank"
-                               class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn">
+                               class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" title="Share on WhatsApp">
                                 <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
                                 <span>Share on WhatsApp</span>
                             </a>
                             <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url | urlencode }}" 
                                target="_blank"
                                class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
-                               style="background-color: #1877F2; color: #fff; border: none;">
+                               style="background-color: #1877F2; color: #fff; border: none;" title="Share on Facebook">
                                 <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
                                 <span>Share on Facebook</span>
                             </a>
                             <a href="https://twitter.com/intent/tweet?text={{ (listing.title + ' on Volstruis Gids') | urlencode }}&amp;url={{ request.url | urlencode }}" 
                                target="_blank"
                                class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
-                               style="background-color: #000000; color: #fff; border: none;">
+                               style="background-color: #000000; color: #fff; border: none;" title="Share on X">
                                 <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
                                 <span>Share on X</span>
                             </a>
@@ -346,7 +327,7 @@
                     </div>
                 </div>
 
-                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
                     ← Back to all listings
                 </a>
             </div>
@@ -359,22 +340,16 @@
     <div class="container">
         <div class="d-flex gap-2">
             {% if message_form and current_user.is_authenticated %}
-                <button type="button" class="btn btn-primary flex-fill" data-bs-toggle="modal" data-bs-target="#dmModal">
+                <button type="button" class="btn btn-primary flex-fill rounded-pill" data-bs-toggle="modal" data-bs-target="#dmModal">
                     <i class="bi bi-chat-dots me-1"></i> Message Privately
                 </button>
             {% elif message_form %}
-                <a href="{{ url_for('auth.login', next=request.url) }}" class="btn btn-outline-primary flex-fill">
+                <a href="{{ url_for('auth.login', next=request.url) }}" class="btn btn-outline-primary flex-fill rounded-pill">
                     <i class="bi bi-chat-dots me-1"></i> Login to Message
                 </a>
             {% endif %}
 
-            {% if listing.contact_phone and 'phone' in methods %}
-                <a href="https://wa.me/27{{ listing.contact_phone|replace(' ','')|replace('+','')|replace('-','')|replace('(','')|replace(')','') }}" 
-                   target="_blank" 
-                   class="btn btn-success flex-fill">
-                    <i class="bi bi-whatsapp me-1"></i> WhatsApp
-                </a>
-            {% endif %}
+
         </div>
     </div>
 </div>

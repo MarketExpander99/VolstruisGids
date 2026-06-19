@@ -219,7 +219,9 @@ a:hover {
 
 /* Base card can receive these (add via template in later phases or via data attrs) */
 .listing-card,
-.card.listing-card {
+.card.listing-card,
+.listing-detail-hero,
+.card[class*="post-type-"] {
   position: relative;
   border-left: 5px solid var(--border);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -532,10 +534,61 @@ footer, #main-footer {
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-md);
+  position: relative;
 }
+
+/* Match main page card styling for business/promoted heroes (glowing borders, shadows, bg) */
 .listing-detail-hero.business-listing {
-  border-color: var(--accent-gold) !important;
-  box-shadow: 0 10px 36px rgba(201, 162, 39, 0.2);
+  background-color: #FDF6E9;
+  border: none;
+  box-shadow: 0 12px 36px rgba(44, 37, 34, 0.07), 0 4px 14px rgba(201, 162, 39, 0.09);
+}
+.listing-detail-hero.business-listing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--accent-gold);
+  border-radius: inherit;
+  box-shadow: 0 0 8px 2px var(--accent-gold);
+  pointer-events: none;
+  z-index: 1;
+  animation: borderGlow 2s ease-in-out infinite alternate;
+}
+
+.listing-detail-hero.boosted {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(44, 37, 34, 0.08);
+}
+.listing-detail-hero.boosted::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid #fff;
+  border-radius: inherit;
+  box-shadow: 0 0 8px 2px rgba(255,255,255,0.6);
+  pointer-events: none;
+  z-index: 1;
+  animation: borderGlow 2s ease-in-out infinite alternate;
+}
+.listing-detail-hero.boosted::after {
+  content: '';
+  position: absolute;
+  top: -80%;
+  left: -80%;
+  width: 70%;
+  height: 280%;
+  background: linear-gradient(
+    135deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.82) 48%,
+    transparent 72%
+  );
+  animation: sparkle-sweep 1.6s infinite linear;
+  pointer-events: none;
+  z-index: 2;
+  transform: rotate(22deg);
+  opacity: 0.85;
 }
 .listing-detail-hero-img { transition: transform 0.4s ease; }
 .listing-detail-hero:hover .listing-detail-hero-img { transform: scale(1.015); }
@@ -548,14 +601,36 @@ footer, #main-footer {
 .gallery-thumb:hover { border-color: var(--accent-gold); transform: translateY(-2px); }
 .gallery-thumb.active { border-color: var(--primary) !important; box-shadow: 0 0 0 2px rgba(139,69,19,0.2); }
 
+/* Contact / Seller cards on detail now use the same thin gold border treatment
+   as the updated business listing cards (full glowing frame) */
+.premium-contact-card,
 .premium-seller-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border: none;
+  position: relative;
 }
-.premium-seller-card:hover {
+
+.premium-contact-card::before,
+.premium-seller-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--accent-gold);
+  border-radius: inherit;
+  box-shadow: 0 0 8px 2px var(--accent-gold);
+  pointer-events: none;
+  z-index: 1;
+  animation: borderGlow 2s ease-in-out infinite alternate;
+}
+
+.premium-seller-card:hover,
+.premium-contact-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+/* Golden ratio inspired spacing for detail polish (phi ≈ 1.618) */
+.listing-detail-page .card {
+  margin-bottom: 1.25rem; /* tuned */
 }
 
 .listing-detail-price { font-feature-settings: "tnum"; }
@@ -656,14 +731,8 @@ footer, #main-footer {
    Sticky elegant mobile action bar + stronger post-type on hero
    ============================================ */
 
-/* Strong post-type left border on detail hero (works with existing .post-type-* rules) */
-.listing-detail-hero.post-type-sale { border-left: 6px solid var(--primary) !important; }
-.listing-detail-hero.post-type-wanted { border-left: 6px solid var(--accent-sage) !important; }
-.listing-detail-hero.post-type-services,
-.listing-detail-hero.post-type-service { border-left: 6px solid var(--accent-gold) !important; }
-.listing-detail-hero.post-type-event { border-left: 6px solid #A0522D !important; }
-.listing-detail-hero.post-type-rental { border-left: 6px solid var(--accent-sage) !important; }
-.listing-detail-hero.post-type-announcement { border-left: 6px solid #6c757d !important; }
+/* Hero now inherits the shared 5px post-type left border + color rules (matches feed cards exactly).
+   Business-listing ::before gold frame takes over for business listings. */
 
 /* Elegant sticky mobile action bar (Phase 3 - highest impact) */
 .sticky-detail-actions {
@@ -736,21 +805,38 @@ footer, #main-footer {
   display: flex !important;
 }
 
-/* Make share buttons narrower (<50%) and center text/icon */
+/* Consistent share button sizing (matches across cards, storefront, detail) */
 .share-btn,
 .share-buttons-container .btn,
 .share-buttons-container a.btn {
-  width: 42% !important;
-  max-width: 160px;
   justify-content: center !important;
   align-items: center !important;
   text-align: center;
   font-size: 0.72rem;
-  padding: 5px 8px !important;
+  padding: 5px 10px !important;
+}
+
+/* In column layout (home cards, storefront, detail): uniform width (reset) + centered */
+.share-buttons-container.flex-column .share-btn,
+.share-buttons-container.flex-column .btn,
+.share-buttons-container.flex-column a.btn {
+  width: 100% !important;
+  max-width: 220px;
+}
+
+/* Share buttons on detail now use same max-width as index cards for consistency */
+
+/* In row layout (if used): keep compact side-by-side */
+.share-buttons-container.flex-row .share-btn,
+.share-buttons-container.flex-row .btn,
+.share-buttons-container.flex-row a.btn {
+  width: 42% !important;
+  max-width: 160px;
 }
 
 .share-buttons-container.flex-column {
   flex-direction: column;
+  align-items: center;
 }
 
 .share-buttons-container.flex-row {
@@ -765,14 +851,22 @@ footer, #main-footer {
 .share-container {
   border-radius: 10px;
   padding: 4px 6px;
+  max-width: 260px; /* default for non-card (storefront, detail standalone) */
 }
 
-.card .share-container {
-  background-color: var(--surface); /* white for personal */
+/* On index page cards: make share section (header + buttons) full width like "View Full Ad" button */
+.card-footer .share-container {
+  background-color: var(--surface);
+  max-width: none;
+  width: 100%;
 }
 
-.card.business-listing .share-container {
-  background-color: #FDF6E9; /* matches business card */
+.card.business-listing .card-footer .share-container {
+  background-color: #FDF6E9;
+}
+
+.card-footer .share-header {
+  width: 100%;
 }
 
 /* For non-card contexts like detail page share and storefront header */
