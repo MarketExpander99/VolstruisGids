@@ -93,25 +93,25 @@
 
                 <!-- Share section moved under logo/name, in frame for consistency with cards/detail -->
                 <div class="mt-2" style="background: #faf7f0; border-radius: 10px; padding: 4px 6px; max-width: 280px;">
-                    <div class="d-flex align-items-center mb-1">
+                    <div class="d-flex align-items-center mb-1 px-1 share-header" onclick="toggleShareButtons(this)">
                         <i class="bi bi-share fs-6 text-muted me-2"></i>
                         <span class="fw-semibold small text-muted">Share this store</span>
                     </div>
-                    <div class="d-flex flex-column gap-1">
+                    <div class="share-buttons-container flex-column gap-1" style="display:none;">
                         <button type="button" onclick="shareStoreWhatsApp()" 
-                                class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill" style="font-size:0.72rem;" title="Share this store on WhatsApp">
+                                class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" title="Share this store on WhatsApp">
                             <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
                             <span>Share on WhatsApp</span>
                         </button>
                         <button type="button" onclick="shareStoreFacebook()" 
-                                class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill" 
-                                style="background-color: #1877F2; color: #fff; border: none; font-size:0.72rem;" title="Share this store on Facebook">
+                                class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
+                                style="background-color: #1877F2; color: #fff; border: none;" title="Share this store on Facebook">
                             <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
                             <span>Share on Facebook</span>
                         </button>
                         <button type="button" onclick="shareStoreX()" 
-                                class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill" 
-                                style="background-color: #000000; color: #fff; border: none; font-size:0.72rem;" title="Share this store on X">
+                                class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
+                                style="background-color: #000000; color: #fff; border: none;" title="Share this store on X">
                             <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
                             <span>Share on X</span>
                         </button>
@@ -524,25 +524,25 @@ document.addEventListener('click', function(e) {
 
                                 <!-- Share section right at the very bottom of the card (UI consistent with detail page) -->
                                 <div style="background: #faf7f0; border-radius: 10px; padding: 4px 6px; margin: 0 0 6px 0;">
-                                    <div class="d-flex align-items-center mb-1 px-1">
+                                    <div class="d-flex align-items-center mb-1 px-1 share-header" onclick="toggleShareButtons(this)">
                                         <i class="bi bi-share fs-6 text-muted me-2"></i>
                                         <span class="fw-semibold small text-muted">Share this ad</span>
                                     </div>
-                                    <div class="d-flex flex-column gap-1">
+                                    <div class="share-buttons-container flex-column gap-1" style="display:none;">
                                         <a href="${whatsappShareLink}" target="_blank" 
-                                           class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill" style="font-size:0.72rem;" title="Share on WhatsApp">
+                                           class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" title="Share on WhatsApp">
                                             <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
                                             <span>Share on WhatsApp</span>
                                         </a>
                                         <a href="${facebookShareLink}" target="_blank" 
-                                           class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill" 
-                                           style="background-color: #1877F2; color: #fff; border: none; font-size:0.72rem;" title="Share on Facebook">
+                                           class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
+                                           style="background-color: #1877F2; color: #fff; border: none;" title="Share on Facebook">
                                             <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
                                             <span>Share on Facebook</span>
                                         </a>
                                         <a href="${xShareLink}" target="_blank" 
-                                           class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill" 
-                                           style="background-color: #000000; color: #fff; border: none; font-size:0.72rem;" title="Share on X">
+                                           class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
+                                           style="background-color: #000000; color: #fff; border: none;" title="Share on X">
                                             <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
                                             <span>Share on X</span>
                                         </a>

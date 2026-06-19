@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -257,19 +256,26 @@
         });
     </script>
 
-    <!-- Share section toggle (used by feed cards, storefront, and detail page) -->
+    <!-- Share toggle: hide buttons by default, click header/icon to show/hide -->
     <script>
         function toggleShareButtons(headerEl) {
-            const section = headerEl.closest('.share-section');
-            const buttons = section.querySelector('.share-buttons');
-            const chevron = headerEl.querySelector('.share-chevron');
+            // Find the buttons container (next sibling or query)
+            let buttons = headerEl.nextElementSibling;
+            if (!buttons || !buttons.classList.contains('share-buttons-container')) {
+                const parent = headerEl.parentElement;
+                if (parent) {
+                    buttons = parent.querySelector('.share-buttons-container');
+                }
+            }
+            if (!buttons) return;
 
-            buttons.classList.toggle('show');
-
-            if (buttons.classList.contains('show')) {
-                chevron.style.transform = 'rotate(180deg)';
+            const isShown = buttons.classList.contains('show') || buttons.style.display === 'flex' || buttons.style.display === '';
+            if (isShown) {
+                buttons.classList.remove('show');
+                buttons.style.display = 'none';
             } else {
-                chevron.style.transform = '';
+                buttons.classList.add('show');
+                buttons.style.display = 'flex';
             }
         }
     </script>
@@ -326,7 +332,3 @@
 
 </body>
 </html>
-
-=======
-<!--- full base with new script inserted ... (abbreviated) -->
->>>>>>> 7343eda8a6c7b190c35a6de343de0fbf0463a600
