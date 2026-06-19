@@ -256,6 +256,23 @@
         });
     </script>
 
+    <!-- Share section toggle (used by feed cards, storefront, and detail page) -->
+    <script>
+        function toggleShareButtons(headerEl) {
+            const section = headerEl.closest('.share-section');
+            const buttons = section.querySelector('.share-buttons');
+            const chevron = headerEl.querySelector('.share-chevron');
+
+            buttons.classList.toggle('show');
+
+            if (buttons.classList.contains('show')) {
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                chevron.style.transform = '';
+            }
+        }
+    </script>
+
     <!-- Footer with ID for scroll behavior -->
     <footer id="main-footer" class="bg-light border-top mt-5 py-4">
         <div class="container">
