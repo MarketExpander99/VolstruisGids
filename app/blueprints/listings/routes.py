@@ -795,48 +795,88 @@ def repost_listing(listing_id):
 
 
 # ============================================================
-# Share-to-Earn (updated LAUNCH-UI-POLISH)
-# Award 0.3 credits per successful share click (max 3 per day).
-# Simple button POST (no actual share verification in v1).
-# Can be triggered from my_listings or public views (button currently in owner flows).
+# Share-to-Earn (Share Buttons with Credit Rewards spec 2026-06-21)
+# +0.5 credits per share (WA/FB/X). Daily cap 2 credits = max 4 shares/day.
+# SAST midnight reset (reuse get_sast_today). Per-listing dedup to prevent rapid spam.
+# Supports JS fetch (returns JSON) + legacy redirects. Only for authenticated.
 # ============================================================
 @listings_bp.route('/listing/<int:listing_id>/share', methods=['POST'])
 @login_required
 def share_listing(listing_id):
-    today = date.today()
+    # Robust AJAX detection — works from index, my_listings, storefront etc.
+    accept = (request.headers.get('Accept') or '').lower()
+    is_ajax = bool(
+        request.headers.get('HX-Request') or
+        request.is_json or
+        'application/json' in accept or
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    )
 
-    # Reset daily counter if new day
+    today = current_user.get_sast_today() if hasattr(current_user, 'get_sast_today') else date.today()
+
+    # Reset if new SAST day
     if current_user.last_share_reward_date != today:
         current_user.last_share_reward_date = today
         current_user.shares_rewarded_today = 0
 
-    if (current_user.shares_rewarded_today or 0) >= 3:
-        flash("You've reached your daily share reward limit (3). Thanks for spreading the word!", "info")
-        return redirect(url_for('main.my_listings'))
+    current_balance = float(current_user.credits or 0)
 
-    # Award 0.3 credits (use .credits setter for spec compat + credit_balance)
+    # Daily cap (4 shares = 2 credits)
+    if (current_user.shares_rewarded_today or 0) >= 4:
+        msg = "Daily share limit reached (2 credits max). Thanks for spreading the word in the Karoo!"
+        if is_ajax:
+            return jsonify({'success': False, 'awarded': 0, 'message': msg, 'limit_reached': True, 'new_balance': current_balance, 'shares_today': current_user.shares_rewarded_today or 0})
+        flash(msg, "info")
+        return redirect(request.referrer or url_for('main.my_listings'))
+
+    # Per-listing dedup for today
+    already = CreditTransaction.query.filter(
+        CreditTransaction.user_id == current_user.id,
+        CreditTransaction.transaction_type == 'share_reward',
+        CreditTransaction.reference == f'share_listing_{listing_id}',
+        CreditTransaction.created_at >= datetime.combine(today, datetime.min.time())
+    ).first()
+
+    if already:
+        msg = "You've already earned credit for sharing this listing today."
+        if is_ajax:
+            return jsonify({'success': True, 'awarded': 0, 'message': msg, 'duplicate': True, 'new_balance': current_balance, 'shares_today': current_user.shares_rewarded_today or 0})
+        flash(msg, "info")
+        return redirect(request.referrer or url_for('main.index'))
+
+    # Award
     try:
-        current_credits = current_user.credits or Decimal('0')
-        current_user.credits = current_credits + Decimal('0.3')
+        current_user.credits = (current_user.credits or Decimal('0')) + Decimal('0.5')
         current_user.shares_rewarded_today = (current_user.shares_rewarded_today or 0) + 1
 
-        # Optional audit tx 
-        tx = CreditTransaction(
+        db.session.add(CreditTransaction(
             user_id=current_user.id,
-            amount=Decimal('0.3'),
+            amount=Decimal('0.5'),
             transaction_type='share_reward',
             reference=f'share_listing_{listing_id}'
-        )
-        db.session.add(tx)
+        ))
         db.session.commit()
 
-        flash("Thanks for sharing! +0.3 credits added.", "success")
+        remaining = max(0, 4 - current_user.shares_rewarded_today)
+        msg = f"You've earned 0.5 credits for sharing! ({remaining} shares left today)"
+
+        if is_ajax:
+            return jsonify({
+                'success': True,
+                'awarded': 0.5,
+                'message': msg,
+                'new_balance': float(current_user.credits or 0),
+                'shares_today': current_user.shares_rewarded_today
+            })
+
+        flash(msg, "success")
     except Exception as e:
         db.session.rollback()
+        if is_ajax:
+            return jsonify({'success': False, 'awarded': 0, 'message': 'Could not award credit right now.', 'new_balance': float(current_user.credits or 0)})
         flash(f"Could not award share credit: {str(e)}", "danger")
 
-    # Per spec, redirect to my_listings (can enhance later to trigger real share)
-    return redirect(url_for('main.my_listings'))
+    return redirect(request.referrer or url_for('main.my_listings'))
 
 
 # ============================================================

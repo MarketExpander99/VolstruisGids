@@ -622,30 +622,42 @@ document.addEventListener('click', function(e) {
                                         View Full Ad
                                     </a>
 
-                                    <!-- Share section (icon + buttons) left-aligned with the View Full Ad button -->
+                                    <!-- Share section (icon + buttons) - tracking enabled -->
                                     <div class="share-container" style="margin: 10px 0 0 0; padding: 0;">
                                         <div class="d-flex align-items-center justify-content-center mb-1 share-header w-100" onclick="toggleShareButtons(this)">
                                             <i class="bi bi-share fs-6 text-muted me-2"></i>
-                                            <span class="fw-semibold small text-muted">Share this ad</span>
+                                            <span class="fw-semibold small text-muted">Share this Listing</span>
                                         </div>
                                         <div class="share-buttons-container flex-column gap-1" style="display:none; padding: 0; align-items: center;">
-                                            <a href="${whatsappShareLink}" target="_blank" 
-                                               class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" title="Share on WhatsApp">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
+                                                    data-share-url="${whatsappShareLink}"
+                                                    data-listing-id="${listing.id}"
+                                                    onclick="shareWithReward(this)"
+                                                    title="Share on WhatsApp">
                                                 <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
                                                 <span>Share on WhatsApp</span>
-                                            </a>
-                                            <a href="${facebookShareLink}" target="_blank" 
-                                               class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
-                                               style="background-color: #1877F2; color: #fff; border: none;" title="Share on Facebook">
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
+                                                    data-share-url="${facebookShareLink}"
+                                                    data-listing-id="${listing.id}"
+                                                    onclick="shareWithReward(this)"
+                                                    style="background-color: #1877F2; color: #fff; border: none;"
+                                                    title="Share on Facebook">
                                                 <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
                                                 <span>Share on Facebook</span>
-                                            </a>
-                                            <a href="${xShareLink}" target="_blank" 
-                                               class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn" 
-                                               style="background-color: #000000; color: #fff; border: none;" title="Share on X">
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
+                                                    data-share-url="${xShareLink}"
+                                                    data-listing-id="${listing.id}"
+                                                    onclick="shareWithReward(this)"
+                                                    style="background-color: #000000; color: #fff; border: none;"
+                                                    title="Share on X">
                                                 <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
                                                 <span>Share on X</span>
-                                            </a>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

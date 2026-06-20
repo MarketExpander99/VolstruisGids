@@ -104,6 +104,47 @@
                                 <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete</button>
                             </form>
                         </div>
+
+                        <!-- Share section (consistent with feed) -->
+                        {% set detail_abs = url_for('listings.detail', listing_id=listing.id, _external=True) %}
+                        {% set share_text = 'Check out this listing on Volstruis Gids: ' ~ listing.title %}
+                        {% set wa_url = 'https://wa.me/?text=' ~ ((share_text + ' ' + detail_abs) | urlencode) %}
+                        {% set fb_url = 'https://www.facebook.com/sharer/sharer.php?u=' ~ (detail_abs | urlencode) %}
+                        {% set x_url = 'https://twitter.com/intent/tweet?text=' ~ (share_text | urlencode) ~ '&url=' ~ (detail_abs | urlencode) %}
+                        <div class="share-container mt-2" style="padding:0;">
+                            <div class="d-flex align-items-center justify-content-center mb-1 share-header w-100" onclick="toggleShareButtons(this)">
+                                <i class="bi bi-share fs-6 text-muted me-2"></i>
+                                <span class="fw-semibold small text-muted">Share this Listing</span>
+                            </div>
+                            <div class="share-buttons-container flex-column gap-1" style="display:none; padding:0; align-items:center;">
+                                <button type="button"
+                                        class="btn btn-sm btn-success d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
+                                        data-share-url="{{ wa_url }}"
+                                        data-listing-id="{{ listing.id }}"
+                                        onclick="shareWithReward(this)"
+                                        title="Share on WhatsApp">
+                                    <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i><span>WhatsApp</span>
+                                </button>
+                                <button type="button"
+                                        class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
+                                        data-share-url="{{ fb_url }}"
+                                        data-listing-id="{{ listing.id }}"
+                                        onclick="shareWithReward(this)"
+                                        style="background-color:#1877F2;color:#fff;border:none;"
+                                        title="Share on Facebook">
+                                    <i class="bi bi-facebook" style="font-size:0.9rem;"></i><span>Facebook</span>
+                                </button>
+                                <button type="button"
+                                        class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
+                                        data-share-url="{{ x_url }}"
+                                        data-listing-id="{{ listing.id }}"
+                                        onclick="shareWithReward(this)"
+                                        style="background-color:#000;color:#fff;border:none;"
+                                        title="Share on X">
+                                    <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i><span>X</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

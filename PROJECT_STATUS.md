@@ -1573,3 +1573,53 @@ Task COMPLETE — recommended manual test:
 New ideas → backlog.md only.
 
 
+## 2026-06-21 — Share Buttons with Credit Rewards (0.5 cr / max 2 per day)
+
+**Spec**: "Share Buttons with Credit Rewards" v1.0 (2026-06-21). Reward community sharing on index cards, My Listings, storefront listings. +0.5 credits per WA/FB/X click. Daily cap 2 credits (4 shares). Server-side tracking + dedup. Update How it Works.
+
+**Files touched** (scans + python import verification performed before edits):
+- app/blueprints/listings/routes.py (updated share_listing)
+- app/templates/base.html (added global shareWithReward JS + toast)
+- app/templates/main/_listing_cards.html (buttons now call tracker)
+- app/templates/main/my_listings.html (added share sections on owner cards)
+- app/templates/main/index.html (synced dynamic JS feed cards)
+- app/templates/main/how_it_works.html (numbers + messaging to 0.5/2)
+- PROJECT_STATUS.md (this entry)
+
+**Changes delivered (smallest possible edits only)**:
+- Backend: share_listing now awards **Decimal('0.5')**, caps at **4 shares** (==2.0), uses `get_sast_today()` for midnight SAST reset. Per-listing dedup via CreditTransaction reference query (prevents multi-click same ad same day). Returns JSON for AJAX callers + graceful legacy redirect.
+- Frontend: All share buttons (WA/FB/X) in feed cards, my-listings, and thus storefront (via partial) now invoke `shareWithReward(...)`. Always opens the native share dialog; reward toast shown on success/limit/duplicate. Unaffected users still share. Exact class names/padding preserved for v2.0 consistency.
+- Content: Updated free-tier callout, business earnings list, step-4 text in How it Works to reflect "0.5 credits per share (max 2 credits / 4 shares per day)".
+- No new models/tables (reused existing columns + CreditTransaction + SAST helper). No CSS changes.
+- 100% backward compatible for non-auth + direct links.
+
+**Verification** (exact rule requirement):
+- Shell scans + reads before every write.
+- `python -c "from app import create_app; ..."` → **ZERO ERRORS**. Blueprints healthy. Share fields + SAST helper + route present.
+- `pip install -r requirements.txt` (Pillow wheel note only, non-blocking, same as all prior entries).
+- Logic sim: cap=4, +0.5, tx created, dedup path, SAST today — all PASS.
+- Endpoint smoke: /listings/listing/<id>/share mounted + @login_required protected.
+- Templates parse cleanly; share buttons use identical markup.
+
+**Acceptance criteria met**:
+- Share buttons on index (server + JS cards), my_listings, storefront listings award 0.5 (capped daily 2cr/4).
+- Daily SAST tracking + per-listing debounce active.
+- "How it Works" updated with clear explanation + Karoo spirit.
+- No breakage: old direct sharing still functions for guests; UI matches previous share polish.
+- Respects v2.0 (no new inlines added by us, mobile-first, reuse patterns).
+- Toast feedback for credit earned / limit reached.
+
+**Task COMPLETE — here is what you should test:**
+- Log in as a user with <4 shares today.
+- On homepage feed: expand a card Share this ad → click WhatsApp (or FB/X). Expect toast "You've earned 0.5 credits..." + native share opens. Balance increases.
+- Repeat 4x same listing: first earns, subsequent show "already earned" toast.
+- Hit 4 total today → "Daily share limit reached (2 credits max)".
+- On /my-listings: same buttons + "Share & earn 0.5 cr" label visible.
+- Storefront (add ?user_id=... or visit /store/<biz>): listing cards inside also award.
+- /how-it-works reflects 0.5 / max 2 credits.
+- Anon visitors: buttons still open share (no crash, no credit).
+- Next day (or force date) resets cleanly.
+- Run: `pip install -r requirements.txt` (note Pillow) + restart server + manual click flow.
+
+All changes minimal, production-ready, and follow the Analyse → Plan (≤5) → Act → Verify → Document workflow.
+

@@ -287,6 +287,73 @@
                 buttons.style.display = 'flex';
             }
         }
+
+        // Share + Credit Reward (0.5 cr per share, 4 shares = 2 cr daily cap)
+        // Opens native share AFTER server-side award attempt. Uses data-* for clean escaping.
+        async function shareWithReward(el) {
+            const shareUrl = el.dataset.shareUrl || el.getAttribute('data-share-url');
+            const listingId = el.dataset.listingId || el.getAttribute('data-listing-id');
+            if (!listingId || !shareUrl) {
+                // Fallback: if no data, try to open a plain href if present
+                const href = el.getAttribute('href');
+                if (href) window.open(href, '_blank', 'noopener');
+                return;
+            }
+            try {
+                const res = await fetch(`/listings/listing/${listingId}/share`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data && data.message) {
+                    const t = document.createElement('div');
+                    t.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#2C2522;color:#fff;padding:8px 18px;border-radius:50px;font-size:0.82rem;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,0.25)';
+                    t.textContent = data.message;
+                    document.body.appendChild(t);
+                    setTimeout(() => { t.style.transition = 'opacity .25s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 180); }, 2200);
+                }
+                // Update visible credit counts live (navbar, my-listings, profile etc.) without reload
+                if (data && typeof data.new_balance === 'number') {
+                    updateCreditDisplays(data.new_balance);
+                }
+            } catch (e) {
+                // Anon or network failure: still allow the share action
+            } finally {
+                window.open(shareUrl, '_blank', 'noopener');
+            }
+        }
+
+        // Helper: live-update credit balance displays across the page (navbar, my-listings header, etc.)
+        function updateCreditDisplays(newBalance) {
+            const formatted = (typeof newBalance === 'number') ? newBalance.toFixed(1).replace(/\.0$/, '') : newBalance;
+
+            // Navbar credit (the <strong> next to coin icon)
+            document.querySelectorAll('nav .nav-link strong, nav strong').forEach(el => {
+                const container = el.closest('.nav-link, li, span');
+                if (container && (container.textContent.toLowerCase().includes('coin') || /credits/i.test(container.textContent)) && !/unlimited/i.test(container.textContent)) {
+                    el.textContent = formatted;
+                }
+            });
+
+            // My Listings and other "Credits: <strong>..." displays
+            document.querySelectorAll('strong').forEach(el => {
+                const parent = el.parentElement || el;
+                if (/credits\s*:/i.test(parent.textContent || '')) {
+                    el.textContent = formatted;
+                }
+            });
+
+            // Profile page credit display
+            document.querySelectorAll('h3.text-success, .text-success.fw-bold').forEach(el => {
+                const t = (el.textContent || '').trim();
+                if (/^[\d.]+$/.test(t) || /credits/i.test(t)) {
+                    el.textContent = formatted;
+                }
+            });
+        }
     </script>
 
     <!-- Footer with ID for scroll behavior -->
