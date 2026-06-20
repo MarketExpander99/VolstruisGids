@@ -135,7 +135,13 @@
                                             alt="Grok" height="22" class="me-2" style="vertical-align: middle;">
                                         Grok Ad Polish
                                     </strong>
-                                    <small class="text-muted d-block">2 free uses today • then 1 credit</small>
+                                    <small class="text-muted d-block">
+                                        {% if grok_remaining_free is defined and grok_remaining_free > 0 and not (current_user.has_active_unlimited_pass() if current_user else False) %}
+                                            {{ grok_remaining_free }} free use{{ 's' if grok_remaining_free != 1 else '' }} today • then 1 credit
+                                        {% else %}
+                                            1 credit per use (unlimited pass or daily limit reached)
+                                        {% endif %}
+                                    </small>
                                 </div>
                                 <button type="button" id="ai-improve-btn"
                                         class="btn btn-grok btn-sm px-3 py-1 fw-semibold d-flex align-items-center gap-2"
@@ -543,7 +549,7 @@
         const showPrice = ['sale', 'services', 'wanted', 'rental'].includes(postValue);
         const pricingGroup = document.getElementById('pricing-type-group');
         
-        if (pricingGroup) pricingGroup.style.display = (postValue === 'rental') ? 'none' : 'block';
+        if (pricingGroup) pricingGroup.style.display = (postValue === 'rental' || postValue === 'wanted' || postValue === 'announcement' || postValue === 'event') ? 'none' : 'block';
         if (priceDetails) priceDetails.style.display = showPrice ? 'block' : 'none';
         if (rentalDurationDiv) rentalDurationDiv.style.display = (postValue === 'rental') ? 'block' : 'none';
         if (postValue === 'rental' && fixedDiv && rangeDiv) {

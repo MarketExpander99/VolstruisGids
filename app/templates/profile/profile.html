@@ -180,7 +180,7 @@
                 {% set pt = listing.post_type or 'sale' %}
                 <div class="col">
                     <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="text-decoration-none text-reset">
-                        <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }} {% if listing.is_expired %}border-danger{% endif %}" style="position: relative;">
+                        <div class="card h-100 shadow-sm border-0 post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }} {% if listing.is_expired %}border border-danger border-2{% endif %}" style="position: relative;">
                             {% if listing.is_expired %}
                             <div class="position-absolute top-0 start-0 m-1" style="z-index: 5;">
                                 <span class="badge bg-danger px-2 py-1" style="font-size: 0.65rem;">EXPIRED</span>
@@ -214,7 +214,7 @@
                                 </div>
 
                                 {% if listing.is_expired %}
-                                <div class="alert alert-danger py-1 px-2 small mb-1" style="font-size:0.65rem; line-height:1.1;">
+                                <div class="alert alert-danger py-1 px-2 small mb-1" style="font-size:0.65rem; line-height:1.1; border-width: 1.5px;">
                                     <strong>Expired {{ listing.days_since_freshness }}d ago</strong> — hidden from public
                                 </div>
                                 {% endif %}

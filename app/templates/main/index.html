@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container mt-4">
     <!-- HERO BANNER - Level 10 warm premium -->
-    <div id="hero-banner" class="hero-bg position-relative overflow-hidden rounded-4 mb-5 text-white text-center shadow-sm">
+    <div id="hero-banner" class="hero-bg position-relative overflow-hidden rounded-4 mb-4 mb-md-5 text-white text-center shadow-sm">
         <picture class="position-absolute top-0 start-0 w-100 h-100 m-0" style="z-index: 0;">
             <source media="(max-width: 767.98px)" srcset="{{ url_for('static', filename='img/hero-karoo-sunset-mobile.jpg') }}">
             <img src="{{ url_for('static', filename='img/hero-karoo-sunset.jpg') }}"
@@ -20,14 +20,14 @@
             <p class="mb-0 opacity-90" style="color:#f8f9fa">Business &amp; Personal listings · Free to browse · Post your ad today</p>
             </div>
             <div class="text-center mt-3 mt-md-4">
-                <a href="{{ url_for('main.how_it_works') }}" class="btn btn-accent btn-lg px-5 shadow" style="min-width: 240px;">
-                    See How It Works →
+                <a href="{{ url_for('main.how_it_works') }}" class="btn btn-accent btn-lg px-5 shadow" style="min-width: 260px;">
+                    How It Works &amp; Earn Credits →
                 </a>
             </div>
         </div>
     </div>
 
-    <h1 id="main-title" class="mb-3 fw-bold" style="font-size: 1.85rem; color: #2C3E50;">Discover in the Klein Karoo</h1>
+    <h1 id="main-title" class="mb-4 fw-bold" style="font-size: 1.85rem; color: #2C3E50;">Discover in the Klein Karoo</h1>
 
     <!-- LEVEL 10 POLISHED FILTERS -->
     <div class="card border-0 shadow-sm mb-4" id="filter-form" style="border-radius: 16px; background: white;">
@@ -172,13 +172,14 @@
                         <i class="bi bi-send"></i> Send
                     </button>
                 </div>
-                <small class="text-muted">2 free questions per day. After that, 1 credit per question.</small>
+                <small class="text-muted">2 free questions daily with Grok • 1 credit each after. Fast local answers right here.</small>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+window.isLoggedIn = {{ 'true' if current_user.is_authenticated else 'false' }};
 let currentGrokListing = null;
 function openGrokChat(listingId, title, description, area) {
     currentGrokListing = { id: listingId, title: title, description: description, area: area };
@@ -239,6 +240,11 @@ function sendGrokMessage() {
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('.grok-ask-btn');
     if (!btn) return;
+    if (!window.isLoggedIn) {
+        // Should never happen because button is hidden, but guard anyway
+        window.location.href = '/login';
+        return;
+    }
     if (btn.dataset.grokListingId) {
         openGrokChat(
             btn.dataset.grokListingId,
@@ -604,6 +610,7 @@ document.addEventListener('click', function(e) {
                                     </div>
                                 </div>
                                 <div class="card-footer bg-transparent border-0 pt-0 pb-3">
+                                    ${window.isLoggedIn ? `
                                     <button type="button" class="btn btn-outline-info btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-pill grok-ask-btn"
                                             data-grok-listing-id="${listing.id}"
                                             data-grok-title="${(listing.title || '').replace(/"/g, '&quot;')}"
@@ -611,7 +618,7 @@ document.addEventListener('click', function(e) {
                                             data-grok-area="${listing.location || ''}">
                                         <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" alt="Grok" height="15" style="vertical-align: middle;">
                                         <span>Ask Grok</span>
-                                    </button>
+                                    </button>` : ''}
                                     <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100 rounded-pill">
                                         View Full Ad
                                     </a>

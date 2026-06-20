@@ -68,7 +68,7 @@ def improve_with_ai():
 
     has_unlimited = current_user.has_active_unlimited_pass()
     is_free = ai_uses_today < 2 or has_unlimited
-    cost = 0 if is_free else 8
+    cost = 0 if is_free else 1
 
     if not is_free and (current_user.credit_balance or Decimal('0')) < Decimal(str(cost)):
         return jsonify({
@@ -226,6 +226,16 @@ def create():
     form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
     if not form.category.choices:
         form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
+
+    # Grok Ad Polish usage tracking (for dynamic remaining free uses display)
+    today = date.today()
+    grok_uses_today = CreditTransaction.query.filter(
+        CreditTransaction.user_id == current_user.id,
+        CreditTransaction.transaction_type.in_(['ai_improve', 'ai_improve_free']),
+        db.func.date(CreditTransaction.created_at) == today
+    ).count()
+    has_unlimited_grok = current_user.has_active_unlimited_pass()
+    grok_remaining_free = max(0, 2 - grok_uses_today) if not has_unlimited_grok else 99
 
     if request.method == 'GET':
         form.contact_phone.data = getattr(current_user, 'phone', '') or getattr(current_user, 'contact_phone', '')
@@ -438,7 +448,8 @@ def create():
                 continue_form.rental_duration.data = None
                 # Photos: fresh form render + client focus will handle; no photo data carried.
 
-                return render_template('listings/create.html', form=continue_form, editing=False)
+                return render_template('listings/create.html', form=continue_form, editing=False,
+                                       grok_uses_today=grok_uses_today, grok_remaining_free=grok_remaining_free)
             else:
                 flash(base_msg, 'success')
                 return redirect(url_for('main.my_listings'))
@@ -448,7 +459,8 @@ def create():
             flash(f'Error saving your listing: {str(e)}', 'danger')
             return redirect(url_for('listings.create'))
 
-    return render_template('listings/create.html', form=form)
+    return render_template('listings/create.html', form=form,
+                           grok_uses_today=grok_uses_today, grok_remaining_free=grok_remaining_free)
 
 
 @listings_bp.route('/listing/<int:listing_id>/edit', methods=['GET', 'POST'])
@@ -574,7 +586,8 @@ def edit_listing(listing_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating your listing: {str(e)}', 'danger')
-            return render_template('listings/create.html', form=form, listing=listing, editing=True)
+            return render_template('listings/create.html', form=form, listing=listing, editing=True,
+                                   grok_uses_today=0, grok_remaining_free=0)
 
     return render_template('listings/create.html', form=form, listing=listing, editing=True)
 
@@ -793,10 +806,10 @@ def repost_listing(listing_id):
 
 
 # ============================================================
-# Share-to-Earn (v1.2 spec)
-# Award 0.5 credits per successful share click (max 2 per day).
+# Share-to-Earn (updated LAUNCH-UI-POLISH)
+# Award 0.3 credits per successful share click (max 3 per day).
 # Simple button POST (no actual share verification in v1).
-# Can be triggered from my_listings or public views.
+# Can be triggered from my_listings or public views (button currently in owner flows).
 # ============================================================
 @listings_bp.route('/listing/<int:listing_id>/share', methods=['POST'])
 @login_required
@@ -808,32 +821,59 @@ def share_listing(listing_id):
         current_user.last_share_reward_date = today
         current_user.shares_rewarded_today = 0
 
-    if (current_user.shares_rewarded_today or 0) >= 2:
-        flash("You've reached your daily share reward limit (2). Thanks for spreading the word!", "info")
+    if (current_user.shares_rewarded_today or 0) >= 3:
+        flash("You've reached your daily share reward limit (3). Thanks for spreading the word!", "info")
         return redirect(url_for('main.my_listings'))
 
-    # Award 0.5 credits (use .credits setter for spec compat + credit_balance)
+    # Award 0.3 credits (use .credits setter for spec compat + credit_balance)
     try:
         current_credits = current_user.credits or Decimal('0')
-        current_user.credits = current_credits + Decimal('0.5')
+        current_user.credits = current_credits + Decimal('0.3')
         current_user.shares_rewarded_today = (current_user.shares_rewarded_today or 0) + 1
 
-        # Optional audit tx (amount can be 0.5 now)
+        # Optional audit tx 
         tx = CreditTransaction(
             user_id=current_user.id,
-            amount=Decimal('0.5'),
+            amount=Decimal('0.3'),
             transaction_type='share_reward',
             reference=f'share_listing_{listing_id}'
         )
         db.session.add(tx)
         db.session.commit()
 
-        flash("Thanks for sharing! +0.5 credits added.", "success")
+        flash("Thanks for sharing! +0.3 credits added.", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Could not award share credit: {str(e)}", "danger")
 
     # Per spec, redirect to my_listings (can enhance later to trigger real share)
+    return redirect(url_for('main.my_listings'))
+
+
+# ============================================================
+# Mark as Sold — frees active slot immediately, hides from public/search
+# Sets is_active=False (consistent with free slot counting logic)
+# ============================================================
+@listings_bp.route('/listing/<int:listing_id>/mark-sold', methods=['POST'])
+@login_required
+def mark_sold(listing_id):
+    listing = Listing.query.get_or_404(listing_id)
+    if listing.user_id != current_user.id:
+        flash('You can only manage your own listings.', 'danger')
+        return redirect(url_for('main.my_listings'))
+
+    if not listing.is_active:
+        flash('This listing is already inactive.', 'info')
+        return redirect(url_for('main.my_listings'))
+
+    try:
+        listing.is_active = False
+        db.session.commit()
+        flash('Listing marked as sold. Your slot is now free.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error marking as sold: {str(e)}', 'danger')
+
     return redirect(url_for('main.my_listings'))
 
 

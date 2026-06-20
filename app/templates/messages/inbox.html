@@ -24,7 +24,7 @@
     {% endwith %}
 
     {% if conversations %}
-        <div class="list-group shadow-sm" style="border-radius: 12px; overflow: hidden;">
+        <div class="list-group shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
             {% for convo in conversations %}
                 {% set other = convo.other_user %}
                 {% set lst = convo.listing %}
@@ -83,7 +83,7 @@
             Conversations are private and linked to specific listings. Messages are only visible to you and the other participant.
         </div>
     {% else %}
-        <div class="card shadow-sm" style="border-radius: 16px;">
+        <div class="card shadow-sm border-0" style="border-radius: 16px;">
             <div class="card-body text-center py-5">
                 <i class="bi bi-chat-dots display-4 text-muted mb-3"></i>
                 <h5 class="mb-2">No messages yet</h5>

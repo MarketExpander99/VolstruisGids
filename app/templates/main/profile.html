@@ -100,7 +100,7 @@
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 {% for listing in listings %}
                 <div class="col">
-                    <div class="card h-100 shadow-sm {% if listing.is_expired %}border-danger{% endif %}" style="position: relative;">
+                    <div class="card h-100 shadow-sm border-0 {% if listing.is_expired %}border border-danger border-2{% endif %}" style="position: relative;">
                         {% if listing.is_expired %}
                         <div class="position-absolute top-0 start-0 m-2" style="z-index: 5;">
                             <span class="badge bg-danger px-2 py-1" style="font-size: 0.7rem;">EXPIRED</span>
@@ -114,7 +114,7 @@
                                 {{ 'For Rent' if listing.post_type == 'rental' else listing.post_type|title }}
                             </span>
                             {% if listing.is_expired %}
-                            <div class="alert alert-danger py-1 px-2 small mb-1" style="font-size: 0.75rem;">
+                            <div class="alert alert-danger py-1 px-2 small mb-1" style="font-size: 0.75rem; border-width:1.5px;">
                                 <strong>Expired {{ listing.days_since_freshness }} days ago.</strong> Hidden from public.
                             </div>
                             {% endif %}
