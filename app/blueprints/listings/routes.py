@@ -944,6 +944,18 @@ def detail(listing_id):
         default_path = url_for('static', filename='img/default-listing.jpg')
         og_image_url = request.url_root.rstrip('/') + default_path
 
+    # Build list of images for schema (helps Product rich results)
+    images = []
+    if listing.photo_url:
+        images.append(_abs_url(listing.photo_url))
+    if listing.photo_urls:
+        for p in listing.photo_urls.split(','):
+            p = p.strip()
+            if p:
+                images.append(_abs_url(p))
+    if not images:
+        images = [og_image_url]
+
     # Build JSON-LD Product + Offer (location-aware, seller-aware)
     if listing.user:
         if listing.is_business_ad and getattr(listing.user, 'business_name', None):
@@ -956,7 +968,7 @@ def detail(listing_id):
 
     # Clean description for schema
     schema_desc_source = listing.description or meta_description
-    schema_desc = schema_desc_source.replace('\r', ' ').replace('\n', ' ').strip()[:500]
+    schema_desc = ' '.join(schema_desc_source.replace('\r', ' ').replace('\n', ' ').split()).strip()[:500]
 
     structured_data = {
         "@context": "https://schema.org",
@@ -973,7 +985,6 @@ def detail(listing_id):
             "@type": "AggregateRating",
             "reviewCount": "0"
         },
-        "review": [],
         "areaServed": {
             "@type": "City",
             "name": listing.location
@@ -1004,18 +1015,29 @@ def detail(listing_id):
                     "@type": "DefinedRegion",
                     "addressCountry": "ZA"
                 },
-                "deliveryMethod": "https://schema.org/OnSitePickup"
+                "deliveryMethod": "https://schema.org/OnSitePickup",
+                "deliveryTime": {
+                    "@type": "ShippingDeliveryTime",
+                    "handlingTime": {
+                        "@type": "QuantitativeValue",
+                        "minValue": 0,
+                        "maxValue": 1,
+                        "unitCode": "DAY"
+                    }
+                }
             },
             "hasMerchantReturnPolicy": {
                 "@type": "MerchantReturnPolicy",
                 "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
                 "merchantReturnDays": 0,
                 "returnFees": "https://schema.org/FreeReturn",
+                "returnMethod": "https://schema.org/ReturnByMail",
                 "applicableCountry": "ZA"
             },
             "seller": {
                 "@type": seller_type,
-                "name": seller_name
+                "name": seller_name,
+                "url": "https://www.volstruisgids.co.za"
             }
         }
     }
@@ -1030,8 +1052,13 @@ def detail(listing_id):
     if price_val is not None:
         structured_data["offers"]["price"] = price_val
 
-    if og_image_url:
-        structured_data["image"] = og_image_url
+    # Help reduce non-critical issues in Google Rich Results for offers
+    structured_data["offers"]["priceValidUntil"] = (datetime.utcnow() + timedelta(days=30)).date().isoformat()
+
+    if images:
+        structured_data["image"] = images
+    elif og_image_url:
+        structured_data["image"] = [og_image_url]
 
     return render_template('listings/detail.html',
                            listing=listing,
