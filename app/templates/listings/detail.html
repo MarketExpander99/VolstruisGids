@@ -2,30 +2,26 @@
 
 {% block title %}{{ page_title or (listing.title + ' - Volstruis Gids') }}{% endblock %}
 
-{% block head %}
-    <meta name="description" content="{{ meta_description }}">
-    <link rel="canonical" href="{{ request.url_root.rstrip('/') }}{{ url_for('listings.detail', listing_id=listing.id) }}">
+{# Override base meta blocks for per-listing SEO (no duplicates, server-rendered) #}
+{% block meta_description %}{{ meta_description }}{% endblock %}
 
-    <!-- Open Graph / Social sharing -->
-    <meta property="og:title" content="{{ page_title }}">
-    <meta property="og:description" content="{{ meta_description }}">
-    <meta property="og:type" content="product">
-    <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ url_for('listings.detail', listing_id=listing.id) }}">
-    
-    {% set og_image = None %}
-    {% if listing.photo_url %}
-        {% set og_image = request.url_root.rstrip('/') ~ listing.photo_url %}
-    {% endif %}
-    {% if og_image %}
-    <meta property="og:image" content="{{ og_image }}">
-    {% endif %}
-    
-    <meta property="og:site_name" content="VolstruisGids">
+{% block og_title %}{{ page_title }}{% endblock %}
+{% block og_description %}{{ meta_description }}{% endblock %}
+{% block og_type %}website{% endblock %}
+{% block og_image %}{{ og_image_url or url_for('static', filename='img/default-listing.jpg', _external=True) }}{% endblock %}
 
-    <!-- JSON-LD Structured Data for Google -->
-    <script type="application/ld+json">
-    {{ structured_data | tojson | safe }}
-    </script>
+{% block twitter_title %}{{ page_title }}{% endblock %}
+{% block twitter_description %}{{ meta_description }}{% endblock %}
+{% block twitter_image %}{{ og_image_url or url_for('static', filename='img/default-listing.jpg', _external=True) }}{% endblock %}
+
+{# Extra head: canonical + JSON-LD Product+Offer (per SEO spec) #}
+{% block extra_head %}
+<link rel="canonical" href="{{ request.url }}">
+<meta name="robots" content="index, follow">
+
+<script type="application/ld+json">
+{{ structured_data | tojson | safe }}
+</script>
 {% endblock %}
 
 {% block content %}
@@ -75,7 +71,7 @@
                          src="{{ all_photos[0] }}"
                          class="w-100 listing-detail-hero-img"
                          style="max-height: 620px; object-fit: contain; display: block; background-color: #F8F4EB;"
-                         alt="{{ listing.title }} in {{ listing.location }} - Volstruis Gids">
+                         alt="{{ listing.title }} for sale in {{ listing.location }}, Klein Karoo - VolstruisGids">
 
                     <!-- v2.0 Clear Post Type Treatment at the top (matching feed design) -->
                     <div class="position-absolute top-0 start-0 m-3">
@@ -128,7 +124,7 @@
                             <img src="{{ purl }}"
                                  class="gallery-thumb rounded-3 shadow-sm flex-shrink-0 {{ 'active' if idx == 0 else '' }}"
                                  style="width: 92px; height: 92px; object-fit: cover; cursor: pointer;"
-                                 alt="Photo {{ idx + 1 }} of {{ listing.title }}"
+                                 alt="{{ listing.title }} for sale in {{ listing.location }}, Klein Karoo - VolstruisGids"
                                  onclick="setMainPhoto('{{ purl }}', this)"
                                  data-photo-src="{{ purl }}">
                         {% endfor %}
@@ -402,7 +398,7 @@
                     <div class="carousel-inner">
                         {% for idx in range(all_photos|length) %}
                         <div class="carousel-item {% if idx == 0 %}active{% endif %}">
-                            <img src="{{ all_photos[idx] }}" class="d-block w-100" style="max-height: 80vh; object-fit: contain; background: #111;" alt="Photo {{ idx + 1 }}">
+                            <img src="{{ all_photos[idx] }}" class="d-block w-100" style="max-height: 80vh; object-fit: contain; background: #111;" alt="{{ listing.title }} for sale in {{ listing.location }}, Klein Karoo - VolstruisGids">
                         </div>
                         {% endfor %}
                     </div>

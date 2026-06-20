@@ -880,7 +880,8 @@ def mark_sold(listing_id):
 
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
-    listing = Listing.query.get_or_404(listing_id)
+    # Load with user eagerly for seller info in SEO + templates
+    listing = Listing.query.options(joinedload(Listing.user)).get_or_404(listing_id)
 
     # Increment views safely (using the correct model attribute)
     current_views = getattr(listing, 'views', 0) or 0
@@ -896,40 +897,115 @@ def detail(listing_id):
         message_form.receiver_id.data = listing.user_id
         message_form.listing_id.data = listing.id
 
-    # SEO
-    title = f"{listing.title} - {listing.location} | VolstruisGids"
-    meta_description = f"{listing.title} in {listing.location}. {'R' + str(int(listing.price)) if listing.price and listing.price > 0 else 'Price on request'}. Local classifieds Klein Karoo."
+    # SEO Enhancement (spec v1.0): server-rendered title, meta, OG-ready, full Product+Offer JSON-LD
+    page_title = f"{listing.title} in {listing.location}, Klein Karoo | VolstruisGids"
 
-    # Structured data
+    # Meta description (refined): respect user's description, keep it natural.
+    # Always include town + Klein Karoo. Target ~155 chars max.
+    raw_desc = (listing.description or '').strip().replace('\r', ' ').replace('\n', ' ')
+    raw_desc = ' '.join(raw_desc.split())  # collapse multiple spaces
+    if len(raw_desc) > 20:
+        # Take a generous chunk and cut cleanly at sentence or word boundary
+        chunk = raw_desc[:128]
+        if '. ' in chunk:
+            short = chunk.rsplit('. ', 1)[0] + '.'
+        else:
+            short = chunk.rsplit(' ', 1)[0].rstrip('.,;: ')
+        meta_description = f"{short} Available in {listing.location}, Klein Karoo on VolstruisGids."
+    else:
+        price_part = ""
+        if listing.price and listing.price > 0:
+            price_part = f" for R{int(listing.price):,}"
+        elif listing.price_type == 'range' and listing.min_price and listing.max_price:
+            price_part = f" (R{int(listing.min_price):,}–R{int(listing.max_price):,})"
+        meta_description = f"Buy {listing.title}{price_part} in {listing.location}, Klein Karoo. Safe local classifieds on VolstruisGids. Contact the seller."
+
+    if len(meta_description) > 158:
+        meta_description = meta_description[:155].rsplit(' ', 1)[0] + "..."
+
+    # Absolute URLs for images (OG + schema)
+    def _abs_url(p):
+        if not p:
+            return None
+        if p.startswith(('http://', 'https://')):
+            return p
+        root = request.url_root.rstrip('/')
+        return root + (p if p.startswith('/') else '/' + p)
+
+    primary_photo = listing.photo_url
+    if not primary_photo and listing.photo_urls:
+        first = [x.strip() for x in listing.photo_urls.split(',') if x.strip()]
+        if first:
+            primary_photo = first[0]
+    og_image_url = _abs_url(primary_photo) if primary_photo else None
+
+    # Build JSON-LD Product + Offer (location-aware, seller-aware)
+    if listing.user:
+        if listing.is_business_ad and getattr(listing.user, 'business_name', None):
+            seller_name = listing.user.business_name
+        else:
+            seller_name = listing.user.username or 'Local Seller'
+    else:
+        seller_name = 'Local Seller in Klein Karoo'
+    seller_type = "Organization" if listing.is_business_ad else "Person"
+
+    # Clean description for schema
+    schema_desc_source = listing.description or meta_description
+    schema_desc = schema_desc_source.replace('\r', ' ').replace('\n', ' ').strip()[:500]
+
     structured_data = {
         "@context": "https://schema.org",
-        "@type": "Offer",
+        "@type": "Product",
         "name": listing.title,
-        "description": (listing.description or "")[:500],
-        "price": str(listing.price) if listing.price and listing.price > 0 else None,
-        "priceCurrency": "ZAR",
-        "availability": "https://schema.org/InStock",
-        "seller": {
-            "@type": "Person" if not listing.is_business_ad else "Organization",
-            "name": (listing.user.business_name or listing.user.username) if listing.user else "Private Seller"
+        "description": schema_desc,
+        "url": request.url,
+        "brand": "VolstruisGids",
+        "areaServed": {
+            "@type": "City",
+            "name": listing.location
         },
-        "availableAtOrFrom": {
-            "@type": "Place",
-            "address": {
-                "@type": "PostalAddress",
-                "addressLocality": listing.location,
-                "addressRegion": "Western Cape",
-                "addressCountry": "ZA"
+        "offers": {
+            "@type": "Offer",
+            "url": request.url,
+            "priceCurrency": "ZAR",
+            "availability": "https://schema.org/InStock",
+            "itemCondition": "https://schema.org/UsedCondition",
+            "availableAtOrFrom": {
+                "@type": "Place",
+                "address": {
+                    "@type": "PostalAddress",
+                    "addressLocality": listing.location,
+                    "addressRegion": "Western Cape",
+                    "addressCountry": "ZA"
+                }
+            },
+            "seller": {
+                "@type": seller_type,
+                "name": seller_name
             }
         }
     }
 
+    # Only include price when we have a positive value (avoids invalid 0 price warnings)
+    price_val = None
+    if listing.price and listing.price > 0:
+        price_val = float(listing.price)
+    elif listing.price_type == 'range' and listing.min_price is not None and listing.min_price > 0:
+        price_val = float(listing.min_price)
+
+    if price_val is not None:
+        structured_data["offers"]["price"] = price_val
+
+    if og_image_url:
+        structured_data["image"] = og_image_url
+
     return render_template('listings/detail.html',
                            listing=listing,
                            message_form=message_form,
-                           page_title=title,
+                           page_title=page_title,
                            meta_description=meta_description,
-                           structured_data=structured_data)
+                           structured_data=structured_data,
+                           og_image_url=og_image_url)
 
 
 @listings_bp.route('/category/<string:category_name>')

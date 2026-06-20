@@ -40,6 +40,8 @@
     <meta name="twitter:description" content="{% block twitter_description %}{{ self.og_description() }}{% endblock %}">
     <meta name="twitter:image" content="{% block twitter_image %}{{ self.og_image() }}{% endblock %}">
 
+    {% block extra_head %}{% endblock %}
+
     <style>
         /* Smart hide/show on scroll */
         #top-navbar {
