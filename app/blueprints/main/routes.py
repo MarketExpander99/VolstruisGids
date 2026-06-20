@@ -262,6 +262,11 @@ def guidelines():
     return render_template('main/guidelines.html')
 
 
+@main_bp.route('/how-it-works')
+def how_it_works():
+    return render_template('main/how_it_works.html')
+
+
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])
 @login_required
 def delete_listing(listing_id):

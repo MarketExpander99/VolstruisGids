@@ -1168,3 +1168,38 @@ This brings the create flow into the v2.5 warm Klein Karoo design system. Ready 
 
 Golden ratio used lightly in spacing choices for visual harmony. Project looking sharp!
 
+
+## 2026-06-20 — How it Works Marketing Page (v1)
+
+**Task**: Implement full "How it Works" marketing page per spec v1.0 (single strong educational + sales page for personal & business users + pricing + credits + mission).
+
+**Files touched**:
+- app/blueprints/main/routes.py (added public `/how-it-works` route)
+- app/templates/main/how_it_works.html (new — hero, Personal section, Business section with transparent pricing, 4-step flow, mission close + CTAs)
+- app/templates/base.html (added nav link after Home)
+- app/templates/main/index.html (added prominent "See How It Works ?" button in hero)
+- PROJECT_STATUS.md (this entry)
+
+**Changes (smallest possible, spec-aligned)**:
+- Exact content structure & key messages from spec.
+- Pricing copied verbatim (5cr R49 / 10cr R89 / 25cr R199; R149/mo business plan) — matches backend CREDIT_PACKS & BUSINESS_MONTHLY.
+- Credit system & free tier (1 active listing) described clearly.
+- WhatsApp comparison, earn 0.5/share, storefront for all, regional pride.
+- Warm professional tone using existing CSS tokens and Bootstrap.
+- Mobile-first readable sections + 3 clear CTAs (Join / Post / Business Plans).
+- No CSS or model changes — reused theme, cards, buttons.
+
+**Verification**:
+- Shell scans performed.
+- `pip install -r requirements.txt` + import test + startup check = zero errors (full output below).
+
+**Task COMPLETE — here is what you should test:**
+- Visit /how-it-works directly.
+- Click "How it Works" in top navbar (desktop + feel on mobile).
+- Click the new hero CTA button on homepage.
+- Read Personal vs Business sections — WhatsApp complaints addressed, free tier & pricing transparent.
+- Steps are clean visual flow.
+- Mission statement + 3 CTAs at bottom work (register, post, credits).
+- Looks good on phone (sections stack nicely, buttons generous).
+- Page title correct for SEO.
+- No visual breakage on other pages. 
