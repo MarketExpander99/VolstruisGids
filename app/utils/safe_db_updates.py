@@ -203,6 +203,12 @@ def apply_safe_db_updates(db):
     except Exception as ex:
         logger.warning(f"Non-fatal error creating user_credit_passes table: {ex}")
 
+    # Site-wide hit counter / views since launch
+    try:
+        create_site_stats_table(db)
+    except Exception as ex:
+        logger.warning(f"Non-fatal error creating site_stats table: {ex}")
+
 
 def create_payment_tables(db):
     """Create payment_transactions table (idempotent) + ensure Stripe user columns.
@@ -356,4 +362,31 @@ def create_user_credit_passes_table(db):
         """))
         conn.commit()
         logger.info("✅ Ensured user_credit_passes table exists (Unlimited Credit Passes).")
+
+
+def create_site_stats_table(db):
+    """Create site_stats table for global hit counter ("X views since launch").
+    Idempotent. Uses the SiteStat model when possible.
+    """
+    from sqlalchemy import text
+
+    try:
+        engine = db.engine
+        inspector = inspect(engine)
+    except Exception as ex:
+        logger.warning(f"Could not obtain inspector for site_stats: {ex}")
+        return
+
+    with engine.connect() as conn:
+        # Create the table if it does not exist (works on fresh DBs)
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS site_stats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key VARCHAR(64) NOT NULL UNIQUE,
+                value INTEGER NOT NULL DEFAULT 0,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+        conn.commit()
+        logger.info("✅ Ensured site_stats table exists (for total site views counter).")
 

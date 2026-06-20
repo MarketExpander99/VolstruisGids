@@ -6,6 +6,7 @@ from app.models.listing import Listing
 from app.models.user import User
 from app.models.category import Category
 from app.models.credit_transaction import CreditTransaction
+from app.models.site_stat import SiteStat
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 from . import main_bp
@@ -96,9 +97,47 @@ def ensure_daily_free_credits(user):
         return False
 
 
+# ============================================================
+# Site-wide view counter — monthly aware for marketing messaging
+# "Your ad could have been viewed X times this month!"
+# ============================================================
+def record_site_view():
+    """Increment lifetime total + current month counter.
+    Returns the *current month's* view count after increment.
+    """
+    try:
+        now = datetime.utcnow()
+        month_key = f"views_{now.year:04d}-{now.month:02d}"
+        SiteStat.increment('total_views', 1)
+        monthly = SiteStat.increment(month_key, 1)
+        return monthly
+    except Exception:
+        return 0
+
+
+def get_current_month_views():
+    """Return how many views recorded for the current calendar month (no side effects)."""
+    try:
+        now = datetime.utcnow()
+        month_key = f"views_{now.year:04d}-{now.month:02d}"
+        return SiteStat.get_value(month_key, 0)
+    except Exception:
+        return 0
+
+
+def get_total_site_views():
+    """Lifetime total views (kept for reference)."""
+    try:
+        return SiteStat.get_value('total_views', 0)
+    except Exception:
+        return 0
+
+
 @main_bp.route('/')
 def index():
-    return render_template('main/index.html')
+    # Record a visit (increments this month's counter + lifetime)
+    monthly_views = record_site_view()
+    return render_template('main/index.html', monthly_views=monthly_views)
 
 
 @main_bp.route('/api/listings')
@@ -207,7 +246,8 @@ def api_listings():
         'listings': listings_data,
         'has_more': listings.has_next,
         'next_page': page + 1 if listings.has_next else None,
-        'storefront_owner': storefront_owner
+        'storefront_owner': storefront_owner,
+        'monthly_views': get_current_month_views()
     })
 
 
@@ -293,7 +333,10 @@ def guidelines():
 
 @main_bp.route('/how-it-works')
 def how_it_works():
-    return render_template('main/how_it_works.html', unlimited_passes=UNLIMITED_PASSES)
+    monthly_views = get_current_month_views()
+    return render_template('main/how_it_works.html', 
+                           unlimited_passes=UNLIMITED_PASSES,
+                           monthly_views=monthly_views)
 
 
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])

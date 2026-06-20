@@ -225,6 +225,27 @@
             </div>
         </section>
 
+        <!-- MONTHLY HIT COUNTER / SOCIAL PROOF -->
+        <section class="pb-5">
+            <div class="text-center">
+                <div class="d-inline-block px-4 py-3 px-md-5 rounded-4 shadow-sm" 
+                     style="background: #F8F4EB; border: 1px solid #E6D9C8;">
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                        <i class="bi bi-eye fs-5" style="color:#8B4513;"></i>
+                        <span class="fw-bold" style="font-size:1.35rem; color:#2C2522;">
+                            {{ monthly_views | default(0) }} views
+                        </span>
+                    </div>
+                    <div class="small fw-semibold" style="color:#5C524A; max-width: 320px; margin: 0 auto;">
+                        Your ad could have been viewed <strong>{{ monthly_views | default(0) }} times</strong> this month!
+                    </div>
+                    <div class="tiny text-muted mt-1" style="font-size:0.72rem;">
+                        Real local eyes on VolstruisGids right now
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </div>
 </div>
 

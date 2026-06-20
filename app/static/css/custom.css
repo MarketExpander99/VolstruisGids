@@ -914,3 +914,11 @@ footer, #main-footer {
 .seller-attribution .badge {
     vertical-align: middle;
 }
+
+/* Site views counter under "end of listings" message */
+.site-views {
+    font-size: 0.92em;
+    color: #2C3E50;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}

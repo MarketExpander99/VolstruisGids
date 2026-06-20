@@ -144,7 +144,10 @@
         <button id="load-more-btn" onclick="loadMore()" class="btn btn-outline-primary px-5 py-2 rounded-pill" style="display: none;">
             Load More Listings
         </button>
-        <div id="end-of-feed" class="text-muted small d-none mt-3">You've reached the end of the listings for now.</div>
+        <div id="end-of-feed" class="text-muted small d-none mt-3">
+            You've reached the end of the listings for now.
+            <div id="site-views-line" class="site-views mt-1"></div>
+        </div>
     </div>
 
     <div class="text-center text-muted small mt-4 pb-3">
@@ -181,6 +184,7 @@
 <script>
 window.isLoggedIn = JSON.parse('{{ current_user.is_authenticated | tojson }}');
 const GROK_LOGO_URL = '{{ url_for("static", filename="img/GrokLogo.png") }}';
+window.monthlyViews = {{ monthly_views | default(0) | int }};  // current month views for "Your ad could have been viewed X times this month!"
 let currentGrokListing = null;
 function openGrokChat(listingId, title, description, area) {
     currentGrokListing = { id: listingId, title: title, description: description, area: area };
@@ -654,7 +658,19 @@ document.addEventListener('click', function(e) {
                 const loadBtn = document.getElementById('load-more-btn');
                 const endMsg = document.getElementById('end-of-feed');
                 if (loadBtn) loadBtn.style.display = hasMore ? 'inline-block' : 'none';
-                if (endMsg) endMsg.classList.toggle('d-none', hasMore || data.listings.length === 0);
+                if (endMsg) {
+                    const shouldShowEnd = !hasMore && data.listings.length > 0;
+                    endMsg.classList.toggle('d-none', !shouldShowEnd);
+                    if (shouldShowEnd) {
+                        const views = (typeof data.monthly_views === 'number') ? data.monthly_views : (window.monthlyViews || 0);
+                        const viewsEl = document.getElementById('site-views-line');
+                        if (viewsEl) {
+                            const formatted = Number(views).toLocaleString();
+                            const timesWord = (views === 1) ? 'time' : 'times';
+                            viewsEl.innerHTML = `<i class="bi bi-eye me-1"></i>Your ad could have been viewed <strong>${formatted} ${timesWord}</strong> this month!`;
+                        }
+                    }
+                }
                 hideLoadingState();
                 updateStorefrontMode(data, append);
             })
