@@ -82,8 +82,32 @@ def profile():
                     resize_image_to_square(filepath)
                     current_user.profile_pic = f'/static/uploads/{filename}'
 
+            # === One-way Personal -> Business Account Upgrade (ACCOUNT-BUSINESS-2026-06-20) ===
+            # Non-downgradable. Triggered by filling business_name while personal.
+            upgraded_now = False
+            if not current_user.is_business_account:
+                bn = (form.business_name.data or '').strip()
+                if bn:
+                    # Enforce required business fields for upgrade (per spec)
+                    cp = (form.business_contact_person.data or '').strip()
+                    bp = (form.business_phone.data or '').strip()
+                    if not cp or not bp:
+                        flash('To upgrade, please provide Business Name, Contact Person and Business Phone.', 'warning')
+                    else:
+                        current_user.is_business = True
+                        current_user.account_type = 'business'
+                        current_user.business_name = bn
+                        current_user.business_type = (form.business_type.data or '').strip() or None
+                        current_user.business_contact_person = cp
+                        current_user.business_phone = bp
+                        current_user.upgraded_at = datetime.utcnow()
+                        # business_verified stays False (future manual/admin verify)
+                        upgraded_now = True
+                        flash('🎉 Account upgraded to Business! You now have the business badge and can post as a company.', 'success')
+
             db.session.commit()
-            flash('✅ Profile updated successfully!', 'success')
+            if not upgraded_now:
+                flash('✅ Profile updated successfully!', 'success')
             return redirect(url_for('profile.profile'))
 
     else:

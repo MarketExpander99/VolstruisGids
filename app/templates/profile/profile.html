@@ -112,6 +112,51 @@
                             {% endfor %}
                         </div>
 
+                        {% if not is_business %}
+                        <!-- One-way upgrade to Business Account (per ACCOUNT-BUSINESS-2026-06-20 spec) -->
+                        <div class="mb-4 p-4 bg-light border border-warning rounded-3">
+                            <h6 class="fw-bold mb-2 text-warning">
+                                <i class="bi bi-building me-2"></i>Upgrade to Business Account
+                            </h6>
+                            <p class="small text-muted mb-3">One-time upgrade. Provides business badge, company name on listings, and unlocks future business features. <strong>Non-downgradable.</strong></p>
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    {{ form.business_name.label(class="form-label fw-semibold") }}
+                                    {{ form.business_name(class="form-control") }}
+                                    {% for error in form.business_name.errors %}
+                                        <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.business_contact_person.label(class="form-label fw-semibold") }}
+                                    {{ form.business_contact_person(class="form-control") }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.business_phone.label(class="form-label fw-semibold") }}
+                                    {{ form.business_phone(class="form-control") }}
+                                </div>
+                                <div class="col-12">
+                                    {{ form.business_type.label(class="form-label fw-semibold") }}
+                                    {{ form.business_type(class="form-control") }}
+                                    <small class="text-muted">e.g. Construction, Tourism, Retail</small>
+                                </div>
+                            </div>
+                            <small class="d-block mt-2 text-muted">Fill Business Name + Contact + Phone to upgrade on Save.</small>
+                        </div>
+                        {% else %}
+                        <!-- Business details (read-only summary after upgrade) -->
+                        {% if current_user.business_name %}
+                        <div class="mb-4 p-3 bg-light border rounded-3 small">
+                            <div><strong>Business:</strong> {{ current_user.business_name }}</div>
+                            {% if current_user.business_type %}<div><strong>Type:</strong> {{ current_user.business_type }}</div>{% endif %}
+                            {% if current_user.business_contact_person %}<div><strong>Contact:</strong> {{ current_user.business_contact_person }}</div>{% endif %}
+                            {% if current_user.business_phone %}<div><strong>Business Phone:</strong> {{ current_user.business_phone }}</div>{% endif %}
+                            {% if current_user.upgraded_at %}<div class="text-muted">Upgraded: {{ current_user.upgraded_at.strftime('%Y-%m-%d') }}</div>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endif %}
+
                         <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold" id="save-btn">
                             <i class="bi bi-check2-circle me-1"></i>Save Changes
                         </button>

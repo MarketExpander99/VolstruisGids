@@ -11,6 +11,11 @@ class ProfileForm(FlaskForm):
     phone = StringField('Phone Number', validators=[Optional(), Length(max=20)])
     photo = FileField('Business Logo / Profile Picture', 
                       validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')])
+    # Business upgrade fields (one-way, shown only for personal accounts)
+    business_name = StringField('Business / Company Name', validators=[Optional(), Length(max=120)])
+    business_type = StringField('Business Type / Category (optional)', validators=[Optional(), Length(max=80)])
+    business_contact_person = StringField('Contact Person Name', validators=[Optional(), Length(max=100)])
+    business_phone = StringField('Business Phone (for enquiries)', validators=[Optional(), Length(max=30)])
     submit = SubmitField('Save Changes')
 
     def validate_email(self, field):

@@ -21,6 +21,11 @@ class User(UserMixin, db.Model):
 
     is_business = db.Column(db.Boolean, default=False)
     business_name = db.Column(db.String(100), nullable=True)
+    business_type = db.Column(db.String(80), nullable=True)
+    business_contact_person = db.Column(db.String(100), nullable=True)
+    business_phone = db.Column(db.String(30), nullable=True)
+    business_verified = db.Column(db.Boolean, default=False)
+    upgraded_at = db.Column(db.DateTime, nullable=True)
     profile_pic = db.Column(db.String(200), nullable=True)
     bio = db.Column(db.Text, nullable=True)
     location = db.Column(db.String(100), nullable=True)

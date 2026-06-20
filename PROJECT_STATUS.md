@@ -1368,3 +1368,42 @@ python -c "from app import create_app; app = create_app(); ..."
 
 Backward compatible. Unlimited is purely additive benefit on top of existing credit + Yoco promotion system.
 
+## 2026-06-20 — Personal to Business Account Upgrade (Spec ACCOUNT-BUSINESS-2026-06-20)
+
+**Task**: Implement one-way Personal → Business Account upgrade via profile section. Collect required business details. Mark account with is_business / account_type + new fields. Non-downgradable in v1. Badge + business posting behaviour already existed; this adds the explicit upgrade path.
+
+**Files touched** (full shell scan via Get-ChildItem/Select-String + python DB inspect before edits):
+- app/models/user.py
+- app/utils/safe_db_updates.py
+- app/blueprints/profile/forms.py
+- app/blueprints/profile/routes.py
+- app/templates/profile/profile.html
+- PROJECT_STATUS.md
+
+**Changes delivered (smallest possible edits only)**:
+- Added spec columns: business_type, business_contact_person, business_phone, business_verified, upgraded_at to User (nullable). Preserved full backward compat with is_business + account_type + is_business_account property.
+- Extended safe_db_updates (called at startup) with idempotent ALTER for the 5 columns (with backups pattern followed from prior add_* scripts).
+- Added 4 optional fields to ProfileForm (business_name etc) — upgrade triggers on submit when personal + business_name provided (enforces contact + phone per spec).
+- In profile route: one-way upgrade block that sets all fields + flags + timestamp. Distinct flash for upgrade success. Generic save flash suppressed on upgrade.
+- In profile.html: conditional upgrade panel (yellow-bordered, clear guidance, all 4 fields) shown only if not business. After upgrade: compact summary of business details. Reuses the single existing form + save button. No new routes.
+- 100% follows spec: one-way, via profile, collects Business Name + Type(opt) + Contact Person + Phone. Logo already supported in same form.
+
+**Verification** (per project rules — shell commands + build guarantee):
+- Shell scans + DB column inspect completed before any writes.
+- `pip install -r requirements.txt --prefer-binary`
+- `python -c "from app import create_app; app=create_app(); print('=== BUILD GUARANTEE PASSED ===')"` → ZERO errors.
+- Blueprints intact.
+- On next profile save for personal: upgrade path active (DB columns added automatically on first app start via safe updater).
+- No changes to auth registration, listings, payments or other flows.
+
+**Task COMPLETE — here is what you should test:**
+- As a personal account user: visit /profile, fill Business / Company Name + Contact Person + Business Phone (type optional), Save → see upgrade success flash, badge changes to Business, summary appears, future listings use company name.
+- Try partial fill: warning to complete required fields.
+- Business accounts: no upgrade form shown; existing business details summary visible if populated.
+- Upgrade is one-way (no way to revert in UI).
+- Re-login or reload: is_business_account remains True.
+- App runs with zero errors; safe DB update logs column adds.
+- Existing personal users and direct business registrations unaffected.
+
+Only the upgrade flow per spec. Smallest targeted edits. Build guarantee passed. New ideas go to backlog.md only.
+

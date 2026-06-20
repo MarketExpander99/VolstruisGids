@@ -106,6 +106,29 @@ def apply_safe_db_updates(db):
                 except Exception:
                     pass
 
+        # Business Account upgrade columns (ACCOUNT-BUSINESS-2026-06-20 spec, one-way)
+        for col_name, col_type, col_default in [
+            ('business_type', 'VARCHAR(80)', None),
+            ('business_contact_person', 'VARCHAR(100)', None),
+            ('business_phone', 'VARCHAR(30)', None),
+            ('business_verified', 'BOOLEAN', '0'),
+            ('upgraded_at', 'DATETIME', None),
+        ]:
+            if _column_exists(inspector, 'users', col_name):
+                logger.info(f"Column '{col_name}' already exists on 'users' — skipping.")
+            else:
+                try:
+                    default_sql = f" DEFAULT {col_default}" if col_default is not None else ""
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}{default_sql}"))
+                    conn.commit()
+                    logger.info(f"✅ Added '{col_name}' column to 'users' table (business upgrade).")
+                except Exception as e:
+                    logger.error(f"Failed to add {col_name} column: {e}")
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+
         # last_reposted_at on listings
         if _column_exists(inspector, 'listings', 'last_reposted_at'):
             logger.info("Column 'last_reposted_at' already exists on 'listings' — skipping.")
