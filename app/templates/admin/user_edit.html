@@ -1,0 +1,90 @@
+{% extends "admin/base.html" %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">User: <span class="text-primary">{{ user.username }}</span> <small class="text-muted">(ID {{ user.id }})</small></h4>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-secondary">← All Users</a>
+</div>
+
+<div class="row g-4">
+    <!-- Username -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-header"><strong>Change Username</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ username_form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ username_form.new_username.label(class="form-label") }}
+                        {{ username_form.new_username(class="form-control") }}
+                        {% for err in username_form.new_username.errors %}
+                            <div class="text-danger small">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="btn btn-warning">Change Username</button>
+                </form>
+                <div class="small text-muted mt-2">User will use the new username on next login.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Reset -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100 border-warning">
+            <div class="card-header bg-warning-subtle"><strong>Reset Password</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="reset_password">
+                    <p class="mb-2">This will generate a new temporary password and immediately update the user's hash.</p>
+                    <button type="submit" class="btn btn-danger"
+                            onclick="return confirm('Generate new temporary password for this user?');">
+                        Generate Temporary Password
+                    </button>
+                </form>
+
+                {% if temp_password_display %}
+                <div class="alert alert-warning mt-3" role="alert">
+                    <strong>ONE-TIME TEMP PASSWORD (show once):</strong><br>
+                    <code class="fs-5 fw-bold user-select-all">{{ temp_password_display }}</code>
+                    <div class="small mt-1">Send securely (Signal / in-person / etc). Do not store this value.</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Credits -->
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>Adjust Credits</strong> — Current balance: <strong>{{ current_credits }}</strong></div>
+            <div class="card-body">
+                <form method="POST" class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        {{ credit_form.amount.label(class="form-label") }}
+                        {{ credit_form.amount(class="form-control", step="0.5") }}
+                    </div>
+                    <div class="col-md-5">
+                        {{ credit_form.reason.label(class="form-label") }}
+                        {{ credit_form.reason(class="form-control", placeholder="Support adjustment / goodwill / refund / etc") }}
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-success w-100">Apply</button>
+                    </div>
+                    <div class="col-12">
+                        <div class="small text-muted">
+                            Positive adds credits. Negative subtracts. A CreditTransaction of type <code>admin_adjust</code> is created automatically.
+                        </div>
+                    </div>
+                    {% for field, errs in credit_form.errors.items() %}
+                        {% for e in errs %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    {% endfor %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('admin.users', q=user.username) }}" class="btn btn-outline-secondary btn-sm">Back to search</a>
+</div>
+{% endblock %}

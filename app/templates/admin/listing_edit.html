@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between mb-3">
+    <h4>Edit Listing #{{ listing.id }}</h4>
+    <a href="{{ url_for('admin.listings') }}" class="btn btn-sm btn-outline-secondary">Back to listings</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">Details</div>
+    <div class="card-body">
+        <div class="small text-muted mb-2">
+            Owner: <strong>{{ listing.user.username if listing.user else listing.user_id }}</strong>
+            • Area: {{ listing.area or listing.location }}
+            • Type: {{ listing.post_type }}
+        </div>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.title.label(class="form-label") }}
+                {{ form.title(class="form-control") }}
+                {% for e in form.title.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control", rows=6) }}
+                {% for e in form.description.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Title &amp; Description</button>
+        </form>
+    </div>
+</div>
+
+<!-- Admin actions -->
+<div class="card border-danger shadow-sm">
+    <div class="card-header text-danger">Danger Zone</div>
+    <div class="card-body d-flex gap-2 flex-wrap">
+        <form method="POST" onsubmit="return confirm('Deactivate this listing? It will be hidden from the public feed.');">
+            <input type="hidden" name="deactivate" value="1">
+            <button type="submit" class="btn btn-outline-warning">Deactivate (soft hide)</button>
+        </form>
+
+        <form method="POST" onsubmit="return confirm('PERMANENTLY DELETE this listing? Messages will be detached. This cannot be undone.');">
+            <input type="hidden" name="delete" value="1">
+            <button type="submit" class="btn btn-danger">Delete Permanently</button>
+        </form>
+    </div>
+    <div class="card-footer small text-muted">
+        Deleting detaches any related messages (listing_id set to null).
+    </div>
+</div>
+{% endblock %}

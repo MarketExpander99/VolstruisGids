@@ -77,5 +77,8 @@ class Config:
     # For Stripe we usually use the same key but env-aware for docs clarity
     STRIPE_API_KEY = STRIPE_SECRET_KEY
 
+    # === Admin Panel (environment controlled, no DB column) ===
+    ADMIN_USERNAMES = os.environ.get('ADMIN_USERNAMES', '')
+
 # After class definition, we can add debug when module loads, but better in create_app
 # The debug will be printed in create_app below.

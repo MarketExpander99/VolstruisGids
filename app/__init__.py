@@ -94,6 +94,7 @@ def create_app(config_class=Config):
     from app.blueprints.payments import payments_bp   # <-- Added for Paystack integration
     from app.blueprints.messages import messages_bp   # <-- Private Messaging MVP
     from app.blueprints.sitemap import sitemap_bp
+    from app.blueprints.admin import admin_bp
 
     app.register_blueprint(sitemap_bp)
     app.register_blueprint(auth_bp)
@@ -102,6 +103,7 @@ def create_app(config_class=Config):
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(payments_bp)   # <-- Added (url_prefix='/payments' is defined inside the blueprint)
     app.register_blueprint(messages_bp)   # <-- /messages/inbox, /messages/conversation etc.
+    app.register_blueprint(admin_bp)      # <-- /admin (protected by ADMIN_USERNAMES)
 
     # Context processor to provide unread message count for navbar notifications (NEW messages only)
     @app.context_processor

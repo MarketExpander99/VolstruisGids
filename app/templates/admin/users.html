@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+
+{% block admin_content %}
+<h4 class="mb-3">User Management</h4>
+
+<form method="get" class="row g-2 mb-4">
+    <div class="col-md-6">
+        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search username or email...">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Email / Phone</th>
+                <th>Credits</th>
+                <th>Created</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td>
+                    <strong>{{ u.username }}</strong>
+                    {% if u.is_business_account %}<span class="badge bg-success ms-1">business</span>{% endif %}
+                </td>
+                <td class="small text-muted">
+                    {{ u.email or '—' }}<br>
+                    {{ u.phone }}
+                </td>
+                <td>
+                    <span class="fw-semibold">{{ u.credits or u.credit_balance or 0 }}</span>
+                </td>
+                <td class="small">{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '—' }}</td>
+                <td class="text-end">
+                    <a href="{{ url_for('admin.user_edit', user_id=u.id) }}" class="btn btn-sm btn-outline-primary">
+                        Edit / Credits / Reset
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">No users found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<p class="small text-muted mt-2">Results limited to 100 newest matches. Use exact username for best precision.</p>
+{% endblock %}

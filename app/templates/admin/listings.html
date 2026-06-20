@@ -1,0 +1,54 @@
+{% extends "admin/base.html" %}
+
+{% block admin_content %}
+<h4 class="mb-3">Listing Management</h4>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-5">
+        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search title or description...">
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary">Search</button>
+        <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-sm table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Owner</th>
+                <th>Area</th>
+                <th>Active</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in listings %}
+            <tr>
+                <td>{{ l.id }}</td>
+                <td style="max-width: 280px;">{{ l.title[:70] }}{% if l.title|length > 70 %}...{% endif %}</td>
+                <td class="small">{{ l.user.username if l.user else l.user_id }}</td>
+                <td class="small">{{ l.area or l.location }}</td>
+                <td>
+                    {% if l.is_active %}
+                        <span class="badge bg-success">Yes</span>
+                    {% else %}
+                        <span class="badge bg-secondary">No</span>
+                    {% endif %}
+                </td>
+                <td class="small text-muted">{{ l.created_at.strftime('%Y-%m-%d') if l.created_at else '' }}</td>
+                <td class="text-end">
+                    <a href="{{ url_for('admin.listing_edit', listing_id=l.id) }}" class="btn btn-sm btn-outline-primary">Edit / Delete</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted">No listings found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

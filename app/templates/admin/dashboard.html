@@ -1,0 +1,83 @@
+{% extends "admin/base.html" %}
+
+{% block admin_content %}
+<div class="row g-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6">{{ user_count }}</div>
+                <div class="text-muted">Total Users</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6">{{ listing_count }}</div>
+                <div class="text-muted">Total Listings</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6">{{ active_listing_count }}</div>
+                <div class="text-muted">Active Listings</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6">{{ credit_tx_count }}</div>
+                <div class="text-muted">Credit Transactions</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <strong>Quick Actions</strong>
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('admin.users') }}" class="btn btn-primary me-2 mb-2">
+                    <i class="bi bi-people"></i> Manage Users
+                </a>
+                <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary me-2 mb-2">
+                    <i class="bi bi-card-list"></i> Manage Listings
+                </a>
+                <p class="small text-muted mt-3 mb-0">
+                    All actions are logged to <code>instance/admin_audit.log</code>.
+                    Credit adjustments also appear in CreditTransaction table.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <strong>Recent Admin Activity (tail)</strong>
+            </div>
+            <div class="card-body" style="font-family: monospace; font-size: 0.8rem; max-height: 220px; overflow:auto;">
+                {% for line in audit_lines %}
+                    <div>{{ line }}</div>
+                {% else %}
+                    <div class="text-muted">No activity yet.</div>
+                {% endfor %}
+            </div>
+            <div class="card-footer small text-muted">
+                File: instance/admin_audit.log
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4 text-muted small">
+    <strong>Security:</strong> Access limited to usernames listed in <code>ADMIN_USERNAMES</code> (see .env). 
+    No database column or migrations required.
+</div>
+{% endblock %}
