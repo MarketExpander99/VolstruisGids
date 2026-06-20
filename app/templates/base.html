@@ -107,12 +107,12 @@
                         <li class="nav-item">
                             <span class="nav-link d-flex align-items-center">
                                 <i class="bi bi-coin me-1"></i>
-                                <strong>{{ current_user.credit_balance or 0 }}</strong>
+                                <strong>{{ current_user.credits or current_user.credit_balance or 0 }}</strong>
                             </span>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-warning fw-semibold" href="{{ url_for('payments.buy_credits') }}">
-                                <i class="bi bi-coin me-1"></i>Buy Credits
+                            <a class="nav-link text-warning fw-semibold" href="{{ url_for('payments.credits_billing') }}">
+                                <i class="bi bi-coin me-1"></i>Credits &amp; Billing
                             </a>
                         </li>
                         <li class="nav-item">

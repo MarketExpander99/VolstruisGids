@@ -7,7 +7,7 @@
             <!-- Header -->
             <div class="text-center mb-4">
                 <h2 class="fw-bold">Buy Credits</h2>
-                <p class="text-muted">Pay-as-you-use via Yoco • Credits never expire • 1 free listing per day for personal accounts</p>
+                <p class="text-muted">Pay-as-you-use via Yoco • Credits never expire • 1 free active 7-day listing for personal accounts (resets when it expires)</p>
             </div>
 
             <!-- Current Balance Card -->
@@ -92,13 +92,14 @@
             <!-- Info Footer -->
             <div class="mt-5 text-center">
                 <div class="alert alert-light border small">
-                    <strong>How credits work (v1.0):</strong><br>
-                    • 1 free listing per day for Personal accounts (resets at midnight SAST)<br>
-                    • Normal listing = 1 credit &nbsp;&nbsp;• Super/Business listing = 2 credits<br>
-                    • Repost (bump visibility) = 1 credit<br>
-                    • Credits never expire, but are non-refundable once purchased.<br>
+                    <strong>How credits work (v1.1):</strong><br>
+                    • Personal: 1 free active listing for 7 days. Expires → free slot resets automatically.<br>
+                    • Posting while you have an active listing costs 1 credit.<br>
+                    • Repost expired listing = 1 credit (refreshes visibility).<br>
+                    • Business listings &amp; extras cost more credits. Credits never expire.<br>
                 </div>
                 <a href="{{ url_for('profile.profile') }}" class="btn btn-outline-secondary btn-sm">← Back to Profile</a>
+                <a href="{{ url_for('payments.credits_billing') }}" class="btn btn-outline-primary btn-sm ms-2">Stripe Billing &amp; Business Sub →</a>
             </div>
         </div>
     </div>

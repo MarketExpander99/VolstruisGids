@@ -100,14 +100,24 @@
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 {% for listing in listings %}
                 <div class="col">
-                    <div class="card h-100 shadow-sm">
+                    <div class="card h-100 shadow-sm {% if listing.is_expired %}border-danger{% endif %}" style="position: relative;">
+                        {% if listing.is_expired %}
+                        <div class="position-absolute top-0 start-0 m-2" style="z-index: 5;">
+                            <span class="badge bg-danger px-2 py-1" style="font-size: 0.7rem;">EXPIRED</span>
+                        </div>
+                        {% endif %}
                         {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
                         {% set img_variant = ' photo' if listing.photo_url else ' no-photo' %}
-                        <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" style="height: 180px; width: 100%; background-color: #f8f9fa;" alt="{{ listing.title }}">
+                        <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" style="height: 180px; width: 100%; background-color: #f8f9fa; {% if listing.is_expired %}filter: grayscale(45%) opacity(0.82);{% endif %}" alt="{{ listing.title }}">
                         <div class="card-body">
                             <span class="badge bg-{{ 'success' if listing.post_type == 'sale' else 'warning' if listing.post_type == 'wanted' else 'info' if listing.post_type == 'rental' else 'primary' if listing.post_type == 'services' else 'info' }}">
                                 {{ 'For Rent' if listing.post_type == 'rental' else listing.post_type|title }}
                             </span>
+                            {% if listing.is_expired %}
+                            <div class="alert alert-danger py-1 px-2 small mb-1" style="font-size: 0.75rem;">
+                                <strong>Expired {{ listing.days_since_freshness }} days ago.</strong> Hidden from public.
+                            </div>
+                            {% endif %}
                             <h5 class="card-title mt-2">{{ listing.title }}</h5>
                             {% if listing.price_type == 'range' and listing.min_price is not none and listing.max_price is not none %}
                                 <h6 class="text-success">{{ listing.min_price | currency }} – {{ listing.max_price | currency }}</h6>

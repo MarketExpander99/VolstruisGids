@@ -9,11 +9,13 @@ from . import listings_bp
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+from decimal import Decimal
 from app.models.credit_transaction import CreditTransaction
 import requests
 import json as pyjson
 import re
+from sqlalchemy import func
 
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -64,7 +66,7 @@ def improve_with_ai():
     is_free = ai_uses_today < 2
     cost = 0 if is_free else 8
 
-    if not is_free and current_user.credit_balance < cost:
+    if not is_free and (current_user.credit_balance or Decimal('0')) < Decimal(str(cost)):
         return jsonify({
             'error': f'Not enough credits. After 2 free daily uses, this costs {cost} credits.'
         }), 402
@@ -149,7 +151,7 @@ Return ONLY valid JSON with these exact keys (no extra text, no markdown):
             'price_reason': improved.get('price_reason', ''),
             'is_free': is_free,
             'credits_used': cost,
-            'remaining_credits': current_user.credit_balance - cost if not is_free else current_user.credit_balance,
+            'remaining_credits': float((current_user.credit_balance or Decimal('0')) - Decimal(str(cost))) if not is_free else float(current_user.credit_balance or 0),
             'uses_today': ai_uses_today + 1
         })
 
@@ -209,39 +211,75 @@ def create():
 
         num_extra_photos = len(photo_urls_list)
 
-        posts_today = getattr(current_user, 'posts_today', 0) or 0
-        is_business = current_user.account_type == 'business' or current_user.is_business
+        is_business = current_user.account_type == 'business' or getattr(current_user, 'is_business', False)
 
-        if current_user.account_type == 'personal' and posts_today < 1:
-            required_credits = 0
-            listing_type = 'normal'
-            current_user.posts_today = posts_today + 1
+        # ============================================================
+        # v1.1 Credit System — Free Tier Logic (one free active 7-day listing)
+        # Personal: if 0 active (non-expired) listings → this post is FREE
+        #          else (has active) → costs 1 credit (plus photo extras)
+        # Business: standard charges (no free slot limit applied here)
+        # ============================================================
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+        active_count = db.session.query(Listing.id).filter(
+            Listing.user_id == current_user.id,
+            Listing.is_active == True,
+            freshness >= seven_days_ago
+        ).count()
+
+        if not is_business:
+            if active_count == 0:
+                # FREE slot — first/renewed active listing
+                base_credits = 0
+                listing_type = 'normal'
+                is_free_slot = True
+            else:
+                # Already 1+ active → charge 1 for this additional concurrent listing
+                base_credits = 1
+                listing_type = 'normal'
+                is_free_slot = False
+        else:
+            base_credits = 2
+            listing_type = 'super'
+            is_free_slot = False
+
+        extra_photo_credits = num_extra_photos
+        required_credits = base_credits + extra_photo_credits
+        had_active_before = active_count >= 1   # capture for post-commit messages and guards
+
+        if required_credits > 0:
+            current_balance = current_user.credit_balance or Decimal('0')
+            req_dec = Decimal(str(required_credits))
+            if current_balance < req_dec:
+                if not is_business and had_active_before:
+                    flash(
+                        "You already have an active listing. "
+                        "Let it expire or use 1 credit to post another one now.",
+                        "warning"
+                    )
+                else:
+                    who = "super/business" if is_business else "normal"
+                    msg = f'Not enough credits. This {who} listing requires {required_credits} credit(s).'
+                    if extra_photo_credits > 0:
+                        msg += f' ({extra_photo_credits} extra for additional photos)'
+                    flash(msg, 'warning')
+                return redirect(url_for('listings.create'))
+
+            current_user.credit_balance = current_balance - req_dec
             txn = CreditTransaction(
                 user_id=current_user.id,
-                amount=0,
-                transaction_type='free_quota',
-                reference=f'free_quota_{datetime.utcnow().isoformat()}'
+                amount=-req_dec,
+                transaction_type='listing',
+                reference=f'listing_create_{datetime.utcnow().isoformat()}'
             )
             db.session.add(txn)
         else:
-            base_credits = 2 if is_business else 1
-            extra_photo_credits = num_extra_photos
-            required_credits = base_credits + extra_photo_credits
-            listing_type = 'super' if is_business else 'normal'
-
-            if current_user.credit_balance < required_credits:
-                msg = f'Not enough credits. This {"super/business" if is_business else "normal"} listing requires {required_credits} credit(s).'
-                if extra_photo_credits > 0:
-                    msg += f' ({extra_photo_credits} extra for additional photos)'
-                flash(msg, 'warning')
-                return redirect(url_for('listings.create'))
-
-            current_user.credit_balance -= required_credits
+            # Free active slot — no deduction
             txn = CreditTransaction(
                 user_id=current_user.id,
-                amount=-required_credits,
-                transaction_type='listing',
-                reference=f'listing_create_{datetime.utcnow().isoformat()}'
+                amount=Decimal('0'),
+                transaction_type='free_active_slot',
+                reference=f'free_active_slot_{datetime.utcnow().isoformat()}'
             )
             db.session.add(txn)
 
@@ -275,7 +313,12 @@ def create():
             db.session.commit()
 
             action = request.form.get('action')
-            base_msg = 'Listing created successfully using your free daily quota! It will be live for 7 days.' if required_credits == 0 else f'Listing created successfully! {required_credits} credit(s) deducted. New balance: {current_user.credit_balance}'
+            if required_credits == 0:
+                base_msg = 'Posted successfully as your free active listing. It will be live for 7 days.'
+            else:
+                base_msg = f'Listing created successfully! {required_credits} credit(s) deducted. New balance: {current_user.credit_balance}'
+                if not is_business and had_active_before:
+                    base_msg = f'Posted successfully. {required_credits} credit(s) used (you already had an active listing). New balance: {current_user.credit_balance}'
 
             if action == 'create_new':
                 flash(base_msg + ' Category, town & contacts kept for your next listing.', 'success')
@@ -463,14 +506,16 @@ def quick_create():
         required_credits = 2
         num_extra_photos = len(photo_urls_list)
         total_required = required_credits + num_extra_photos
-        if current_user.credit_balance < total_required:
+        total_dec = Decimal(str(total_required))
+        curr_bal = current_user.credit_balance or Decimal('0')
+        if curr_bal < total_dec:
             flash(f'Not enough credits. Quick-create requires {total_required} credits.', 'warning')
             return render_template('listings/quick_create.html', form=form)
 
-        current_user.credit_balance -= total_required
+        current_user.credit_balance = curr_bal - total_dec
         txn = CreditTransaction(
             user_id=current_user.id,
-            amount=-total_required,
+            amount=-total_dec,
             transaction_type='listing',
             reference=f'quick_listing_{datetime.utcnow().isoformat()}'
         )
@@ -534,6 +579,99 @@ def boost(listing_id):
     return redirect(url_for('listings.detail', listing_id=listing.id))
 
 
+# ============================================================
+# Repost (for EXPIRED listings only) — v1.1 spec
+# Costs 1 credit, sets last_reposted_at (refreshes 7-day window), created_at untouched.
+# Button only shown on expired cards in my_listings.
+# ============================================================
+@listings_bp.route('/listing/<int:listing_id>/repost', methods=['POST'])
+@login_required
+def repost_listing(listing_id):
+    listing = Listing.query.get_or_404(listing_id)
+
+    if listing.user_id != current_user.id:
+        flash("You can only repost your own listings.", "danger")
+        return redirect(url_for('main.my_listings'))
+
+    if not listing.is_expired:
+        flash("This listing is still active.", "info")
+        return redirect(url_for('main.my_listings'))
+
+    if (current_user.credit_balance or Decimal('0')) < Decimal('1'):
+        flash("You need 1 credit to repost.", "warning")
+        return redirect(url_for('main.my_listings'))
+
+    try:
+        current_user.credit_balance = (current_user.credit_balance or Decimal('0')) - Decimal('1')
+
+        now = datetime.utcnow()
+        listing.last_reposted_at = now
+        listing.refreshed_at = now   # v1.2 spec: update refreshed_at on repost
+        # Repost refreshes visibility but does not force promoted badge (boost does)
+        # listing.is_promoted remains as-is
+
+        tx = CreditTransaction(
+            user_id=current_user.id,
+            amount=Decimal('-1'),
+            transaction_type='repost',
+            reference=f'repost_listing_{listing.id}'
+        )
+        db.session.add(tx)
+        db.session.commit()
+
+        flash("Listing reposted! It is now visible on the homepage again.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error reposting listing: {str(e)}", "danger")
+
+    return redirect(url_for('main.my_listings'))
+
+
+# ============================================================
+# Share-to-Earn (v1.2 spec)
+# Award 0.5 credits per successful share click (max 2 per day).
+# Simple button POST (no actual share verification in v1).
+# Can be triggered from my_listings or public views.
+# ============================================================
+@listings_bp.route('/listing/<int:listing_id>/share', methods=['POST'])
+@login_required
+def share_listing(listing_id):
+    today = date.today()
+
+    # Reset daily counter if new day
+    if current_user.last_share_reward_date != today:
+        current_user.last_share_reward_date = today
+        current_user.shares_rewarded_today = 0
+
+    if (current_user.shares_rewarded_today or 0) >= 2:
+        flash("You've reached your daily share reward limit (2). Thanks for spreading the word!", "info")
+        return redirect(url_for('main.my_listings'))
+
+    # Award 0.5 credits (use .credits setter for spec compat + credit_balance)
+    try:
+        current_credits = current_user.credits or Decimal('0')
+        current_user.credits = current_credits + Decimal('0.5')
+        current_user.shares_rewarded_today = (current_user.shares_rewarded_today or 0) + 1
+
+        # Optional audit tx (amount can be 0.5 now)
+        tx = CreditTransaction(
+            user_id=current_user.id,
+            amount=Decimal('0.5'),
+            transaction_type='share_reward',
+            reference=f'share_listing_{listing_id}'
+        )
+        db.session.add(tx)
+        db.session.commit()
+
+        flash("Thanks for sharing! +0.5 credits added.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Could not award share credit: {str(e)}", "danger")
+
+    # Per spec, redirect to my_listings (can enhance later to trigger real share)
+    return redirect(url_for('main.my_listings'))
+
+
 @listings_bp.route('/listing/<int:listing_id>')
 def detail(listing_id):
     listing = Listing.query.get_or_404(listing_id)
@@ -591,5 +729,12 @@ def detail(listing_id):
 @listings_bp.route('/category/<string:category_name>')
 def by_category(category_name):
     category = Category.query.filter_by(name=category_name).first_or_404()
-    listings = Listing.query.filter_by(category_id=category.id, is_active=True).order_by(Listing.created_at.desc()).all()
+    # Apply 7-day freshness filter (public category listings)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    freshness = db.func.coalesce(Listing.last_reposted_at, Listing.created_at)
+    listings = Listing.query.filter(
+        Listing.category_id == category.id,
+        Listing.is_active == True,
+        freshness >= seven_days_ago
+    ).order_by(Listing.created_at.desc()).all()
     return render_template('listings/category.html', category=category, listings=listings)

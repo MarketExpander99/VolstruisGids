@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <h2 class="fw-bold">Credits &amp; Billing</h2>
+                <p class="text-muted">Top up credits or subscribe for business benefits • Powered by Stripe (test mode ready)</p>
+            </div>
+
+            <!-- Current Balance + Status -->
+            <div class="card shadow-sm mb-4" style="border: 2px solid #E6B800; border-radius: 16px;">
+                <div class="card-body text-center py-4">
+                    <div class="d-flex justify-content-center align-items-center gap-4 flex-wrap">
+                        <div>
+                            <span class="fs-6 text-muted">Current Balance</span>
+                            <h1 class="display-4 fw-bold text-success mb-0">{{ current_balance }}</h1>
+                            <span class="text-muted">credits</span>
+                        </div>
+                        <div class="vr d-none d-md-block" style="height: 60px;"></div>
+                        <div class="text-start">
+                            <div>
+                                <span class="badge bg-{{ 'success' if is_business else 'primary' }} fs-6">
+                                    {{ 'Business' if is_business else 'Personal' }} Account
+                                </span>
+                            </div>
+                            <div class="mt-2">
+                                <span class="small text-muted">Subscription: </span>
+                                <span class="badge bg-{{ 'success' if subscription_status == 'active' else 'secondary' }}">
+                                    {{ subscription_status|default('none') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% set alert_class = 'success' if category == 'success' else ('info' if category in ['info', 'message'] else ('warning' if category == 'warning' else 'danger')) %}
+                        <div class="alert alert-{{ alert_class }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Credit Packs (Stripe) -->
+            <h4 class="mb-3">Buy Credit Packs</h4>
+            <div class="row g-4 mb-5">
+                {% for pack_id, pack in credit_packs.items() %}
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm" style="border-radius: 16px;">
+                        <div class="card-header bg-light text-center" style="border-radius: 16px 16px 0 0;">
+                            <h5 class="mb-0 fw-semibold">{{ pack.name }}</h5>
+                        </div>
+                        <div class="card-body text-center d-flex flex-column">
+                            <div class="my-2">
+                                <span class="display-6 fw-bold text-primary">{{ pack.credits }}</span>
+                                <span class="text-muted">credits</span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="h4 fw-bold">{{ pack.price_zar | currency }}</span>
+                            </div>
+                            <p class="text-muted small flex-grow-1">One-time purchase. Credits added instantly after payment.</p>
+
+                            <form method="POST" action="{{ url_for('payments.create_credit_checkout', pack_id=pack_id) }}" class="mt-auto">
+                                <button type="submit" class="btn btn-success w-100 fw-semibold py-2">
+                                    Buy {{ pack.credits }} Credits
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Business Monthly Subscription -->
+            <h4 class="mb-3">Business Monthly Subscription</h4>
+            <div class="card shadow-sm mb-5" style="border-radius: 16px; border-color: #0d6efd;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <h5 class="fw-bold mb-1">Business Plan — R{{ business_monthly.price_zar }}/month</h5>
+                            <ul class="mb-0 small">
+                                {% for f in business_monthly.features %}
+                                <li>{{ f }}</li>
+                                {% endfor %}
+                            </ul>
+                            <p class="text-muted small mt-2 mb-0">Recurring. 20 credits added on successful payment + each renewal.</p>
+                        </div>
+                        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+                            {% if subscription_status == 'active' %}
+                                <span class="badge bg-success fs-6 px-3 py-2">Active — Thank you!</span>
+                                <div class="small text-muted mt-1">Manage via Stripe customer portal (coming soon).</div>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('payments.create_business_subscription') }}">
+                                    <button type="submit" class="btn btn-primary btn-lg fw-semibold">
+                                        Subscribe for R{{ business_monthly.price_zar }}/mo
+                                    </button>
+                                </form>
+                                <div class="small text-muted mt-1">Cancel anytime via Stripe.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <h4 class="mb-3">Transaction History</h4>
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Provider</th>
+                                    <th>Amount</th>
+                                    <th>Credits</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tx in transactions %}
+                                <tr>
+                                    <td class="small">{{ tx.date.strftime('%Y-%m-%d %H:%M') if tx.date else '—' }}</td>
+                                    <td><span class="badge bg-secondary">{{ tx.provider }}</span></td>
+                                    <td>{{ tx.amount|currency if tx.amount is not none else '—' }}</td>
+                                    <td class="fw-semibold text-success">+{{ tx.credits }}</td>
+                                    <td>
+                                        {% if tx.status == 'succeeded' or tx.status == 'success' %}
+                                            <span class="badge bg-success">succeeded</span>
+                                        {% else %}
+                                            <span class="badge bg-{{ 'warning' if tx.status == 'pending' else 'danger' }}">{{ tx.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">No transactions yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Footer info -->
+            <div class="mt-4 text-center">
+                <div class="alert alert-light border small text-start">
+                    <strong>Notes (v1):</strong><br>
+                    • Credit packs use one-time Stripe Checkout.<br>
+                    • Monthly subscription activates business badge + priority + monthly credits.<br>
+                    • Webhooks ensure credits are added reliably even if you close the browser.<br>
+                    • Test cards: <code>4242 4242 4242 4242</code> (success) &nbsp; <code>4000 0000 0000 9995</code> (decline).<br>
+                    • Yoco credit purchases remain available at <a href="{{ url_for('payments.buy_credits') }}">/payments/buy-credits</a>.
+                </div>
+                <a href="{{ url_for('profile.profile') }}" class="btn btn-outline-secondary btn-sm">← Back to Profile</a>
+                <a href="{{ url_for('payments.buy_credits') }}" class="btn btn-outline-secondary btn-sm ms-2">Yoco Credit Packs →</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

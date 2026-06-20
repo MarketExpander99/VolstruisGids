@@ -3,15 +3,140 @@ from flask_login import login_required, current_user
 from app import db
 from app.models.payment import Payment
 from app.models.credit_transaction import CreditTransaction
+from app.models.payment_transaction import PaymentTransaction
 from app.models.promotion import Promotion
 from app.models.listing import Listing
 from app.utils.yoco import YocoClient  # new clean client: respects YOCO_TEST_MODE=false for live keys
 from app.utils.yoco_client import YocoClient as LegacyYocoClient  # keep for verify_webhook_signature (webhook + register script)
 import json
 from datetime import datetime, timedelta
+from decimal import Decimal
 import logging
 
+# Stripe for spec v1 Credit packs + Monthly subs (Yoco remains for existing credit purchases)
+try:
+    import stripe
+except ImportError:
+    stripe = None
+
 logger = logging.getLogger(__name__)
+
+# ============================================================
+# STRIPE CREDIT PACKS + BUSINESS MONTHLY (per spec v1)
+# ============================================================
+CREDIT_PACKS = {
+    "pack_5":  {"credits": 5,  "price_zar": 49,  "name": "Starter Pack"},
+    "pack_10": {"credits": 10, "price_zar": 89,  "name": "Popular Pack"},
+    "pack_25": {"credits": 25, "price_zar": 199, "name": "Power Pack"},
+}
+
+BUSINESS_MONTHLY = {
+    "price_zar": 149,
+    "credits_per_month": 20,
+    "features": ["Business badge", "Priority in search", "20 credits/month"]
+}
+
+def _init_stripe():
+    """Initialize Stripe with current config key. Safe if key missing or stripe not installed."""
+    global stripe
+    if stripe is None:
+        try:
+            import stripe as _stripe
+            stripe = _stripe
+        except ImportError:
+            return False
+    sk = current_app.config.get('STRIPE_SECRET_KEY') or current_app.config.get('STRIPE_API_KEY')
+    if sk:
+        stripe.api_key = sk
+    return bool(sk)
+
+
+def _handle_successful_stripe_payment(session):
+    """Fulfill credits from Stripe Checkout session (one-time or sub checkout).
+    Idempotent using stripe_session_id lookup.
+    """
+    session_id = session.get('id')
+    metadata = session.get('metadata') or {}
+    user_id = metadata.get('user_id')
+    pack_id = metadata.get('pack_id')
+    credits = metadata.get('credits')
+    sub_type = metadata.get('type')  # 'credits' or 'business_monthly'
+
+    if not user_id:
+        logger.warning("Stripe session missing user_id in metadata")
+        return
+
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        logger.warning(f"Invalid user_id in Stripe metadata: {user_id}")
+        return
+
+    from app.models.user import User
+    user = User.query.get(user_id)
+    if not user:
+        logger.warning(f"User {user_id} not found for Stripe session {session_id}")
+        return
+
+    # Find or create PaymentTransaction record
+    txn = PaymentTransaction.query.filter_by(stripe_session_id=session_id).first()
+    if not txn:
+        # Create if webhook arrived first or direct
+        try:
+            credits_dec = Decimal(str(credits)) if credits else Decimal('0')
+            amount = Decimal(str(session.get('amount_total', 0))) / Decimal('100') if session.get('amount_total') else Decimal('0')
+            txn = PaymentTransaction(
+                user_id=user_id,
+                amount=amount,
+                credits_added=credits_dec,
+                stripe_session_id=session_id,
+                stripe_payment_intent=session.get('payment_intent'),
+                status='pending'
+            )
+            db.session.add(txn)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            txn = PaymentTransaction.query.filter_by(stripe_session_id=session_id).first()
+
+    if not txn or getattr(txn, 'status', None) == 'succeeded':
+        return
+
+    # Determine credits to add
+    credits_to_add = Decimal('0')
+    if pack_id and pack_id in CREDIT_PACKS:
+        credits_to_add = Decimal(str(CREDIT_PACKS[pack_id]['credits']))
+    elif credits:
+        credits_to_add = Decimal(str(credits))
+    elif sub_type == 'business_monthly':
+        credits_to_add = Decimal(str(BUSINESS_MONTHLY['credits_per_month']))
+
+    if credits_to_add > 0:
+        user.credit_balance = (user.credit_balance or Decimal('0')) + credits_to_add
+        # Also support .credits property
+        try:
+            user.credits = (user.credits or Decimal('0')) + credits_to_add
+        except Exception:
+            pass
+
+    txn.status = 'succeeded'
+    txn.credits_added = credits_to_add if credits_to_add > 0 else txn.credits_added
+
+    # Handle subscription activation if present
+    if session.get('mode') == 'subscription' or sub_type == 'business_monthly':
+        sub = session.get('subscription')
+        if isinstance(sub, str):
+            user.stripe_subscription_id = sub
+        cust = session.get('customer')
+        if isinstance(cust, str):
+            user.stripe_customer_id = cust
+        user.is_business = True
+        user.subscription_status = 'active'
+        user.subscription_type = 'business_monthly'
+        # period end will be set from subscription.updated webhook ideally
+
+    db.session.commit()
+    logger.info(f"Stripe payment fulfilled: +{credits_to_add} credits to user {user_id} (session {session_id})")
 
 
 def _fulfill_credit_purchase(checkout_id):
@@ -31,8 +156,8 @@ def _fulfill_credit_purchase(checkout_id):
     user = User.query.get(txn.user_id)
     if not user:
         return 0
-    credits = txn.amount
-    user.credit_balance = (user.credit_balance or 0) + credits
+    credits = txn.amount or Decimal('0')
+    user.credit_balance = (user.credit_balance or Decimal('0')) + credits
     if hasattr(txn, 'status'):
         txn.status = 'success'
     db.session.commit()
@@ -66,7 +191,7 @@ def buy_credits():
                 if is_business else
                 "Personal accounts: maximum 10 credits per purchase (v1).")
 
-    current_balance = current_user.credit_balance or 0
+    current_balance = current_user.credit_balance or Decimal('0')
     account_type_label = 'Business' if is_business else 'Personal'
 
     return render_template(
@@ -100,7 +225,7 @@ def create_checkout():
         listing_id = data.get('listing_id')
         package_id = data.get('package_id')
         amount = float(data.get('amount', 0))
-        credits = int(data.get('credits', 0))
+        credits = Decimal(str(data.get('credits', 0) or 0))
         description = data.get('description', 'VolstruisGids Purchase')
 
         if amount <= 0:
@@ -346,3 +471,249 @@ def promote(listing_id):
 
 # Note: For direct boost from listing_detail, use a form that POSTs to /payments/create-checkout
 # with listing_id and amount/credits. See updated listing_detail.html example.
+
+
+# ============================================================
+# STRIPE INTEGRATION ROUTES (Credit packs + Business Monthly Subscription)
+# Follows spec v1 closely. Yoco credit flow remains active at /buy-credits
+# ============================================================
+
+@payments_bp.route('/billing')
+@login_required
+def credits_billing():
+    """Credits & Billing page: Stripe credit packs + monthly business sub + tx history.
+    Per spec. Existing Yoco /buy-credits still available.
+    """
+    _init_stripe()
+
+    current_balance = current_user.credit_balance or current_user.credits or Decimal('0')
+
+    is_business = current_user.account_type == 'business' or current_user.is_business
+    sub_status = current_user.subscription_status or 'none'
+
+    # Last 10 transactions (Stripe + legacy CreditTransaction purchases for display)
+    stripe_txns = PaymentTransaction.query.filter_by(user_id=current_user.id).order_by(
+        PaymentTransaction.created_at.desc()
+    ).limit(10).all()
+
+    # Also pull recent credit purchases for history completeness
+    credit_txns = CreditTransaction.query.filter(
+        CreditTransaction.user_id == current_user.id,
+        CreditTransaction.transaction_type == 'purchase'
+    ).order_by(CreditTransaction.created_at.desc()).limit(5).all()
+
+    transactions = []
+    for t in stripe_txns:
+        transactions.append({
+            'date': t.created_at,
+            'amount': float(t.amount or 0),
+            'credits': float(t.credits_added or 0),
+            'status': t.status,
+            'provider': 'stripe'
+        })
+    for t in credit_txns:
+        transactions.append({
+            'date': t.created_at,
+            'amount': None,  # legacy may not store zar amount
+            'credits': float(t.amount or 0),
+            'status': t.status or 'success',
+            'provider': 'yoco'
+        })
+    # Sort combined desc by date
+    transactions.sort(key=lambda x: x['date'] or datetime.min, reverse=True)
+    transactions = transactions[:10]
+
+    return render_template(
+        'payments/credits_billing.html',
+        credit_packs=CREDIT_PACKS,
+        business_monthly=BUSINESS_MONTHLY,
+        current_balance=current_balance,
+        is_business=is_business,
+        subscription_status=sub_status,
+        transactions=transactions,
+        stripe_pk=current_app.config.get('STRIPE_PUBLISHABLE_KEY')
+    )
+
+
+@payments_bp.route('/buy-credits/<pack_id>', methods=['POST'])
+@login_required
+def create_credit_checkout(pack_id):
+    """Stripe Checkout for one-time credit packs (spec v1)."""
+    if not _init_stripe():
+        flash('Stripe is not configured. Set STRIPE_SECRET_KEY in your environment.', 'danger')
+        return redirect(url_for('payments.credits_billing'))
+
+    pack = CREDIT_PACKS.get(pack_id)
+    if not pack:
+        flash('Invalid pack selected.', 'danger')
+        return redirect(url_for('payments.credits_billing'))
+
+    try:
+        success_url = url_for('payments.stripe_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}'
+        cancel_url = url_for('payments.credits_billing', _external=True)
+
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'zar',
+                    'product_data': {'name': pack['name']},
+                    'unit_amount': int(pack['price_zar'] * 100),
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=success_url,
+            cancel_url=cancel_url,
+            customer_email=current_user.email,
+            metadata={
+                'user_id': str(current_user.id),
+                'pack_id': pack_id,
+                'credits': str(pack['credits']),
+                'type': 'credits'
+            }
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        logger.error(f"Stripe credit checkout error: {e}")
+        flash('Unable to start Stripe checkout. Please try again later.', 'danger')
+        return redirect(url_for('payments.credits_billing'))
+
+
+@payments_bp.route('/subscribe/business', methods=['POST'])
+@login_required
+def create_business_subscription():
+    """Stripe Checkout for monthly business subscription (R149/mo)."""
+    if not _init_stripe():
+        flash('Stripe is not configured. Set STRIPE_SECRET_KEY.', 'danger')
+        return redirect(url_for('payments.credits_billing'))
+
+    try:
+        success_url = url_for('payments.stripe_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}'
+        cancel_url = url_for('payments.credits_billing', _external=True)
+
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'zar',
+                    'product_data': {'name': 'Business Monthly Subscription'},
+                    'unit_amount': int(BUSINESS_MONTHLY['price_zar'] * 100),
+                    'recurring': {'interval': 'month'},
+                },
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=success_url,
+            cancel_url=cancel_url,
+            customer_email=current_user.email,
+            metadata={
+                'user_id': str(current_user.id),
+                'type': 'business_monthly',
+                'credits': str(BUSINESS_MONTHLY['credits_per_month'])
+            }
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        logger.error(f"Stripe subscription checkout error: {e}")
+        flash('Unable to start subscription checkout.', 'danger')
+        return redirect(url_for('payments.credits_billing'))
+
+
+@payments_bp.route('/stripe-success')
+@login_required
+def stripe_success():
+    """Success redirect handler for Stripe (credit pack or subscription).
+    Webhook is authoritative; this does best-effort fulfillment.
+    """
+    session_id = request.args.get('session_id')
+    if session_id and _init_stripe() and stripe is not None:
+        try:
+            session = stripe.checkout.Session.retrieve(session_id, expand=['subscription'])
+            _handle_successful_stripe_payment(session)
+        except Exception as e:
+            logger.error(f"Stripe success retrieve error: {e}")
+
+    flash('✅ Payment successful! Credits (and subscription status if applicable) will be updated shortly.', 'success')
+    return redirect(url_for('payments.credits_billing'))
+
+
+@payments_bp.route('/stripe-cancel')
+@login_required
+def stripe_cancel():
+    flash('Payment cancelled or failed. No charges were made.', 'info')
+    return redirect(url_for('payments.credits_billing'))
+
+
+@payments_bp.route('/webhook', methods=['POST'])
+def stripe_webhook():
+    """Stripe webhook handler (critical per spec).
+    Configure endpoint in Stripe Dashboard: /payments/webhook
+    """
+    if not _init_stripe() or stripe is None:
+        logger.warning("Stripe webhook received but Stripe not configured or installed")
+        return 'Stripe not configured', 400
+
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+    webhook_secret = current_app.config.get('STRIPE_WEBHOOK_SECRET')
+
+    if not webhook_secret:
+        logger.warning("Stripe webhook received but no STRIPE_WEBHOOK_SECRET configured")
+        return 'Webhook not configured', 400
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+    except Exception as e:
+        logger.error(f"Stripe webhook signature error: {e}")
+        return str(e), 400
+
+    event_type = event['type']
+    data = event['data']['object']
+
+    logger.info(f"Stripe webhook received: {event_type}")
+
+    if event_type == 'checkout.session.completed':
+        _handle_successful_stripe_payment(data)
+
+    elif event_type in ('customer.subscription.created', 'customer.subscription.updated'):
+        # Update user subscription status from Stripe sub object
+        sub_id = data.get('id')
+        cust_id = data.get('customer')
+        status = data.get('status')
+        current_period_end = data.get('current_period_end')
+
+        if cust_id:
+            from app.models.user import User
+            user = User.query.filter_by(stripe_customer_id=cust_id).first()
+            if not user and sub_id:
+                # fallback lookup via subscription id
+                user = User.query.filter_by(stripe_subscription_id=sub_id).first()
+            if user:
+                user.stripe_subscription_id = sub_id
+                user.subscription_status = status
+                if current_period_end:
+                    try:
+                        user.subscription_current_period_end = datetime.utcfromtimestamp(int(current_period_end))
+                    except Exception:
+                        pass
+                if status == 'active':
+                    user.is_business = True
+                    user.subscription_type = 'business_monthly'
+                elif status in ('canceled', 'past_due'):
+                    # Keep is_business True until end of period for v1 simplicity
+                    pass
+                db.session.commit()
+                logger.info(f"Updated subscription for user {user.id}: {status}")
+
+    elif event_type == 'customer.subscription.deleted':
+        sub_id = data.get('id')
+        if sub_id:
+            from app.models.user import User
+            user = User.query.filter_by(stripe_subscription_id=sub_id).first()
+            if user:
+                user.subscription_status = 'canceled'
+                # credits stop renewing; is_business can stay or be toggled - leave as is for v1
+                db.session.commit()
+
+    return '', 200

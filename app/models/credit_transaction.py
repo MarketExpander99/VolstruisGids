@@ -6,6 +6,7 @@ Klein Karoo community classifieds platform
 
 from app import db
 from datetime import datetime
+from decimal import Decimal
 
 
 class CreditTransaction(db.Model):
@@ -13,8 +14,8 @@ class CreditTransaction(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
-    amount = db.Column(db.Integer, nullable=False)
-    transaction_type = db.Column(db.String(50), nullable=False, index=True)  # 'daily_free', 'purchase', 'boost_listing', etc.
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    transaction_type = db.Column(db.String(50), nullable=False, index=True)  # 'daily_free', 'purchase', 'boost_listing', 'share_reward', etc.
     reference = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(20), default='pending', nullable=True)  # pending / success (for Yoco credit purchases)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)

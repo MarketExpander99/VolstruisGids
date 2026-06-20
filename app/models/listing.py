@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from app import db
 
 
@@ -36,6 +36,8 @@ class Listing(db.Model):
     # === Credit System v1.0 additions (added only - no existing columns removed) ===
     listing_type = db.Column(db.String(20), default='normal')  # normal / super
     last_reposted_at = db.Column(db.DateTime, nullable=True)
+    # v1.2 spec: refreshed_at for repost/refresh (falls back to last_reposted_at / created_at)
+    refreshed_at = db.Column(db.DateTime, nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -86,3 +88,50 @@ class Listing(db.Model):
         if self.price_type == 'free':
             return "Free"
         return "Price on request"
+
+    # ============================================================
+    # Listing freshness / expiration (7-day public visibility rule)
+    # No DB column added. Computed dynamically.
+    # ============================================================
+
+    @property
+    def freshness_date(self):
+        """Effective date for public freshness (respects boosts/reposts). v1.2 uses refreshed_at if present."""
+        return self.refreshed_at or self.last_reposted_at or self.created_at
+
+    @property
+    def is_expired(self):
+        """True if older than 7 days (based on freshness_date) and should be hidden from public homepage/search."""
+        base = self.freshness_date
+        if base is None:
+            return False
+        return (datetime.utcnow() - base).days > 7
+
+    @property
+    def days_old(self):
+        """Integer days since original creation (for owner-facing messages)."""
+        if self.created_at is None:
+            return 0
+        return (datetime.utcnow() - self.created_at).days
+
+    @property
+    def days_since_freshness(self):
+        """Days since last posted or reposted (for 'expired N days ago' messaging)."""
+        base = self.freshness_date
+        if base is None:
+            return 0
+        return (datetime.utcnow() - base).days
+
+    # ============================================================
+    # v1.1 / v1.2 Spec aliases for "effective freshness"
+    # effective_date respects refreshed_at (preferred), last_reposted_at, created_at
+    # ============================================================
+    @property
+    def effective_date(self):
+        """Effective date for freshness/7-day window (spec v1.2)."""
+        return self.refreshed_at or self.last_reposted_at or self.created_at
+
+    @property
+    def is_active_listing(self):
+        """True if this listing counts as an 'active' (non-expired) slot for free-tier rules."""
+        return not self.is_expired

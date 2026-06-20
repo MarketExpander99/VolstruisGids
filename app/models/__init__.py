@@ -5,8 +5,10 @@ from app.models.promotion import Promotion
 from app.models.message import Message
 from app.models.payment import Payment
 from app.models.credit_transaction import CreditTransaction
+from app.models.payment_transaction import PaymentTransaction
 
-__all__ = ['User', 'Category', 'Listing', 'Promotion', 'Message', 'Payment', 'CreditTransaction']
+__all__ = ['User', 'Category', 'Listing', 'Promotion', 'Message', 'Payment', 'CreditTransaction', 'PaymentTransaction']
 
 from .user import User
 from .credit_transaction import CreditTransaction
+from .payment_transaction import PaymentTransaction

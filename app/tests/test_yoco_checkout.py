@@ -23,6 +23,7 @@ import hmac
 import hashlib
 from unittest.mock import patch, MagicMock
 from datetime import datetime
+from decimal import Decimal
 
 # Add project root for direct execution
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -56,7 +57,7 @@ def setup_test_app(username_suffix=''):
         existing = User.query.filter_by(username=uname).first()
         if not existing:
             user = User(username=uname, email=f'test{username_suffix}@example.com', phone='0821234567', password_hash='dummy')
-            user.credit_balance = 0
+            user.credit_balance = Decimal('0')
             db.session.add(user)
             db.session.commit()
     return app

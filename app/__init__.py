@@ -32,6 +32,21 @@ def create_app(config_class=Config):
     print("=== END YOCO DEBUG ===")
     # === END DEBUG ===
 
+    # === STRIPE DEBUG AT STARTUP (per credit/sub spec) ===
+    print("=== STRIPE CONFIG DEBUG (at app startup) ===")
+    stripe_pk = app.config.get('STRIPE_PUBLISHABLE_KEY')
+    stripe_sk = app.config.get('STRIPE_SECRET_KEY')
+    stripe_wh = app.config.get('STRIPE_WEBHOOK_SECRET')
+    print(f"STRIPE_PUBLISHABLE_KEY present: {bool(stripe_pk)}")
+    if stripe_pk:
+        print(f"STRIPE_PUBLISHABLE_KEY prefix: {stripe_pk[:12]}... (len={len(stripe_pk)})")
+    print(f"STRIPE_SECRET_KEY present: {bool(stripe_sk)}")
+    if stripe_sk:
+        print(f"STRIPE_SECRET_KEY prefix: {stripe_sk[:12]}... (len={len(stripe_sk)})")
+    print(f"STRIPE_WEBHOOK_SECRET present: {bool(stripe_wh)}")
+    print("=== END STRIPE DEBUG ===")
+    # === END STRIPE DEBUG ===
+
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -46,6 +61,16 @@ def create_app(config_class=Config):
     from app.models.message import Message
     from app.models.payment import Payment
     from app.models.credit_transaction import CreditTransaction  # Credit System v1.0
+    from app.models.payment_transaction import PaymentTransaction  # Stripe credit + sub transactions (spec v1)
+
+    # Safe DB column updates for Credit System v1.1 (refreshed_at / credits / free tier)
+    # Run inside app context so inspector/engine access is valid
+    with app.app_context():
+        try:
+            from app.utils.safe_db_updates import apply_safe_db_updates
+            apply_safe_db_updates(db)
+        except Exception as e:
+            print(f"[safe_db_updates] Non-fatal: {e}")
 
     @login_manager.user_loader
     def load_user(user_id):

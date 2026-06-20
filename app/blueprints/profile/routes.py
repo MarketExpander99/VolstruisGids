@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from decimal import Decimal
 from flask import render_template, redirect, url_for, request, flash, current_app
 from flask_login import login_required, current_user
 from app import db
@@ -131,7 +132,7 @@ def buy_credits():
         'profile/buy_credits.html',
         packages=packages,
         max_note=max_note,
-        current_balance=current_user.credit_balance or 0,
+        current_balance=current_user.credit_balance or Decimal('0'),
         is_business=is_business,
         account_type_label='Business' if is_business else 'Personal'
     )
@@ -166,7 +167,7 @@ def paystack_webhook():
                     credits = int(metadata.get('credits', 0))
                     user = User.query.get(txn.user_id)
                     if user and credits > 0:
-                        user.credit_balance = (user.credit_balance or 0) + credits
+                        user.credit_balance = (user.credit_balance or Decimal('0')) + Decimal(str(credits))
                         txn.status = 'success'
                         db.session.commit()
         return '', 200
@@ -205,12 +206,14 @@ def profile():
     else:
         form = ProfileForm(obj=current_user)
 
-    listings = Listing.query.filter_by(user_id=current_user.id, is_active=True)\
+    # Show ALL user's listings (including expired/old) — owners must see them per spec.
+    # Expired ones are visually marked in the template.
+    listings = Listing.query.filter_by(user_id=current_user.id)\
         .order_by(Listing.created_at.desc()).all()
 
     is_business = current_user.account_type == 'business' or current_user.is_business
     account_type_label = 'Business' if is_business else 'Personal'
-    credit_balance = current_user.credit_balance or 0
+    credit_balance = current_user.credit_balance or Decimal('0')
 
     return render_template(
         'profile/profile.html',

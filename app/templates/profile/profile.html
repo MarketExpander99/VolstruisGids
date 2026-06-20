@@ -81,10 +81,7 @@
                                         {{ account_type_label }} Account
                                     </span>
                                     <div>
-                                        <button type="button" class="btn btn-primary btn-sm"
-                                                data-bs-toggle="modal" data-bs-target="#paymentComingSoonModal">
-                                                Buy More Credits
-                                        </button>
+                                        <a href="{{ url_for('payments.credits_billing') }}" class="btn btn-primary btn-sm">Credits &amp; Billing</a>
                                     </div>
                                 </div>
                             </div>
@@ -118,10 +115,10 @@
         </div>
     </div>
 
-    <!-- Active Listings -->
+    <!-- All Listings (owners see expired too, with visual marker) -->
     <div class="row mt-5">
         <div class="col-12">
-            <h5 class="fw-bold mb-3">ðŸ“‹ Your Active Listings ({{ listings|length }})</h5>
+            <h5 class="fw-bold mb-3">📋 Your Listings ({{ listings|length }})</h5>
            
             {% if listings %}
             <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
@@ -131,9 +128,15 @@
                 {% set pt = listing.post_type or 'sale' %}
                 <div class="col">
                     <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="text-decoration-none text-reset">
-                        <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
+                        <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }} {% if listing.is_expired %}border-danger{% endif %}" style="position: relative;">
+                            {% if listing.is_expired %}
+                            <div class="position-absolute top-0 start-0 m-1" style="z-index: 5;">
+                                <span class="badge bg-danger px-2 py-1" style="font-size: 0.65rem;">EXPIRED</span>
+                            </div>
+                            {% endif %}
                             {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
-                            <img src="{{ photo_src }}" class="card-img-top photo" alt="{{ listing.title }}">
+                            <img src="{{ photo_src }}" class="card-img-top photo" alt="{{ listing.title }}"
+                                 style="{% if listing.is_expired %}filter: grayscale(45%) opacity(0.82);{% endif %}">
                             <div class="card-body p-3">
                                 <!-- v2.0 Post Type badges (matching feed + compact for dense grid) -->
                                 <div class="mb-1 d-flex flex-wrap gap-1">
@@ -157,6 +160,13 @@
                                         <span class="badge promoted-badge badge-compact">PROMOTED</span>
                                     {% endif %}
                                 </div>
+
+                                {% if listing.is_expired %}
+                                <div class="alert alert-danger py-1 px-2 small mb-1" style="font-size:0.65rem; line-height:1.1;">
+                                    <strong>Expired {{ listing.days_since_freshness }}d ago</strong> — hidden from public
+                                </div>
+                                {% endif %}
+
                                 <p class="card-text small mb-1 text-truncate" title="{{ listing.description }}">
                                     {{ listing.description[:85] if listing.description else '' }}...
                                 </p>

@@ -12,7 +12,8 @@ import os
 from werkzeug.utils import secure_filename
 from PIL import Image
 import requests
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+from decimal import Decimal
 from flask import send_from_directory
 
 UPLOAD_FOLDER = 'app/static/uploads'
@@ -67,11 +68,11 @@ def ensure_daily_free_credits(user):
         return False
 
     try:
-        user.credit_balance += 2
+        user.credit_balance = (user.credit_balance or Decimal('0')) + Decimal('2')
 
         tx = CreditTransaction(
             user_id=user.id,
-            amount=2,
+            amount=Decimal('2'),
             transaction_type='daily_free',
             reference=f'daily_free_{today.isoformat()}'
         )
@@ -103,7 +104,13 @@ def api_listings():
         page = 1
     per_page = 12
 
-    listings_query = Listing.query.options(joinedload(Listing.user)).filter_by(is_active=True)
+    # Base freshness filter (7 days) — ALWAYS first for public homepage (per spec)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+    listings_query = Listing.query.options(joinedload(Listing.user)).filter(
+        Listing.is_active == True,
+        freshness >= seven_days_ago
+    )
 
     if query:
         listings_query = listings_query.filter(
@@ -183,10 +190,13 @@ def api_categories():
     town = request.args.get('town', '').strip()
     user_id = request.args.get('user_id')
 
+    # Apply same 7-day freshness base filter for accurate category counts on public
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
     cat_query = db.session.query(
         Category.name, func.count(Listing.id).label('count')
     ).join(Listing, Listing.category_id == Category.id
-    ).filter(Listing.is_active == True)
+    ).filter(Listing.is_active == True, freshness >= seven_days_ago)
 
     if query:
         cat_query = cat_query.filter(
@@ -296,16 +306,16 @@ def ai_ask_listing():
     is_free = ai_uses_today < 2
 
     if not is_free:
-        if current_user.credit_balance < 1:
+        if (current_user.credit_balance or Decimal('0')) < Decimal('1'):
             return jsonify({
                 'error': 'You have used your 2 free AI questions today. Please purchase more credits to continue.'
             }), 402
-        current_user.credit_balance -= 1
+        current_user.credit_balance = (current_user.credit_balance or Decimal('0')) - Decimal('1')
 
     # Record the transaction
     tx = CreditTransaction(
         user_id=current_user.id,
-        amount=0 if is_free else -1,
+        amount=Decimal('0') if is_free else Decimal('-1'),
         transaction_type='ai_query',
         reference=f'listing_{listing_id}'
     )

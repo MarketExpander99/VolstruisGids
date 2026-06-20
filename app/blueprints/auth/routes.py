@@ -1,6 +1,7 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from decimal import Decimal
 from app import db
 from app.models.user import User
 from app.models.credit_transaction import CreditTransaction
@@ -46,50 +47,61 @@ def register():
         # Set account_type consistently with is_business flag
         user.account_type = 'business' if form.is_business.data else 'personal'
 
-        # === Warm Fire Starter - Separate caps for Personal vs Business ===
-        base_credits = 50
-        bonus = 0
-        is_early = False
+        # Base starter credits (generous for usability)
+        base_credits = Decimal('50')
+        user.credit_balance = base_credits
 
-        if form.is_business.data:
-            # Business accounts - first 50 get stronger early bonus
-            business_count = User.query.filter_by(is_business=True).count()
-            if business_count < 60:
-                bonus = 150          # Early business = 200 total credits
-                is_early = True
+        # === Launch Bonus (v1.2 Final Spec): first 100 personal + first 20 business get +5 ===
+        from sqlalchemy import func
+        total_personal = User.query.filter(User.is_business == False).count()
+        total_business = User.query.filter(User.is_business == True).count()
+
+        launch_bonus = Decimal('0')
+        is_launch_early = False
+        if not form.is_business.data:
+            if total_personal <= 100:
+                launch_bonus = Decimal('5')
+                is_launch_early = True
         else:
-            # Personal accounts - first 150 get bonus
-            personal_count = User.query.filter_by(is_business=False).count()
-            if personal_count < 160:
-                bonus = 100          # Early personal = 150 total credits
-                is_early = True
+            if total_business <= 20:
+                launch_bonus = Decimal('5')
+                is_launch_early = True
 
-        user.credit_balance = base_credits + bonus
+        if launch_bonus > 0:
+            user.credit_balance = (user.credit_balance or Decimal('0')) + launch_bonus
 
         db.session.add(user)
         db.session.flush()  # Get user.id
 
         # Record the grant in credit_transactions for history/audit
-        if is_early:
-            tx_type = 'early_business_grant' if form.is_business.data else 'early_personal_grant'
+        if is_launch_early:
             tx = CreditTransaction(
                 user_id=user.id,
-                amount=base_credits + bonus,
-                transaction_type=tx_type,
+                amount=base_credits + launch_bonus,
+                transaction_type='launch_bonus' if not form.is_business.data else 'launch_bonus_business',
+                reference='initial_free_credits'
+            )
+            db.session.add(tx)
+        else:
+            # Always record base starter for audit
+            tx = CreditTransaction(
+                user_id=user.id,
+                amount=base_credits,
+                transaction_type='starter_credits',
                 reference='initial_free_credits'
             )
             db.session.add(tx)
 
         db.session.commit()
 
-        if is_early:
-            total = base_credits + bonus
+        total = user.credit_balance or base_credits
+        if is_launch_early:
             if form.is_business.data:
-                flash(f'Registration successful! Welcome, early business supporter! You have received {total} free credits (50 base + 150 early-business bonus).', 'success')
+                flash(f'Registration successful! Welcome, early business supporter! You have received {total} credits (incl. +5 launch bonus).', 'success')
             else:
-                flash(f'Registration successful! Welcome, early supporter! You have received {total} free credits (50 base + 100 early-adopter bonus).', 'success')
+                flash(f'Registration successful! Welcome, early supporter! You have received {total} credits (incl. +5 launch bonus).', 'success')
         else:
-            flash('Registration successful! You have received 50 free starting credits.', 'success')
+            flash(f'Registration successful! You have received {base_credits} starting credits.', 'success')
 
         return redirect(url_for('auth.login'))
     return render_template('auth/register.html', form=form)

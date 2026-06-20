@@ -48,5 +48,15 @@ class Config:
     YOCO_API_BASE = 'https://api.yoco.com'
     YOCO_CHECKOUTS_URL = f'{YOCO_API_BASE}/v1/checkouts'
 
+    # === Stripe (Checkout + Billing) for Credit Packs + Monthly Business Subscriptions (per spec v1) ===
+    # Use test keys in development, live in prod. Never commit real keys.
+    STRIPE_PUBLISHABLE_KEY = _clean_env_value(os.getenv('STRIPE_PUBLISHABLE_KEY'))
+    STRIPE_SECRET_KEY = _clean_env_value(os.getenv('STRIPE_SECRET_KEY'))
+    STRIPE_WEBHOOK_SECRET = _clean_env_value(os.getenv('STRIPE_WEBHOOK_SECRET'))
+
+    # Active selection similar to Yoco (test when FLASK_ENV=development)
+    # For Stripe we usually use the same key but env-aware for docs clarity
+    STRIPE_API_KEY = STRIPE_SECRET_KEY
+
 # After class definition, we can add debug when module loads, but better in create_app
 # The debug will be printed in create_app below.
