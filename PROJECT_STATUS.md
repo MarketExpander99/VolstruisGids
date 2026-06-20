@@ -1203,3 +1203,65 @@ Golden ratio used lightly in spacing choices for visual harmony. Project looking
 - Looks good on phone (sections stack nicely, buttons generous).
 - Page title correct for SEO.
 - No visual breakage on other pages. 
+
+## 2026-06-20 — How it Works Page Polish (Update)
+
+**Task update**: Post-delivery polish pass after initial implementation. Improved visual hierarchy, pricing presentation, steps with icons, mission section (removed hacky margin), homepage CTA contrast (now accent gold), and minor copy tweaks for clarity.
+
+**Files touched**:
+- app/templates/main/index.html (homepage CTA ? btn-accent for stronger pop on hero)
+- app/templates/main/how_it_works.html (multiple targeted refinements)
+- (verification script + cleanup)
+
+**Key improvements** (smallest possible, high-impact):
+- Steps now have relevant Bootstrap icons + clearer labels.
+- Pricing packs rendered as clean grid cards (closer to credits_billing style).
+- Mission closing wrapped in a proper card (no negative margins).
+- Homepage hero button uses gold accent for better visibility against overlay.
+- Free tier callout now emphasizes the 0.5 credit earn rate.
+- All existing acceptance criteria still 100% met.
+
+**Verification**:
+- Full test client checks (home + /how-it-works) ? PASS.
+- All required messaging, pricing, sections, CTAs confirmed present.
+- create_app + render paths zero errors.
+- python run.py startup style test previously passed.
+
+**Task Update COMPLETE** — page is now even stronger as both educator and sales tool while staying true to warm Klein Karoo tone.
+
+## 2026-06-20 — Execute Fix Plan for Business Listings + Listing Save Bug
+
+**Task**: Execute the analysis & plan from previous turn. Fix inconsistent business vs personal listing handling + the root cause of "trying to save a new listing it doesnt save".
+
+**Changes made (targeted, minimal):**
+
+1. **Standardized business detection (User model + everywhere)**:
+   - Added `is_business_account` property on User (combines `is_business` flag + `account_type` robustly).
+   - Updated all creation logic, quick_create guard, profile, payments, and templates to use the canonical property.
+   - Fixed `is_business_ad=...` assignment in listing creation to use the consistent check.
+
+2. **Fixed "does not save" (core reliability)**:
+   - Removed the heavy, fragile `XMLHttpRequest` form hijack (`e.preventDefault()`, responseURL detection, manual progress) in `listings/create.html`.
+   - Native form POST + button `name="submit_action"` now used (most reliable for Flask redirects + flash messages).
+   - Backend now accepts `action` **or** `submit_action` for the create_new vs normal post branching.
+   - Progress bar UI and related XHR code removed (photo drag/drop + previews kept fully working).
+   - Action buttons and create_new flow now go through standard POST/redirect/render.
+
+3. **Small cleanups**:
+   - Updated create template condition for showing "Post & Create New" button.
+   - Removed dead hidden field + conflicting JS submit handlers.
+   - Ensured no breakage to existing business visual treatment (`is_business_ad` still controls gold cards + badges).
+
+**Why this fixes the reported issues**:
+- Listings should now actually save and redirect properly to My Listings with flash success (or show clear errors).
+- Business accounts will consistently get `is_business_ad=True` and correct credit treatment.
+- Personal users retain the "first listing free" logic.
+
+**Verification performed**:
+- `python -c "from app import create_app..."` + test client renders ? PASS, zero errors.
+- Action field extraction logic tested for both field names.
+- New `is_business_account` property loads and is used.
+- No syntax errors, template paths render cleanly.
+- Followed project rules (smallest targeted edits, build verification).
+
+**Task COMPLETE.** The "save a new listing" flow and business listing differentiation should now behave correctly.

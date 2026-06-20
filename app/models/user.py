@@ -68,6 +68,12 @@ class User(UserMixin, db.Model):
         self.credit_balance = dec_val
         self.__dict__['credits'] = dec_val   # direct for col
 
+    @property
+    def is_business_account(self):
+        """Canonical way to check if user is a business account.
+        Uses both legacy is_business flag and account_type for robustness."""
+        return bool(getattr(self, 'is_business', False) or getattr(self, 'account_type', None) == 'business')
+
     def set_credits(self, value):
         dec_val = value if isinstance(value, Decimal) else Decimal(str(value or 0))
         self.credit_balance = dec_val

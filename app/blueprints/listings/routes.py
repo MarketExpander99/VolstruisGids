@@ -197,21 +197,46 @@ def create():
         photo_urls = ','.join(photo_urls_list) if photo_urls_list else None
 
         price_type = form.price_type.data or 'fixed'
+
+        # Defensive price cleaning: accept formatted values like "1,234.00" or "1 234,00"
+        # in case client-side formatting slipped through. Keeps display nice while allowing save.
+        def _safe_float(v):
+            if v is None or v == '':
+                return None
+            if isinstance(v, (int, float)):
+                return float(v)
+            try:
+                s = str(v).strip().replace(' ', '').replace('\xa0', '')
+                # Robust handling for formatted input while keeping display (###,###.00)
+                if '.' in s:
+                    # Has dot → dot is decimal, strip any thousand commas
+                    s = s.replace(',', '')
+                elif ',' in s:
+                    # No dot, has comma → check for decimal comma e.g. 1234,56 vs 1,234
+                    parts = s.split(',')
+                    if len(parts) == 2 and len(parts[1]) <= 2:
+                        s = parts[0] + '.' + parts[1]
+                    else:
+                        s = s.replace(',', '')
+                return float(s) if s else None
+            except (ValueError, TypeError):
+                return None
+
         if price_type == 'fixed':
-            price = form.price.data or 0.0
+            price = _safe_float(form.price.data) or 0.0
             min_price = None
             max_price = None
         else:
             price = 0.0
-            min_price = form.min_price.data
-            max_price = form.max_price.data
+            min_price = _safe_float(form.min_price.data)
+            max_price = _safe_float(form.max_price.data)
 
         rental_duration = form.rental_duration.data if form.post_type.data == 'rental' else None
         rental_duration_unit = form.rental_duration_unit.data if form.post_type.data == 'rental' else None
 
         num_extra_photos = len(photo_urls_list)
 
-        is_business = current_user.account_type == 'business' or getattr(current_user, 'is_business', False)
+        is_business = current_user.is_business_account
 
         # ============================================================
         # v1.1 Credit System — Free Tier Logic (one free active 7-day listing)
@@ -301,7 +326,7 @@ def create():
             photo_urls=photo_urls,
             allow_comments=form.allow_comments.data,
             post_type=form.post_type.data,
-            is_business_ad=current_user.is_business,
+            is_business_ad=current_user.is_business_account,
             is_active=True,
             listing_type=listing_type,
             rental_duration=rental_duration,
@@ -312,7 +337,7 @@ def create():
             db.session.add(listing)
             db.session.commit()
 
-            action = request.form.get('action')
+            action = request.form.get('action') or request.form.get('submit_action')
             if required_credits == 0:
                 base_msg = 'Posted successfully as your free active listing. It will be live for 7 days.'
             else:
@@ -408,14 +433,39 @@ def edit_listing(listing_id):
                 photo_urls = ','.join(new_photos[1:]) if len(new_photos) > 1 else None
 
         price_type = form.price_type.data or 'fixed'
+
+        # Defensive price cleaning: accept formatted values like "1,234.00" or "1 234,00"
+        # in case client-side formatting slipped through. Keeps display nice while allowing save.
+        def _safe_float(v):
+            if v is None or v == '':
+                return None
+            if isinstance(v, (int, float)):
+                return float(v)
+            try:
+                s = str(v).strip().replace(' ', '').replace('\xa0', '')
+                # Robust handling for formatted input while keeping display (###,###.00)
+                if '.' in s:
+                    # Has dot → dot is decimal, strip any thousand commas
+                    s = s.replace(',', '')
+                elif ',' in s:
+                    # No dot, has comma → check for decimal comma e.g. 1234,56 vs 1,234
+                    parts = s.split(',')
+                    if len(parts) == 2 and len(parts[1]) <= 2:
+                        s = parts[0] + '.' + parts[1]
+                    else:
+                        s = s.replace(',', '')
+                return float(s) if s else None
+            except (ValueError, TypeError):
+                return None
+
         if price_type == 'fixed':
-            price = form.price.data or 0.0
+            price = _safe_float(form.price.data) or 0.0
             min_price = None
             max_price = None
         else:
             price = 0.0
-            min_price = form.min_price.data
-            max_price = form.max_price.data
+            min_price = _safe_float(form.min_price.data)
+            max_price = _safe_float(form.max_price.data)
 
         rental_duration = form.rental_duration.data if form.post_type.data == 'rental' else None
         rental_duration_unit = form.rental_duration_unit.data if form.post_type.data == 'rental' else None
@@ -454,7 +504,7 @@ def edit_listing(listing_id):
 @listings_bp.route('/quick-create', methods=['GET', 'POST'])
 @login_required
 def quick_create():
-    if not current_user.is_business:
+    if not current_user.is_business_account:
         flash('Quick-create is only available to Business accounts.', 'warning')
         return redirect(url_for('listings.create'))
 
@@ -491,14 +541,39 @@ def quick_create():
         photo_urls = ','.join(photo_urls_list) if photo_urls_list else None
 
         price_type = form.price_type.data or 'fixed'
+
+        # Defensive price cleaning: accept formatted values like "1,234.00" or "1 234,00"
+        # in case client-side formatting slipped through. Keeps display nice while allowing save.
+        def _safe_float(v):
+            if v is None or v == '':
+                return None
+            if isinstance(v, (int, float)):
+                return float(v)
+            try:
+                s = str(v).strip().replace(' ', '').replace('\xa0', '')
+                # Robust handling for formatted input while keeping display (###,###.00)
+                if '.' in s:
+                    # Has dot → dot is decimal, strip any thousand commas
+                    s = s.replace(',', '')
+                elif ',' in s:
+                    # No dot, has comma → check for decimal comma e.g. 1234,56 vs 1,234
+                    parts = s.split(',')
+                    if len(parts) == 2 and len(parts[1]) <= 2:
+                        s = parts[0] + '.' + parts[1]
+                    else:
+                        s = s.replace(',', '')
+                return float(s) if s else None
+            except (ValueError, TypeError):
+                return None
+
         if price_type == 'fixed':
-            price = form.price.data or 0.0
+            price = _safe_float(form.price.data) or 0.0
             min_price = None
             max_price = None
         else:
             price = 0.0
-            min_price = form.min_price.data
-            max_price = form.max_price.data
+            min_price = _safe_float(form.min_price.data)
+            max_price = _safe_float(form.max_price.data)
 
         rental_duration = form.rental_duration.data if form.post_type.data == 'rental' else None
         rental_duration_unit = form.rental_duration_unit.data if form.post_type.data == 'rental' else None

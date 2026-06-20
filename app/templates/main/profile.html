@@ -8,9 +8,9 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        {% if current_user.is_business and current_user.profile_pic %}
+                        {% if current_user.is_business_account and current_user.profile_pic %}
                             <img src="{{ current_user.profile_pic }}" alt="Company Logo" class="rounded-circle me-4" style="width: 90px; height: 90px; object-fit: cover;">
-                        {% elif current_user.is_business %}
+                        {% elif current_user.is_business_account %}
                             <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-4" style="width: 90px; height: 90px; font-size: 2rem;">
                                 🏪
                             </div>
@@ -18,22 +18,22 @@
                         
                         <div class="flex-grow-1">
                             <h1 class="mb-1">
-                                {% if current_user.is_business and current_user.business_name %}
+                                {% if current_user.is_business_account and current_user.business_name %}
                                     {{ current_user.business_name }}
                                 {% else %}
                                     {{ current_user.username }}
                                 {% endif %}
                             </h1>
-                            {% if current_user.is_business %}<span class="badge bg-success fs-6">Business Account</span>{% endif %}
+                            {% if current_user.is_business_account %}<span class="badge bg-success fs-6">Business Account</span>{% endif %}
                             {% if current_user.bio %}<p class="text-muted mb-0">{{ current_user.bio }}</p>{% endif %}
                             <p class="text-muted small">📍 {{ current_user.location or 'Klein Karoo' }}</p>
                         </div>
                         
                         <div>
                             <!-- Updated main action button -->
-                            <a href="{{ url_for('listings.quick_create') if current_user.is_business else url_for('listings.create') }}" 
+                            <a href="{{ url_for('listings.quick_create') if current_user.is_business_account else url_for('listings.create') }}" 
                                class="btn btn-primary btn-lg me-2">
-                                {% if current_user.is_business %}⚡ Quick Add Listing{% else %}Post New Listing{% endif %}
+                                {% if current_user.is_business_account %}⚡ Quick Add Listing{% else %}Post New Listing{% endif %}
                             </a>
                             
                             <!-- Updated secondary button -->
@@ -52,12 +52,12 @@
             <div class="card shadow">
                 <!-- Updated card header color -->
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Edit Your {{ 'Business' if current_user.is_business else 'Profile' }} Details</h5>
+                    <h5 class="mb-0">Edit Your {{ 'Business' if current_user.is_business_account else 'Profile' }} Details</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
-                            {% if current_user.is_business %}
+                            {% if current_user.is_business_account %}
                             <label class="form-label">Business / Company Name</label>
                             <input type="text" name="business_name" class="form-control" value="{{ current_user.business_name or '' }}">
                             {% endif %}

@@ -66,7 +66,7 @@ def buy_credits():
         {"id": "enterprise", "name": "Enterprise", "credits": 250, "price": 1750, "note": "Best", "level": "Best"},
     ]
 
-    is_business = current_user.account_type == 'business' or current_user.is_business
+    is_business = current_user.is_business_account
     packages = business_packages if is_business else personal_packages
     max_note = ("Business accounts enjoy volume discounts and higher limits."
                 if is_business else
@@ -211,7 +211,7 @@ def profile():
     listings = Listing.query.filter_by(user_id=current_user.id)\
         .order_by(Listing.created_at.desc()).all()
 
-    is_business = current_user.account_type == 'business' or current_user.is_business
+    is_business = current_user.is_business_account
     account_type_label = 'Business' if is_business else 'Personal'
     credit_balance = current_user.credit_balance or Decimal('0')
 

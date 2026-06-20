@@ -58,7 +58,7 @@
                         <div id="price-details" class="mb-4">
                             <div id="fixed-price">
                                 {{ form.price.label(class="form-label") }}
-                                {{ form.price(class="form-control", onblur="formatPrice(this)") }}
+                                {{ form.price(class="form-control", onblur="formatPrice(this)", onfocus="unformatPrice(this)") }}
                                 {% for error in form.price.errors %}
                                     <div class="text-danger small mt-1">{{ error }}</div>
                                 {% endfor %}
@@ -67,14 +67,14 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         {{ form.min_price.label(class="form-label") }}
-                                        {{ form.min_price(class="form-control", onblur="formatPrice(this)") }}
+                                        {{ form.min_price(class="form-control", onblur="formatPrice(this)", onfocus="unformatPrice(this)") }}
                                         {% for error in form.min_price.errors %}
                                             <div class="text-danger small mt-1">{{ error }}</div>
                                         {% endfor %}
                                     </div>
                                     <div class="col-md-6">
                                         {{ form.max_price.label(class="form-label") }}
-                                        {{ form.max_price(class="form-control", onblur="formatPrice(this)") }}
+                                        {{ form.max_price(class="form-control", onblur="formatPrice(this)", onfocus="unformatPrice(this)") }}
                                         {% for error in form.max_price.errors %}
                                             <div class="text-danger small mt-1">{{ error }}</div>
                                         {% endfor %}
@@ -364,12 +364,19 @@
         });
     }
 
-    // Price formatting helper (###,###.00)
+    // Price formatting helper (###,###.00) — always uses dot for decimal so backend can parse
     function formatPrice(input) {
         let val = input.value.replace(/[^0-9.]/g, '');
         if (val === '' || isNaN(parseFloat(val))) return;
         let num = parseFloat(val);
-        input.value = num.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // Use en-US style for consistent comma thousands + dot decimal (safe for float())
+        input.value = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function unformatPrice(input) {
+        // Remove thousands separators and any other non-numeric except dot
+        let val = input.value.replace(/[^0-9.]/g, '');
+        input.value = val;
     }
 
     // Pricing Visibility Logic
@@ -486,6 +493,19 @@
                 spinner.classList.add('d-none');
                 if (btnText.textContent.includes('Improving')) btnText.textContent = 'Improve with Grok';
             }
+        });
+    }
+
+    // Clean formatted prices on submit (###,###.00 → 1234.00) so backend FloatField accepts it
+    const qcForm = document.querySelector('form[method="POST"]');
+    if (qcForm) {
+        qcForm.addEventListener('submit', function() {
+            ['price', 'min_price', 'max_price'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    el.value = el.value.replace(/[^0-9.]/g, '');
+                }
+            });
         });
     }
 </script>

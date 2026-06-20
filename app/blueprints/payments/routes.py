@@ -185,7 +185,7 @@ def buy_credits():
         {"id": "enterprise", "name": "Enterprise", "credits": 250, "price": 1750, "note": "Best", "level": "Best"},
     ]
 
-    is_business = current_user.account_type == 'business' or current_user.is_business
+    is_business = current_user.is_business_account
     packages = business_packages if is_business else personal_packages
     max_note = ("Business accounts enjoy volume discounts and higher limits."
                 if is_business else
@@ -488,7 +488,7 @@ def credits_billing():
 
     current_balance = current_user.credit_balance or current_user.credits or Decimal('0')
 
-    is_business = current_user.account_type == 'business' or current_user.is_business
+    is_business = current_user.is_business_account
     sub_status = current_user.subscription_status or 'none'
 
     # Last 10 transactions (Stripe + legacy CreditTransaction purchases for display)

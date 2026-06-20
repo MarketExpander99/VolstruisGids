@@ -27,9 +27,7 @@
                     <form id="create-form" method="POST" enctype="multipart/form-data" novalidate>
                         {{ form.hidden_tag() }}
 
-                        <!-- Hidden field to reliably capture which submit button was clicked (XHR safety) -->
-                        <!-- NOTE: name changed to "submit_action" to avoid JS form.action shadowing bug -->
-                        <input type="hidden" name="submit_action" id="submit-action" value="post">
+                        <!-- Action is captured natively via the submit button's name/value (most reliable) -->
 
                         <!-- Post Type -->
                         <div class="mb-4">
@@ -61,7 +59,7 @@
                         <div id="price-details" class="mb-4">
                             <div id="fixed-price">
                                 {{ form.price.label(class="form-label") }}
-                                {{ form.price(class="form-control", onblur="formatPrice(this)") }}
+                                {{ form.price(class="form-control", onblur="formatPrice(this)", onfocus="unformatPrice(this)") }}
                                 {% for error in form.price.errors %}
                                     <div class="text-danger small mt-1">{{ error }}</div>
                                 {% endfor %}
@@ -70,14 +68,14 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         {{ form.min_price.label(class="form-label") }}
-                                        {{ form.min_price(class="form-control", onblur="formatPrice(this)") }}
+                                        {{ form.min_price(class="form-control", onblur="formatPrice(this)", onfocus="unformatPrice(this)") }}
                                         {% for error in form.min_price.errors %}
                                             <div class="text-danger small mt-1">{{ error }}</div>
                                         {% endfor %}
                                     </div>
                                     <div class="col-md-6">
                                         {{ form.max_price.label(class="form-label") }}
-                                        {{ form.max_price(class="form-control", onblur="formatPrice(this)") }}
+                                        {{ form.max_price(class="form-control", onblur="formatPrice(this)", onfocus="unformatPrice(this)") }}
                                         {% for error in form.max_price.errors %}
                                             <div class="text-danger small mt-1">{{ error }}</div>
                                         {% endfor %}
@@ -267,19 +265,8 @@
                             <!-- Live photo cost & limit note -->
                             <div id="photo-cost-note" class="small mt-2 text-muted d-none"></div>
 
-                            <!-- Upload Progress Bar (premium styling) -->
-                            <div id="upload-progress-container" class="mt-3 d-none">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <small class="fw-semibold text-success">Uploading your beautiful photos…</small>
-                                    <small id="progress-text" class="fw-bold">0%</small>
-                                </div>
-                                <div class="progress" style="height: 18px; border-radius: 999px; background: #EDE4D6;">
-                                    <div id="upload-progress-bar" 
-                                         class="progress-bar progress-bar-striped progress-bar-animated" 
-                                         role="progressbar" 
-                                         style="width: 0%; background: linear-gradient(90deg, #E6B800, #F4D03F);"></div>
-                                </div>
-                            </div>
+                            <!-- Upload progress removed (native form submit is now used for reliability).
+                                 Photos are uploaded normally as part of the POST. -->
                         </div>
 
                         <!-- Submit Buttons -->
@@ -288,7 +275,7 @@
                                 <i class="bi bi-save me-1"></i>Update Listing
                             </button>
                         {% else %}
-                            {% if current_user.is_business %}
+                            {% if current_user.is_business_account %}
                                 <div class="row g-2">
                                     <div class="col-12 col-md-6">
                                         <button type="submit" name="submit_action" value="post" 
@@ -318,74 +305,24 @@
 </div>
 
 <script>
-    // ========== RELIABLE ACTION CAPTURE FOR MULTI-BUTTON XHR ==========
+    // Native form submission is now used for reliability (redirects + flashes work correctly).
+    // The complex XHR hijack was removed because it caused "save appears to do nothing" due to fragile responseURL handling.
+
     const form = document.getElementById('create-form');
-    const submitActionField = document.getElementById('submit-action');
     const submitButtons = form ? form.querySelectorAll('button[type="submit"]') : [];
 
-    submitButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            if (submitActionField) {
-                submitActionField.value = btn.value || 'post';
-            }
-        });
-    });
-
-    // ========== REAL UPLOAD PROGRESS BAR ==========
-    const progressContainer = document.getElementById('upload-progress-container');
-    const progressBar = document.getElementById('upload-progress-bar');
-    const progressText = document.getElementById('progress-text');
-
+    // Optional: disable buttons briefly on submit to prevent double clicks (native submit)
+    // Also clean any formatted prices (###,###.00 → 1234.00) so WTForms FloatField accepts them.
     if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(form);
-
-            // Preserve the 'action' key the backend expects for post vs create_new routing.
-            // This keeps full backward compatibility while fixing the JS name collision.
-            if (submitActionField) {
-                formData.set('action', submitActionField.value || 'post');
-            }
-
-            const xhr = new XMLHttpRequest();
-
-            // Show progress bar
-            if (progressContainer) progressContainer.classList.remove('d-none');
+        form.addEventListener('submit', function() {
+            ['price', 'min_price', 'max_price'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    // Strip everything except digits and dot
+                    el.value = el.value.replace(/[^0-9.]/g, '');
+                }
+            });
             submitButtons.forEach(btn => btn.disabled = true);
-
-            xhr.upload.addEventListener('progress', function(evt) {
-                if (evt.lengthComputable && progressBar && progressText) {
-                    const percent = Math.round((evt.loaded / evt.total) * 100);
-                    progressBar.style.width = percent + '%';
-                    progressText.textContent = percent + '%';
-                }
-            });
-
-            xhr.addEventListener('load', function() {
-                if (xhr.status === 200 || xhr.status === 302) {
-                    const finalUrl = xhr.responseURL || '';
-                    // create_new or validation/credit error paths return render on /create → reload to show messages
-                    if (finalUrl.includes('/create') || finalUrl.includes('create_listing')) {
-                        window.location.reload();
-                    } else {
-                        window.location.href = "{{ url_for('main.my_listings') }}";
-                    }
-                } else {
-                    window.location.reload();
-                }
-            });
-
-            xhr.addEventListener('error', function() {
-                alert('Upload failed. Please check your connection and try again.');
-                submitButtons.forEach(btn => btn.disabled = false);
-                if (progressContainer) progressContainer.classList.add('d-none');
-            });
-
-            // Use getAttribute to avoid any future form control name collisions
-            const targetUrl = form.getAttribute('action') || window.location.href;
-            xhr.open('POST', targetUrl);
-            xhr.send(formData);
         });
     }
 
@@ -563,12 +500,19 @@
         });
     }
 
-    // Price formatting helper (###,###.00)
+    // Price formatting helper (###,###.00) — always uses dot for decimal so backend can parse
     function formatPrice(input) {
         let val = input.value.replace(/[^0-9.]/g, '');
         if (val === '' || isNaN(parseFloat(val))) return;
         let num = parseFloat(val);
-        input.value = num.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // Use en-US style for consistent comma thousands + dot decimal (safe for float())
+        input.value = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function unformatPrice(input) {
+        // Remove thousands separators and any other non-numeric except dot
+        let val = input.value.replace(/[^0-9.]/g, '');
+        input.value = val;
     }
 
     // Pricing Visibility Logic (kept exactly as you had it)
