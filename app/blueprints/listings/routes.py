@@ -66,7 +66,8 @@ def improve_with_ai():
         db.func.date(CreditTransaction.created_at) == today
     ).count()
 
-    is_free = ai_uses_today < 2
+    has_unlimited = current_user.has_active_unlimited_pass()
+    is_free = ai_uses_today < 2 or has_unlimited
     cost = 0 if is_free else 8
 
     if not is_free and (current_user.credit_balance or Decimal('0')) < Decimal(str(cost)):
@@ -209,7 +210,7 @@ Key context for this request:
             # Legacy fields kept minimal for any very old client bits (harmless)
             'is_free': is_free,
             'credits_used': cost,
-            'remaining_credits': float((current_user.credit_balance or Decimal('0')) - Decimal(str(cost))) if not is_free else float(current_user.credit_balance or 0),
+            'remaining_credits': float(current_user.credit_balance or 0),  # unlimited or free path shows current (no change)
             'uses_today': ai_uses_today + 1
         })
 
@@ -330,6 +331,10 @@ def create():
         required_credits = base_credits + extra_photo_credits
         had_active_before = active_count >= 1   # capture for post-commit messages and guards
 
+        has_unlimited = current_user.has_active_unlimited_pass()
+        if has_unlimited:
+            required_credits = 0  # Unlimited pass = no credit cost for posting
+
         if required_credits > 0:
             current_balance = current_user.credit_balance or Decimal('0')
             req_dec = Decimal(str(required_credits))
@@ -357,12 +362,12 @@ def create():
             )
             db.session.add(txn)
         else:
-            # Free active slot — no deduction
+            # Free active slot or unlimited pass — no deduction
             txn = CreditTransaction(
                 user_id=current_user.id,
                 amount=Decimal('0'),
-                transaction_type='free_active_slot',
-                reference=f'free_active_slot_{datetime.utcnow().isoformat()}'
+                transaction_type='free_active_slot' if not has_unlimited else 'unlimited_pass',
+                reference=f'free_active_slot_{datetime.utcnow().isoformat()}' if not has_unlimited else f'unlimited_listing_{datetime.utcnow().isoformat()}'
             )
             db.session.add(txn)
 
@@ -397,7 +402,10 @@ def create():
 
             action = request.form.get('action') or request.form.get('submit_action')
             if required_credits == 0:
-                base_msg = 'Posted successfully as your free active listing. It will be live for 7 days.'
+                if has_unlimited:
+                    base_msg = 'Posted successfully with your Unlimited Pass (no credits used).'
+                else:
+                    base_msg = 'Posted successfully as your free active listing. It will be live for 7 days.'
             else:
                 base_msg = f'Listing created successfully! {required_credits} credit(s) deducted. New balance: {current_user.credit_balance}'
                 if not is_business and had_active_before:
@@ -653,14 +661,21 @@ def quick_create():
         total_required = required_credits + num_extra_photos
         total_dec = Decimal(str(total_required))
         curr_bal = current_user.credit_balance or Decimal('0')
-        if curr_bal < total_dec:
+
+        has_unlimited = current_user.has_active_unlimited_pass()
+        if has_unlimited:
+            total_required = 0
+            total_dec = Decimal('0')
+
+        if total_required > 0 and curr_bal < total_dec:
             flash(f'Not enough credits. Quick-create requires {total_required} credits.', 'warning')
             return render_template('listings/quick_create.html', form=form)
 
-        current_user.credit_balance = curr_bal - total_dec
+        if total_required > 0:
+            current_user.credit_balance = curr_bal - total_dec
         txn = CreditTransaction(
             user_id=current_user.id,
-            amount=-total_dec,
+            amount=-total_dec if total_required > 0 else Decimal('0'),
             transaction_type='listing',
             reference=f'quick_listing_{datetime.utcnow().isoformat()}'
         )
@@ -694,7 +709,10 @@ def quick_create():
         try:
             db.session.add(listing)
             db.session.commit()
-            flash(f'Listing saved! {total_required} credits deducted. New balance: {current_user.credit_balance}.', 'success')
+            if has_unlimited:
+                flash('Listing saved with your Unlimited Pass (no credits used)!', 'success')
+            else:
+                flash(f'Listing saved! {total_required} credits deducted. New balance: {current_user.credit_balance}.', 'success')
             return redirect(url_for('listings.quick_create'))
         except Exception as e:
             db.session.rollback()
@@ -742,12 +760,14 @@ def repost_listing(listing_id):
         flash("This listing is still active.", "info")
         return redirect(url_for('main.my_listings'))
 
-    if (current_user.credit_balance or Decimal('0')) < Decimal('1'):
+    has_unlimited = current_user.has_active_unlimited_pass()
+    if not has_unlimited and (current_user.credit_balance or Decimal('0')) < Decimal('1'):
         flash("You need 1 credit to repost.", "warning")
         return redirect(url_for('main.my_listings'))
 
     try:
-        current_user.credit_balance = (current_user.credit_balance or Decimal('0')) - Decimal('1')
+        if not has_unlimited:
+            current_user.credit_balance = (current_user.credit_balance or Decimal('0')) - Decimal('1')
 
         now = datetime.utcnow()
         listing.last_reposted_at = now
@@ -757,7 +777,7 @@ def repost_listing(listing_id):
 
         tx = CreditTransaction(
             user_id=current_user.id,
-            amount=Decimal('-1'),
+            amount=Decimal('0') if has_unlimited else Decimal('-1'),
             transaction_type='repost',
             reference=f'repost_listing_{listing.id}'
         )

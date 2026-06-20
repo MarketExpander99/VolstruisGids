@@ -327,7 +327,8 @@ def ai_ask_listing():
         CreditTransaction.created_at >= start_of_day
     ).count()
 
-    is_free = ai_uses_today < 2
+    has_unlimited = current_user.has_active_unlimited_pass()
+    is_free = ai_uses_today < 2 or has_unlimited
 
     if not is_free:
         if (current_user.credit_balance or Decimal('0')) < Decimal('1'):
@@ -336,10 +337,11 @@ def ai_ask_listing():
             }), 402
         current_user.credit_balance = (current_user.credit_balance or Decimal('0')) - Decimal('1')
 
-    # Record the transaction
+    # Record the transaction (amount=0 when unlimited pass is active — never deduct)
+    tx_amount = Decimal('0') if (is_free or has_unlimited) else Decimal('-1')
     tx = CreditTransaction(
         user_id=current_user.id,
-        amount=Decimal('0') if is_free else Decimal('-1'),
+        amount=tx_amount,
         transaction_type='ai_query',
         reference=f'listing_{listing_id}'
     )

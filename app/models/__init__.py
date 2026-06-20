@@ -6,9 +6,11 @@ from app.models.message import Message
 from app.models.payment import Payment
 from app.models.credit_transaction import CreditTransaction
 from app.models.payment_transaction import PaymentTransaction
+from app.models.user_credit_pass import UserCreditPass
 
-__all__ = ['User', 'Category', 'Listing', 'Promotion', 'Message', 'Payment', 'CreditTransaction', 'PaymentTransaction']
+__all__ = ['User', 'Category', 'Listing', 'Promotion', 'Message', 'Payment', 'CreditTransaction', 'PaymentTransaction', 'UserCreditPass']
 
 from .user import User
 from .credit_transaction import CreditTransaction
 from .payment_transaction import PaymentTransaction
+from .user_credit_pass import UserCreditPass

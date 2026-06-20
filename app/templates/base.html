@@ -110,7 +110,11 @@
                         <li class="nav-item">
                             <span class="nav-link d-flex align-items-center">
                                 <i class="bi bi-coin me-1"></i>
-                                <strong>{{ current_user.credits or current_user.credit_balance or 0 }}</strong>
+                                {% if current_user.is_authenticated and current_user.has_active_unlimited_pass() %}
+                                    <strong class="text-warning">Unlimited</strong>
+                                {% else %}
+                                    <strong>{{ current_user.credits or current_user.credit_balance or 0 }}</strong>
+                                {% endif %}
                             </span>
                         </li>
                         <li class="nav-item">

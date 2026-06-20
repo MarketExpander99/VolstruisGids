@@ -70,6 +70,7 @@ def create_app(config_class=Config):
     from app.models.payment import Payment
     from app.models.credit_transaction import CreditTransaction  # Credit System v1.0
     from app.models.payment_transaction import PaymentTransaction  # Stripe credit + sub transactions (spec v1)
+    from app.models.user_credit_pass import UserCreditPass  # Unlimited Credit Passes (PAYG-UNLIMITED-2026-06-20)
 
     # Safe DB column updates for Credit System v1.1 (refreshed_at / credits / free tier)
     # Run inside app context so inspector/engine access is valid

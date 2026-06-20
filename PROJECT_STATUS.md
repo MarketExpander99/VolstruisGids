@@ -1169,42 +1169,42 @@ This brings the create flow into the v2.5 warm Klein Karoo design system. Ready 
 Golden ratio used lightly in spacing choices for visual harmony. Project looking sharp!
 
 
-## 2026-06-20 — How it Works Marketing Page (v1)
+## 2026-06-20 ï¿½ How it Works Marketing Page (v1)
 
 **Task**: Implement full "How it Works" marketing page per spec v1.0 (single strong educational + sales page for personal & business users + pricing + credits + mission).
 
 **Files touched**:
 - app/blueprints/main/routes.py (added public `/how-it-works` route)
-- app/templates/main/how_it_works.html (new — hero, Personal section, Business section with transparent pricing, 4-step flow, mission close + CTAs)
+- app/templates/main/how_it_works.html (new ï¿½ hero, Personal section, Business section with transparent pricing, 4-step flow, mission close + CTAs)
 - app/templates/base.html (added nav link after Home)
 - app/templates/main/index.html (added prominent "See How It Works ?" button in hero)
 - PROJECT_STATUS.md (this entry)
 
 **Changes (smallest possible, spec-aligned)**:
 - Exact content structure & key messages from spec.
-- Pricing copied verbatim (5cr R49 / 10cr R89 / 25cr R199; R149/mo business plan) — matches backend CREDIT_PACKS & BUSINESS_MONTHLY.
+- Pricing copied verbatim (5cr R49 / 10cr R89 / 25cr R199; R149/mo business plan) ï¿½ matches backend CREDIT_PACKS & BUSINESS_MONTHLY.
 - Credit system & free tier (1 active listing) described clearly.
 - WhatsApp comparison, earn 0.5/share, storefront for all, regional pride.
 - Warm professional tone using existing CSS tokens and Bootstrap.
 - Mobile-first readable sections + 3 clear CTAs (Join / Post / Business Plans).
-- No CSS or model changes — reused theme, cards, buttons.
+- No CSS or model changes ï¿½ reused theme, cards, buttons.
 
 **Verification**:
 - Shell scans performed.
 - `pip install -r requirements.txt` + import test + startup check = zero errors (full output below).
 
-**Task COMPLETE — here is what you should test:**
+**Task COMPLETE ï¿½ here is what you should test:**
 - Visit /how-it-works directly.
 - Click "How it Works" in top navbar (desktop + feel on mobile).
 - Click the new hero CTA button on homepage.
-- Read Personal vs Business sections — WhatsApp complaints addressed, free tier & pricing transparent.
+- Read Personal vs Business sections ï¿½ WhatsApp complaints addressed, free tier & pricing transparent.
 - Steps are clean visual flow.
 - Mission statement + 3 CTAs at bottom work (register, post, credits).
 - Looks good on phone (sections stack nicely, buttons generous).
 - Page title correct for SEO.
 - No visual breakage on other pages. 
 
-## 2026-06-20 — How it Works Page Polish (Update)
+## 2026-06-20 ï¿½ How it Works Page Polish (Update)
 
 **Task update**: Post-delivery polish pass after initial implementation. Improved visual hierarchy, pricing presentation, steps with icons, mission section (removed hacky margin), homepage CTA contrast (now accent gold), and minor copy tweaks for clarity.
 
@@ -1227,9 +1227,9 @@ Golden ratio used lightly in spacing choices for visual harmony. Project looking
 - create_app + render paths zero errors.
 - python run.py startup style test previously passed.
 
-**Task Update COMPLETE** — page is now even stronger as both educator and sales tool while staying true to warm Klein Karoo tone.
+**Task Update COMPLETE** ï¿½ page is now even stronger as both educator and sales tool while staying true to warm Klein Karoo tone.
 
-## 2026-06-20 — Execute Fix Plan for Business Listings + Listing Save Bug
+## 2026-06-20 ï¿½ Execute Fix Plan for Business Listings + Listing Save Bug
 
 **Task**: Execute the analysis & plan from previous turn. Fix inconsistent business vs personal listing handling + the root cause of "trying to save a new listing it doesnt save".
 
@@ -1265,12 +1265,12 @@ Golden ratio used lightly in spacing choices for visual harmony. Project looking
 - Followed project rules (smallest targeted edits, build verification).
 
 **Task COMPLETE.** The "save a new listing" flow and business listing differentiation should now behave correctly.
-## 2026-06-20 — Yoco + Grok Build MCP Developer Spec (live agent integration)
+## 2026-06-20 ï¿½ Yoco + Grok Build MCP Developer Spec (live agent integration)
 
 **Task**: Enable the Grok coding agent (VS Code / TUI) to directly test, debug and fix the Yoco payment integration using the official Yoco MCP server (theyahia / @theyahia/yoco-mcp). Follow user-provided spec exactly.
 
 **Files touched** (scanned before edits):
-- .grok/config.toml (NEW — project-scoped MCP)
+- .grok/config.toml (NEW ï¿½ project-scoped MCP)
 - .env.example (targeted update)
 - app/config.py (minimal key selection update for YOCO_TEST_MODE)
 - app/__init__.py (debug print for YOCO_TEST_MODE)
@@ -1292,7 +1292,7 @@ Golden ratio used lightly in spacing choices for visual harmony. Project looking
 - No syntax, import, or functional breakage anywhere.
 
 **Task COMPLETE**. Developer can now drop real test keys in .env and the Grok agent will have live Yoco MCP tools available for checkout testing/debug while editing the integration code.
-## 2026-06-20 (follow-up) — Yoco live key loading + monthly support fix
+## 2026-06-20 (follow-up) ï¿½ Yoco live key loading + monthly support fix
 
 **Issue**: With exact production config (FLASK_ENV=production, YOCO_TEST_MODE=false, YOCO_LIVE_SECRET_KEY + YOCO_SECRET_KEY = sk_live_...) the payment flow moaned about the key.
 
@@ -1312,3 +1312,59 @@ Golden ratio used lightly in spacing choices for visual harmony. Project looking
 - No lost functionality
 
 Ready for launch. Set the keys on PythonAnywhere env, reload, test a real Yoco live purchase.
+
+## 2026-06-20 â€” Unlimited Credit Passes (PAYG-UNLIMITED-2026-06-20) â€” Complete
+
+**Task**: Implement one-time 30/60/90-day Unlimited Credit Passes. Remove monthly/recurring subscription language and logic references. Credits deducted **only** for users without an active pass. All existing credit flows and Yoco one-time purchases remain 100% compatible.
+
+**Spec followed**: PAYG-UNLIMITED-2026-06-20 v1.1 (Credit Logic)
+
+**Files touched** (full prior shell scans + targeted edits only):
+- `app/models/user_credit_pass.py` (NEW)
+- `app/models/__init__.py`
+- `app/models/user.py` (added `has_active_unlimited_pass()` exactly as specified)
+- `app/utils/safe_db_updates.py` (new idempotent table ensure)
+- `app/__init__.py` (import new model)
+- `app/blueprints/payments/routes.py` (UNLIMITED_PASSES constant + full Yoco create_checkout + _fulfill_unlimited_pass + success/webhook integration + updated billing view)
+- `app/blueprints/listings/routes.py` (guarded create/quick_create/repost/AI-improve deductions + messages)
+- `app/blueprints/main/routes.py` (guarded AI credit deduction)
+- `app/templates/payments/credits_billing.html` (replaced monthly with 3 pass cards + correct unlimited display)
+- `app/templates/main/how_it_works.html` (removed monthly + updated language)
+- `app/templates/payments/buy_credits.html` (updated notes + pass awareness)
+- `app/templates/profile/profile.html` (unlimited status display)
+- `app/templates/base.html` (nav shows "Unlimited" when active)
+
+**Core behaviour implemented**:
+- `has_active_unlimited_pass()` â†’ True only for non-expired passes.
+- All credit deductions (listing create, repost, AI) skip when pass active and record 0-amount tx.
+- New passes sold via existing Yoco `create_checkout` (package_id=pass_30 etc.).
+- On success/webhook: `_fulfill_unlimited_pass` creates `UserCreditPass` with correct dates.
+- Display: "Unlimited until DD MMM YYYY" on billing + profile + "Unlimited" in nav.
+- Zero references to "monthly", "recurring", "subscribe /mo" left in the user-facing flow for this feature.
+- Existing credit packs + promotion Yoco path untouched.
+
+**Verification (using exact user activation prefix every time)**:
+```
+(Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned) ; (& "...\.venv\Scripts\Activate.ps1")
+python -m pip install -r requirements.txt --prefer-binary
+python -c "from app import create_app; app = create_app(); ..."
+```
+- Pillow wheel note (pre-existing, non-blocking)
+- `=== BUILD GUARANTEE PASSED ===`
+- All 7 blueprints registered
+- UserCreditPass model + helper present and queryable
+- Unlimited passes constants correct (30/60/90)
+- No Tracebacks, no syntax errors, templates renderable
+
+**Task COMPLETE â€” here is what you should test:**
+- Go to /payments/billing (or Credits & Billing) â€” should show three Unlimited Pass cards (R299/499/699) instead of monthly sub.
+- Buy a pass (mock key works) â†’ after success, profile and nav should show "Unlimited" (not number).
+- Create listing, repost, use AI improve while pass active â†’ no credits deducted.
+- Without pass: normal credit deduction on repost/create/AI still works.
+- Buy normal credit pack still adds credits.
+- Active pass shows nice "until DD MMM" on billing page.
+- No "monthly" / "recurring" language visible on how_it_works or billing.
+- App starts with zero errors after clean restart.
+
+Backward compatible. Unlimited is purely additive benefit on top of existing credit + Yoco promotion system.
+

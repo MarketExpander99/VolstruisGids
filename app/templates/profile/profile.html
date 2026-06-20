@@ -73,15 +73,22 @@
                         <div class="mb-4 p-4 bg-light rounded-3 border">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                                 <div>
-                                    <span class="text-muted small">Available Credits</span>
-                                    <h3 class="mb-0 fw-bold text-success">{{ credit_balance }}</h3>
+                                    {% if current_user.is_authenticated and current_user.has_active_unlimited_pass() %}
+                                        <span class="text-muted small">Promotion Status</span>
+                                        <h3 class="mb-0 fw-bold text-warning">Unlimited Pass</h3>
+                                        <span class="small text-muted">Active — no credits deducted</span>
+                                    {% else %}
+                                        <span class="text-muted small">Available Credits</span>
+                                        <h3 class="mb-0 fw-bold text-success">{{ credit_balance }}</h3>
+                                    {% endif %}
                                 </div>
                                 <div class="text-end">
                                     <span class="badge bg-{{ 'success' if is_business else 'primary' }} fs-6 mb-2">
                                         {{ account_type_label }} Account
                                     </span>
                                     <div>
-                                        <a href="{{ url_for('payments.buy_credits') }}" class="btn btn-primary btn-sm">Buy Credits (Yoco)</a>
+                                        <a href="{{ url_for('payments.buy_credits') }}" class="btn btn-primary btn-sm">Buy Credits</a>
+                                        <a href="{{ url_for('payments.credits_billing') }}" class="btn btn-outline-warning btn-sm ms-1">Passes</a>
                                     </div>
                                 </div>
                             </div>

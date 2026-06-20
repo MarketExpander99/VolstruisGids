@@ -30,6 +30,13 @@ CREDIT_PACKS = {
     "pack_25": {"credits": 25, "price_zar": 199, "name": "Power Pack"},
 }
 
+# Unlimited Credit Passes (one-time, no recurring) — replaces monthly subscriptions
+UNLIMITED_PASSES = {
+    "pass_30": {"days": 30, "price_zar": 299, "name": "30-Day Unlimited Pass"},
+    "pass_60": {"days": 60, "price_zar": 499, "name": "60-Day Unlimited Pass"},
+    "pass_90": {"days": 90, "price_zar": 699, "name": "90-Day Unlimited Pass"},
+}
+
 BUSINESS_MONTHLY = {
     "price_zar": 149,
     "credits_per_month": 20,
@@ -207,6 +214,104 @@ def _fulfill_credit_purchase(checkout_id, raw_yoco_response=None):
     logger.info(f"Credits fulfilled for checkout {checkout_id}: +{credits} (was {old_balance} -> {new_balance}) to user {txn.user_id}")
     return credits
 
+
+def _fulfill_unlimited_pass(checkout_id, raw_yoco_response=None):
+    """
+    Idempotent fulfillment for Unlimited Credit Pass purchases.
+    Creates or activates a UserCreditPass for the buyer.
+    Safe to call from success redirect + webhook.
+    """
+    from app.models.user import User
+    from app.models.user_credit_pass import UserCreditPass
+    from app.models.payment import Payment
+    from datetime import datetime, timedelta
+
+    if not checkout_id:
+        return False
+
+    # Prefer Payment record (we stored passes there)
+    payment = Payment.query.filter_by(yoco_checkout_id=checkout_id).first()
+    if payment:
+        if payment.status == 'success':
+            # already fulfilled
+            return True
+        user = User.query.get(payment.user_id)
+        if not user:
+            return False
+
+        # Determine pass details (best effort from amount or we can store in future)
+        # For now, match by price (robust enough for our 3 tiers)
+        price = payment.amount or 0
+        pass_info = None
+        for pid, info in UNLIMITED_PASSES.items():
+            if abs(float(info['price_zar']) - float(price)) < 0.01:
+                pass_info = (pid, info)
+                break
+        if not pass_info:
+            # fallback: default to 30 day if unknown amount
+            pass_info = ('pass_30', UNLIMITED_PASSES['pass_30'])
+
+        pid, info = pass_info
+        days = info['days']
+        now = datetime.utcnow()
+
+        # Check if we already created a pass for this checkout
+        existing = UserCreditPass.query.filter_by(yoco_checkout_id=checkout_id).first()
+        if existing:
+            existing.payment_status = 'success'
+            existing.starts_at = existing.starts_at or now
+            existing.expires_at = existing.expires_at or (now + timedelta(days=days))
+            payment.status = 'success'
+            db.session.commit()
+            return True
+
+        new_pass = UserCreditPass(
+            user_id=user.id,
+            pass_type=pid,
+            duration_days=days,
+            starts_at=now,
+            expires_at=now + timedelta(days=days),
+            amount_paid=Decimal(str(price)),
+            currency='ZAR',
+            yoco_checkout_id=checkout_id,
+            payment_status='success'
+        )
+        db.session.add(new_pass)
+        payment.status = 'success'
+        payment.yoco_status = 'paid'
+        db.session.commit()
+        logger.info(f"Unlimited Pass fulfilled: {pid} for user {user.id} until {new_pass.expires_at}")
+        return True
+
+    # Fallback: try to use a recent txn or metadata path (success handler may create txn)
+    # For robustness, also try CreditTransaction path (amount not used for pass)
+    txn = CreditTransaction.query.filter_by(reference=checkout_id).first()
+    if txn and txn.transaction_type in ('purchase', 'unlimited_pass'):
+        user = User.query.get(txn.user_id)
+        if user:
+            # We don't have exact days here without metadata; assume 30 day fallback
+            # (UI-driven purchases will have gone through Payment path above)
+            now = datetime.utcnow()
+            existing = UserCreditPass.query.filter_by(yoco_checkout_id=checkout_id).first()
+            if not existing:
+                new_pass = UserCreditPass(
+                    user_id=user.id,
+                    pass_type='pass_30',
+                    duration_days=30,
+                    starts_at=now,
+                    expires_at=now + timedelta(days=30),
+                    amount_paid=Decimal('299'),
+                    yoco_checkout_id=checkout_id,
+                    payment_status='success'
+                )
+                db.session.add(new_pass)
+            if hasattr(txn, 'status'):
+                txn.status = 'success'
+            db.session.commit()
+            return True
+    return False
+
+
 # Import the blueprint object defined in the package __init__.py
 # so that all @payments_bp.route decorators attach to the *registered* blueprint.
 from . import payments_bp
@@ -279,13 +384,15 @@ def create_checkout():
         amount_cents = int(amount * 100)
 
         # Build metadata for webhook/fulfillment
+        is_pass = bool(package_id and package_id.startswith('pass_'))
         metadata = {
             'user_id': current_user.id,
             'email': current_user.email or current_user.username,
-            'type': 'credits' if package_id or credits else 'promotion',
+            'type': 'unlimited_pass' if is_pass else ('credits' if package_id or credits else 'promotion'),
             'listing_id': listing_id,
             'package_id': package_id,
             'credits': credits,
+            'pass_type': package_id if is_pass else None,
             'description': description
         }
 
@@ -311,8 +418,41 @@ def create_checkout():
         if yoco_secret and '5e86cc39lVRK8mgb4d14790af205' in yoco_secret:
             logger.warning("MOCK MODE: Using placeholder Yoco key - simulating successful checkout creation for dev/testing")
             mock_checkout_id = f"chk_mock_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+
+            # Runtime safety: some dev DBs are missing columns on payments table
+            # (listing_id for promotions/passes, yoco fields etc.)
+            try:
+                from sqlalchemy import text
+                with db.engine.connect() as conn:
+                    for col in [
+                        "listing_id INTEGER NULL",
+                        "yoco_checkout_id VARCHAR(100) NULL",
+                        "yoco_status VARCHAR(50) NULL",
+                        "updated_at DATETIME NULL",
+                    ]:
+                        try:
+                            conn.execute(text(f"ALTER TABLE payments ADD COLUMN {col}"))
+                        except Exception:
+                            pass  # column already there or other benign error
+                    conn.commit()
+            except Exception:
+                pass  # already exists or other benign error
+
             # Record in DB same as real path
-            if credits > 0 or package_id:
+            if is_pass:
+                payment = Payment(
+                    user_id=current_user.id,
+                    listing_id=None,
+                    amount=amount,
+                    currency='ZAR',
+                    payment_method='yoco',
+                    status='pending',
+                    transaction_id=None,
+                    yoco_checkout_id=mock_checkout_id,
+                    yoco_status='created'
+                )
+                db.session.add(payment)
+            elif credits > 0 or package_id:
                 txn = CreditTransaction(
                     user_id=current_user.id,
                     amount=credits,
@@ -367,7 +507,39 @@ def create_checkout():
 
         # Record pending transaction (best-effort in prod; webhook + success handler are authoritative)
         try:
-            if credits > 0 or package_id:
+            if is_pass:
+                # Runtime safety for dev DBs missing columns on payments table
+                try:
+                    from sqlalchemy import text
+                    with db.engine.connect() as conn:
+                        for col in [
+                            "listing_id INTEGER NULL",
+                            "yoco_checkout_id VARCHAR(100) NULL",
+                            "yoco_status VARCHAR(50) NULL",
+                            "updated_at DATETIME NULL",
+                        ]:
+                            try:
+                                conn.execute(text(f"ALTER TABLE payments ADD COLUMN {col}"))
+                            except Exception:
+                                pass
+                        conn.commit()
+                except Exception:
+                    pass
+
+                # One-time Unlimited Pass purchase (no credits added, will create UserCreditPass on fulfill)
+                payment = Payment(
+                    user_id=current_user.id,
+                    listing_id=None,
+                    amount=amount,
+                    currency='ZAR',
+                    payment_method='yoco',
+                    status='pending',
+                    transaction_id=None,
+                    yoco_checkout_id=yoco_checkout_id,
+                    yoco_status='created'
+                )
+                db.session.add(payment)
+            elif credits > 0 or package_id:
                 txn = CreditTransaction(
                     user_id=current_user.id,
                     amount=credits,
@@ -506,6 +678,13 @@ def payment_success():
     if granted <= 0 and checkout_id:
         granted = _fulfill_credit_purchase(checkout_id)  # raw response not available here, but txn may already have it from previous attempts
 
+    # Unlimited Pass fulfillment (idempotent)
+    if checkout_id:
+        try:
+            _fulfill_unlimited_pass(checkout_id)
+        except Exception as pass_err:
+            logger.warning(f"Pass fulfill in success failed (non-fatal): {pass_err}")
+
     # Last resort: most recent pending purchase for the logged-in user (covers when Yoco redirect has no usable id at all)
     if granted <= 0 and current_user.is_authenticated:
         try:
@@ -532,7 +711,16 @@ def payment_success():
     if granted > 0:
         flash(f'✅ Payment successful! {granted} credits have been added to your account.', 'success')
     else:
-        flash('Payment successful! Your credits/promotion will be activated shortly.', 'success')
+        # Check if it was a pass purchase (via recent Payment)
+        was_pass = False
+        if checkout_id:
+            p = Payment.query.filter_by(yoco_checkout_id=checkout_id).first()
+            if p and not p.listing_id:
+                was_pass = True
+        if was_pass:
+            flash('✅ Payment successful! Your Unlimited Credit Pass is now active.', 'success')
+        else:
+            flash('Payment successful! Your credits/promotion will be activated shortly.', 'success')
 
     return redirect(url_for('payments.buy_credits'))
 
@@ -702,6 +890,13 @@ def yoco_webhook():
             if granted > 0:
                 logger.info(f"Credits added via Yoco webhook: {granted} for {checkout_id}")
 
+        # === Handle Unlimited Pass (new one-time passes) ===
+        if checkout_id and is_paid:
+            try:
+                _fulfill_unlimited_pass(checkout_id, raw_yoco_response=event)
+            except Exception as p_err:
+                logger.warning(f"Pass webhook fulfill error (non-fatal): {p_err}")
+
         # === Handle Promotion / Listing Boost ===
         payment = Payment.query.filter_by(yoco_checkout_id=checkout_id).first()
         if payment and is_paid:
@@ -713,14 +908,15 @@ def yoco_webhook():
 
                 # Activate promotion (7 days default)
                 if payment.listing_id:
-                    promotion = Promotion.query.filter_by(payment_id=payment.id).first()
+                    # Use only fields that exist on the current Promotion model
+                    promotion = Promotion.query.filter_by(listing_id=payment.listing_id).first()
                     if not promotion:
                         promotion = Promotion(
                             listing_id=payment.listing_id,
-                            user_id=payment.user_id,
-                            payment_id=payment.id,
                             start_date=datetime.utcnow(),
-                            end_date=datetime.utcnow() + timedelta(days=7)
+                            end_date=datetime.utcnow() + timedelta(days=7),
+                            amount_paid=float(payment.amount or 0),
+                            payment_status='completed'
                         )
                         db.session.add(promotion)
                         db.session.commit()
@@ -764,8 +960,8 @@ def promote(listing_id):
 @payments_bp.route('/billing')
 @login_required
 def credits_billing():
-    """Credits & Billing page: Stripe credit packs + monthly business sub + tx history.
-    Per spec. Yoco is used for the main /buy-credits credit top-ups. Monthly uses Stripe.
+    """Credits & Billing page — now focused on Yoco credit packs + Unlimited Credit Passes.
+    Monthly/recurring subscriptions removed per spec.
     """
     stripe_ready = _init_stripe()
 
@@ -773,6 +969,23 @@ def credits_billing():
 
     is_business = current_user.is_business_account
     sub_status = current_user.subscription_status or 'none'
+
+    # Unlimited Pass status (critical for display + logic)
+    has_unlimited = current_user.has_active_unlimited_pass()
+    unlimited_until = None
+    active_pass = None
+    if has_unlimited:
+        # find the active one for display
+        from app.models.user_credit_pass import UserCreditPass
+        from datetime import datetime
+        now = datetime.utcnow()
+        active_pass = UserCreditPass.query.filter(
+            UserCreditPass.user_id == current_user.id,
+            UserCreditPass.starts_at <= now,
+            UserCreditPass.expires_at >= now
+        ).order_by(UserCreditPass.expires_at.desc()).first()
+        if active_pass:
+            unlimited_until = active_pass.expires_at
 
     # Last 10 transactions (Stripe + legacy CreditTransaction purchases for display)
     stripe_txns = PaymentTransaction.query.filter_by(user_id=current_user.id).order_by(
@@ -809,10 +1022,12 @@ def credits_billing():
     return render_template(
         'payments/credits_billing.html',
         credit_packs=CREDIT_PACKS,
-        business_monthly=BUSINESS_MONTHLY,
+        unlimited_passes=UNLIMITED_PASSES,
         current_balance=current_balance,
         is_business=is_business,
         subscription_status=sub_status,
+        has_unlimited=has_unlimited,
+        unlimited_until=unlimited_until,
         transactions=transactions,
         stripe_pk=current_app.config.get('STRIPE_PUBLISHABLE_KEY'),
         stripe_configured=stripe_ready

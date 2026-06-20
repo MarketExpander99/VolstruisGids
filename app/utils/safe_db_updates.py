@@ -174,6 +174,12 @@ def apply_safe_db_updates(db):
     except Exception as ex:
         logger.warning(f"Non-fatal error creating payment tables: {ex}")
 
+    # Unlimited Credit Passes table (PAYG-UNLIMITED-2026-06-20)
+    try:
+        create_user_credit_passes_table(db)
+    except Exception as ex:
+        logger.warning(f"Non-fatal error creating user_credit_passes table: {ex}")
+
 
 def create_payment_tables(db):
     """Create payment_transactions table (idempotent) + ensure Stripe user columns.
@@ -207,6 +213,60 @@ def create_payment_tables(db):
         conn.commit()
         logger.info("✅ Ensured payment_transactions table exists.")
 
+        # Ensure the main 'payments' table has all columns used by the current model
+        # (listing_id was added for promotions, yoco_* columns for Yoco checkout)
+        payments_cols = [
+            ('listing_id', "ALTER TABLE payments ADD COLUMN listing_id INTEGER NULL"),
+            ('yoco_checkout_id', "ALTER TABLE payments ADD COLUMN yoco_checkout_id VARCHAR(100) NULL"),
+            ('yoco_status', "ALTER TABLE payments ADD COLUMN yoco_status VARCHAR(50) NULL"),
+            ('transaction_id', "ALTER TABLE payments ADD COLUMN transaction_id VARCHAR(100) NULL"),
+            ('updated_at', "ALTER TABLE payments ADD COLUMN updated_at DATETIME NULL"),
+            ('payment_method', "ALTER TABLE payments ADD COLUMN payment_method VARCHAR(50) DEFAULT 'yoco'"),
+        ]
+        for col_name, alter_sql in payments_cols:
+            if _column_exists(inspector, 'payments', col_name):
+                logger.info(f"Column '{col_name}' already exists on 'payments' — skipping.")
+            else:
+                try:
+                    from sqlalchemy import text as sa_text
+                    # Table might not exist yet on a completely fresh DB
+                    conn.execute(sa_text(alter_sql))
+                    conn.commit()
+                    logger.info(f"✅ Added '{col_name}' column to 'payments' table.")
+                except Exception as e:
+                    # Table may not exist at all yet — safe to ignore (will be created on first use or via create_all)
+                    logger.warning(f"Could not add {col_name} to payments (table may not exist yet): {e}")
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+
+        # As a last resort for very old DBs, ensure a minimal payments table exists
+        try:
+            from sqlalchemy import text as sa_text
+            conn.execute(sa_text("""
+                CREATE TABLE IF NOT EXISTS payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    listing_id INTEGER NULL,
+                    amount FLOAT NOT NULL,
+                    currency VARCHAR(10) DEFAULT 'ZAR',
+                    payment_method VARCHAR(50) DEFAULT 'yoco',
+                    status VARCHAR(20) DEFAULT 'pending',
+                    transaction_id VARCHAR(100),
+                    yoco_checkout_id VARCHAR(100),
+                    yoco_status VARCHAR(50),
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(user_id) REFERENCES users(id),
+                    FOREIGN KEY(listing_id) REFERENCES listings(id)
+                )
+            """))
+            conn.commit()
+            logger.info("✅ Ensured base 'payments' table structure exists.")
+        except Exception as e:
+            logger.warning(f"payments table ensure note: {e}")
+
         # Ensure stripe user columns exist (safe adds)
         stripe_user_cols = [
             ('stripe_customer_id', "ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255) NULL"),
@@ -239,3 +299,38 @@ def _column_exists(inspector, table_name: str, column_name: str) -> bool:
     except Exception:
         # Table may not exist yet (first run); safe to return False so create_all later will handle basics
         return False
+
+
+def create_user_credit_passes_table(db):
+    """Create user_credit_passes table for Unlimited Credit Passes (one-time 30/60/90 day).
+    Idempotent CREATE TABLE IF NOT EXISTS.
+    """
+    from sqlalchemy import text
+
+    try:
+        engine = db.engine
+        inspector = inspect(engine)
+    except Exception as ex:
+        logger.warning(f"Could not obtain inspector for user_credit_passes: {ex}")
+        return
+
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS user_credit_passes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                pass_type VARCHAR(20) NOT NULL,
+                duration_days INTEGER NOT NULL,
+                starts_at DATETIME NOT NULL,
+                expires_at DATETIME NOT NULL,
+                amount_paid DECIMAL(10,2) NOT NULL,
+                currency VARCHAR(10) DEFAULT 'ZAR',
+                yoco_checkout_id VARCHAR(100) UNIQUE,
+                payment_status VARCHAR(20) DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        """))
+        conn.commit()
+        logger.info("✅ Ensured user_credit_passes table exists (Unlimited Credit Passes).")
+

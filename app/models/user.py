@@ -128,5 +128,19 @@ class User(UserMixin, db.Model):
             )
             return False
 
+    def has_active_unlimited_pass(self) -> bool:
+        """Returns True if the user currently has an active unlimited credit pass.
+        Credits are NEVER deducted while this returns True.
+        """
+        from app.models.user_credit_pass import UserCreditPass
+        from datetime import datetime
+
+        now = datetime.utcnow()
+        return UserCreditPass.query.filter(
+            UserCreditPass.user_id == self.id,
+            UserCreditPass.starts_at <= now,
+            UserCreditPass.expires_at >= now
+        ).first() is not None
+
     def __repr__(self):
         return f'<User {self.username}>'
