@@ -753,37 +753,6 @@ footer, #main-footer {
   outline-offset: 2px;
 }
 
-/* ============================================
-   PHASE 3: Listing Detail Page Enhancements
-   Sticky elegant mobile action bar + stronger post-type on hero
-   ============================================ */
-
-/* Hero now inherits the shared 5px post-type left border + color rules (matches feed cards exactly).
-   Business-listing ::before gold frame takes over for business listings. */
-
-/* Elegant sticky mobile action bar (Phase 3 - highest impact) */
-.sticky-detail-actions {
-  background-color: var(--surface);
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -6px 20px rgba(44, 37, 34, 0.1);
-  z-index: 1035;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.sticky-detail-actions .btn {
-  font-size: 0.95rem;
-  padding: 10px 16px;
-  border-radius: var(--radius-pill);
-  font-weight: 600;
-}
-
-/* Give main content breathing room on mobile so sticky bar doesn't cover important info */
-@media (max-width: 767.98px) {
-  .listing-detail-page {
-    padding-bottom: 90px !important;
-  }
-}
-
 /* === Premium Share Buttons Polish === */
 .share-buttons .btn,
 .card-footer .btn[style*="background-color"],
@@ -921,4 +890,12 @@ footer, #main-footer {
     color: #2C3E50;
     font-weight: 600;
     letter-spacing: 0.2px;
+}
+
+/* Mobile bottom nav clearance for listing detail pages.
+   Ensures last content (contact buttons, back link) is never hidden behind the bottom menu. */
+@media (max-width: 767.98px) {
+  .listing-detail-page {
+    padding-bottom: 72px;
+  }
 }

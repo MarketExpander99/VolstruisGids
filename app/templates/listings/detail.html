@@ -331,25 +331,6 @@
     </div>
 </div>
 
-<!-- v2.0 Elegant Sticky Action Bar for Mobile (highest user impact on phones) -->
-<div class="sticky-detail-actions d-md-none fixed-bottom py-2 border-top">
-    <div class="container">
-        <div class="d-flex gap-2">
-            {% if message_form and current_user.is_authenticated %}
-                <button type="button" class="btn btn-primary flex-fill rounded-pill" data-bs-toggle="modal" data-bs-target="#dmModal">
-                    <i class="bi bi-chat-dots me-1"></i> Message Privately
-                </button>
-            {% elif message_form %}
-                <a href="{{ url_for('auth.login', next=request.url) }}" class="btn btn-outline-primary flex-fill rounded-pill">
-                    <i class="bi bi-chat-dots me-1"></i> Login to Message
-                </a>
-            {% endif %}
-
-
-        </div>
-    </div>
-</div>
-
 <!-- Private Message Modal (unchanged functionality) -->
 {% if message_form %}
 <div class="modal fade" id="dmModal" tabindex="-1" aria-labelledby="dmModalLabel" aria-hidden="true">
