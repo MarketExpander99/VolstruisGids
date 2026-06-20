@@ -959,7 +959,10 @@ def detail(listing_id):
         "name": listing.title,
         "description": schema_desc,
         "url": request.url,
-        "brand": "VolstruisGids",
+        "brand": {
+            "@type": "Brand",
+            "name": "VolstruisGids"
+        },
         "areaServed": {
             "@type": "City",
             "name": listing.location
@@ -986,12 +989,12 @@ def detail(listing_id):
         }
     }
 
-    # Only include price when we have a positive value (avoids invalid 0 price warnings)
+    # Only include price when we have a positive value. Use string for better parser compatibility.
     price_val = None
     if listing.price and listing.price > 0:
-        price_val = float(listing.price)
+        price_val = str(listing.price)
     elif listing.price_type == 'range' and listing.min_price is not None and listing.min_price > 0:
-        price_val = float(listing.min_price)
+        price_val = str(listing.min_price)
 
     if price_val is not None:
         structured_data["offers"]["price"] = price_val
