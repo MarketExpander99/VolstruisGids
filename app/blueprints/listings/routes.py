@@ -16,6 +16,7 @@ import requests
 import json as pyjson
 import re
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -937,9 +938,13 @@ def by_category(category_name):
     # Apply 7-day freshness filter (public category listings)
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     freshness = db.func.coalesce(Listing.last_reposted_at, Listing.created_at)
-    listings = Listing.query.filter(
-        Listing.category_id == category.id,
-        Listing.is_active == True,
-        freshness >= seven_days_ago
-    ).order_by(Listing.created_at.desc()).all()
+    listings = (Listing.query
+        .options(joinedload(Listing.user))
+        .filter(
+            Listing.category_id == category.id,
+            Listing.is_active == True,
+            freshness >= seven_days_ago
+        )
+        .order_by(Listing.created_at.desc())
+        .all())
     return render_template('listings/category.html', category=category, listings=listings)

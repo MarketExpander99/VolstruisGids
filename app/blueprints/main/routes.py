@@ -1,5 +1,5 @@
 # app/blueprints/main/routes.py
-from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app, abort
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
@@ -418,3 +418,32 @@ Answer the user's question directly about this listing. If the question is unrel
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Unexpected error processing your question.'}), 500
+
+
+# ============================================================
+# Business Storefront (VOL-UI-POLISH-2026-06-20-SELLER-ATTRIB)
+# Public lightweight storefront for business accounts.
+# Accessed via "View store" link on business listing cards.
+# ============================================================
+@main_bp.route('/store/<string:username>')
+def business_storefront(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    if not getattr(user, 'is_business_account', False) and not getattr(user, 'is_business', False):
+        abort(404)
+
+    # Public active listings for this business (7-day freshness, same as homepage)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+    active_listings = (Listing.query
+        .options(joinedload(Listing.user))
+        .filter(
+            Listing.user_id == user.id,
+            Listing.is_active == True,
+            freshness >= seven_days_ago
+        )
+        .order_by(Listing.is_promoted.desc(), freshness.desc())
+        .all())
+
+    return render_template('main/business_storefront.html',
+                           business_user=user,
+                           listings=active_listings)

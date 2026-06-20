@@ -148,7 +148,7 @@
     </div>
 
     <div class="text-center text-muted small mt-4 pb-3">
-        VolstruisGids (Pty) Ltd. · All listings posted by your neighbours in the Klein Karoo
+        VolstruisGids · All listings posted by your neighbours in the Klein Karoo
     </div>
 </div>
 
@@ -179,7 +179,8 @@
 </div>
 
 <script>
-window.isLoggedIn = {{ 'true' if current_user.is_authenticated else 'false' }};
+window.isLoggedIn = JSON.parse('{{ current_user.is_authenticated | tojson }}');
+const GROK_LOGO_URL = '{{ url_for("static", filename="img/GrokLogo.png") }}';
 let currentGrokListing = null;
 function openGrokChat(listingId, title, description, area) {
     currentGrokListing = { id: listingId, title: title, description: description, area: area };
@@ -534,29 +535,23 @@ document.addEventListener('click', function(e) {
                     let cardExtraClasses = 'card h-100 shadow-sm border-0 post-type-' + (listing.post_type || listing.ad_type || 'sale');
                     if (isBusinessType) cardExtraClasses += ' business-listing';
 
-                    // Owner info
+                    // Owner info - updated for VOL-UI-POLISH (name not clickable; separate View store for businesses)
                     let posterHTML = '';
-                    const ownerPic = listing.profile_pic || listing.business_logo || null;
-                    if (ownerPic) {
-                        const borderColor = isBusinessType ? '#E6B800' : '#6c757d';
-                        const avatarImg = `<img src="${ownerPic}" alt="Profile Picture" class="rounded-circle me-2" width="36" height="36" style="object-fit:cover; border: 2px solid ${borderColor};">`;
-                        const nameText = isBusinessType ? (listing.business_name || 'Business') : `@${(listing.username || '').replace(/^@+/, '')}`;
-                        const badge = isBusinessType ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem; font-weight:600;">BUSINESS</span>` : '';
-                        const nameLink = isBusinessType
-                            ? `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`
-                            : `<span class="text-primary">${nameText}</span>`;
-                        posterHTML = `<div class="d-flex align-items-center mb-3">${avatarImg}<div><strong class="small">${nameLink}</strong>${badge}</div></div>`;
+                    const usernameClean = (listing.username || '').replace(/^@+/, '');
+                    if (isBusinessType) {
+                        const bizName = listing.business_name || usernameClean || 'Business';
+                        posterHTML = `
+                            <div class="seller-attribution mt-1 mb-2">
+                                <span class="fw-semibold small">${bizName}</span>
+                                <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem; padding:0.1em 0.4em;">BUSINESS</span>
+                                <a href="/store/${encodeURIComponent(usernameClean)}" class="small text-decoration-none fw-medium ms-1" style="color:#8B4513; white-space:nowrap;">
+                                    <i class="bi bi-shop-window me-1"></i>View store
+                                </a>
+                            </div>`;
+                    } else if (usernameClean) {
+                        posterHTML = `<div class="seller-attribution mt-1 mb-2"><span class="text-muted small">Posted by <strong class="text-dark">@${usernameClean}</strong></span></div>`;
                     } else {
-                        const initialSource = listing.business_name || listing.username || 'U';
-                        const initial = initialSource.charAt(0).toUpperCase();
-                        const bgColor = isBusinessType ? '#8B4513' : '#6c757d';
-                        const avatarInitial = `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px; background:${bgColor}; color:white; font-weight:700; font-size:0.9rem;">${initial}</div>`;
-                        const nameText = isBusinessType ? (listing.business_name || 'Business') : `@${(listing.username || '').replace(/^@+/, '')}`;
-                        const badge = isBusinessType ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem; font-weight:600;">BUSINESS</span>` : '';
-                        const nameLink = isBusinessType
-                            ? `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`
-                            : `<span class="text-primary">${nameText}</span>`;
-                        posterHTML = `<div class="d-flex align-items-center mb-3">${avatarInitial}<div><strong class="small">${nameLink}</strong>${badge}</div></div>`;
+                        posterHTML = `<div class="seller-attribution mt-1 mb-2"><span class="text-muted small">Posted by Seller</span></div>`;
                     }
 
                     const adType = listing.ad_type || listing.post_type || 'sale';
@@ -616,7 +611,7 @@ document.addEventListener('click', function(e) {
                                             data-grok-title="${(listing.title || '').replace(/"/g, '&quot;')}"
                                             data-grok-description="${(listing.description || '').replace(/"/g, '&quot;').substring(0,180)}"
                                             data-grok-area="${listing.location || ''}">
-                                        <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" alt="Grok" height="15" style="vertical-align: middle;">
+                                        <img src="${GROK_LOGO_URL}" alt="Grok" height="15" style="vertical-align: middle;">
                                         <span>Ask Grok</span>
                                     </button>` : ''}
                                     <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100 rounded-pill">

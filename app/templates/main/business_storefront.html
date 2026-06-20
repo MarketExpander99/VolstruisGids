@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}{{ business_user.business_name or business_user.username }} - Storefront - Volstruis Gids{% endblock %}
+
+{% block content %}
+<div class="container my-4 my-md-5">
+    <!-- Storefront Header -->
+    <div class="card border-0 shadow-sm mb-4" style="background: #f8f4eb; border: 1px solid #E6B800; border-radius: 16px;">
+        <div class="card-body p-4 p-md-4">
+            <div class="d-flex align-items-start flex-wrap gap-3">
+                {% if business_user.profile_pic %}
+                    <img src="{{ business_user.profile_pic }}" alt="{{ business_user.business_name or business_user.username }}"
+                         class="rounded-circle" width="72" height="72"
+                         style="object-fit: cover; border: 3px solid #8B4513;">
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                         style="width:72px; height:72px; background:#2C3E50; color:white; font-size:1.8rem; border: 3px solid #8B4513;">
+                        {{ (business_user.business_name or business_user.username or 'B')[0]|upper }}
+                    </div>
+                {% endif %}
+
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h3 class="mb-0 fw-bold">{{ business_user.business_name or business_user.username }}</h3>
+                        <span class="badge business-badge px-2 py-1" style="font-size: 0.7rem;">BUSINESS</span>
+                    </div>
+                    <div class="text-muted small mt-1">Verified Business • Klein Karoo</div>
+                    {% if business_user.bio %}
+                        <div class="mt-2 small" style="max-width: 620px;">{{ business_user.bio }}</div>
+                    {% endif %}
+                    <div class="mt-2">
+                        <a href="{{ url_for('main.index') }}" class="small text-muted text-decoration-none">← Back to all listings</a>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="badge bg-light text-dark border small">Local Store</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h5 class="fw-bold mb-3">Listings from {{ business_user.business_name or business_user.username }}</h5>
+
+    {% if listings %}
+        <div class="row g-3">
+            {% include 'main/_listing_cards.html' %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-shop-window display-5 text-muted"></i>
+            <p class="text-muted mt-3">No active listings from this business right now.</p>
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary btn-sm">Browse all ads</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -39,7 +39,30 @@
             <p class="card-text text-muted small">
                 {{ listing.area }} · {{ listing.created_at.strftime('%d %b %Y') }}
             </p>
-            
+
+            <!-- Seller / Business Attribution (VOL-UI-POLISH-2026-06-20-SELLER-ATTRIB) -->
+            <div class="seller-attribution mb-2">
+                {% if listing.is_business_ad and listing.user %}
+                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                        <span class="fw-semibold">
+                            {{ listing.user.business_name or listing.user.username }}
+                        </span>
+                        <span class="badge business-badge" style="font-size: 0.6rem; padding: 0.1em 0.4em; vertical-align: baseline;">BUSINESS</span>
+                        <a href="{{ url_for('main.business_storefront', username=listing.user.username) }}"
+                           class="small text-decoration-none fw-medium"
+                           style="color: #8B4513; white-space: nowrap;">
+                            <i class="bi bi-shop-window me-1"></i>View store
+                        </a>
+                    </div>
+                {% elif listing.user %}
+                    <span class="text-muted small">
+                        Posted by <strong class="text-dark">@{{ listing.user.username }}</strong>
+                    </span>
+                {% else %}
+                    <span class="text-muted small">Posted by Seller</span>
+                {% endif %}
+            </div>
+
             <div class="mt-auto">
                 <!-- View button -->
                 <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
