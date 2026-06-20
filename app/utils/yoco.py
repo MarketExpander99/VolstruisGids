@@ -34,11 +34,13 @@ class YocoClient:
                 "Set YOCO_LIVE_SECRET_KEY (or YOCO_SECRET_KEY) when YOCO_TEST_MODE=false"
             )
 
+        self.secret_key = self.secret_key.strip()
+
         # Safety check
         if not self.test_mode and not self.secret_key.startswith("sk_live_"):
             current_app.logger.warning(
                 "YOCO_TEST_MODE is false but the key does not start with sk_live_. "
-                "Double-check your environment variables."
+                "Using live key in production requires a real sk_live_ secret from Yoco Dashboard (Secret keys section)."
             )
 
     @property

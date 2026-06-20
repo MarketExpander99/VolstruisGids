@@ -16,10 +16,13 @@ def create_app(config_class=Config):
     # === YOCO DEBUG AT STARTUP ===
     print("=== YOCO CONFIG DEBUG (at app startup) ===")
     flask_env = app.config.get('FLASK_ENV')
+    yoco_test_mode = app.config.get('YOCO_TEST_MODE')
     yoco_key = app.config.get('YOCO_SECRET_KEY')
     test_key = app.config.get('YOCO_TEST_SECRET_KEY')
     live_key = app.config.get('YOCO_LIVE_SECRET_KEY')
+    raw_key = app.config.get('YOCO_SECRET_KEY_RAW')
     print(f"FLASK_ENV: {flask_env}")
+    print(f"YOCO_TEST_MODE: {yoco_test_mode}")
     print(f"YOCO_SECRET_KEY present: {bool(yoco_key)}")
     if yoco_key:
         print(f"YOCO_SECRET_KEY prefix: {yoco_key[:15]}... (len={len(yoco_key)})")
@@ -29,6 +32,7 @@ def create_app(config_class=Config):
     print(f"YOCO_LIVE_SECRET_KEY present: {bool(live_key)}")
     if live_key:
         print(f"YOCO_LIVE_SECRET_KEY prefix: {live_key[:15]}... (len={len(live_key)})")
+    print(f"YOCO_SECRET_KEY_RAW (plain) present: {bool(raw_key)}")
     print("=== END YOCO DEBUG ===")
     # === END DEBUG ===
 

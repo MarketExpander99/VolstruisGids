@@ -1,0 +1,36 @@
+# Project-scoped Grok configuration for VolstruisGids
+# This file enables MCP servers for this repo (loaded in addition to ~/.grok/config.toml)
+# See: https://docs (or user-guide/07-mcp-servers.md)
+
+[mcp_servers]
+
+# === Yoco Payment MCP Server ===
+# Enables the Grok coding agent (in VS Code / this TUI) to directly call live Yoco tools
+# during editing, debugging, and fixing the integration.
+#
+# Tools exposed by @theyahia/yoco-mcp typically include:
+#   create_checkout, get_checkout (status), create_refund, list_payments, get_balance, etc.
+# This lets the agent create test checkouts, poll status, etc. without leaving the editor.
+#
+# IMPORTANT:
+# - Uses YOCO_TEST_SECRET_KEY when developing (see .env.example)
+# - Set a real sk_test_... in your local .env before using the MCP tools
+# - Restart Grok / reload MCPs (press 'r' in /mcps modal) after changing .env or this file
+# - The MCP server is invoked via npx; first run will download the package
+#
+# For live testing later:
+#   - set YOCO_TEST_MODE=false
+#   - ensure YOCO_LIVE_SECRET_KEY is set
+#   - update the env ref below or add a second server entry if you want both simultaneously
+
+[mcp_servers.yoco]
+command = "npx"
+args = ["-y", "@theyahia/yoco-mcp"]
+enabled = true
+env = { YOCO_SECRET_KEY = "${YOCO_TEST_SECRET_KEY}", YOCO_WEBHOOK_SECRET = "${YOCO_WEBHOOK_SECRET}" }
+startup_timeout_sec = 30
+# Optional: tune per-tool if needed
+# tool_timeouts = { create_checkout = 30000 }
+
+# You can add more MCP servers here as needed (e.g. for DB, GitHub already global).
+# Secrets are never stored in this file — they come from your shell .env / process env.

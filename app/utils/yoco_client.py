@@ -26,7 +26,7 @@ class YocoClient:
         self.api_base = current_app.config.get('YOCO_API_BASE', 'https://api.yoco.com')
         self.checkouts_url = f"{self.api_base}/v1/checkouts"
         if not self.secret_key:
-            raise ValueError("YOCO_SECRET_KEY not configured. Add YOCO_TEST_SECRET_KEY to your .env (get it from Yoco Dashboard > Developers > API keys).")
+            raise ValueError("YOCO_SECRET_KEY not configured. Add YOCO_LIVE_SECRET_KEY or YOCO_SECRET_KEY (or YOCO_TEST_SECRET_KEY) to your .env.")
         if not self.secret_key.startswith('sk_'):
             raise ValueError("YOCO_SECRET_KEY must be a secret key starting with 'sk_' (not a publishable key starting with 'pk_'). Copy the Secret key from your Yoco dashboard.")
 
@@ -90,16 +90,8 @@ class YocoClient:
             logger.error(f"Yoco create_checkout failed: {str(e)}{error_body}")
             raise Exception(f"Yoco API error: {str(e)}{error_body}") from e
 
-        if not self.secret_key or not self.secret_key.startswith('sk_test_'):
-            raise ValueError("At runtime, YOCO_SECRET_KEY is not a valid test secret key. Check .env and restart.")
-
-        # Extra safety (should not reach if key checks passed)
-        if not self.secret_key or not self.secret_key.startswith('sk_'):
-            raise ValueError("Invalid Yoco secret key format at request time.")
-
-        # Additional safety: if somehow we reach here without key, but shouldn't
-        if not self.secret_key or not self.secret_key.startswith('sk_test_'):
-            logger.warning("Warning: Key may not be a valid test secret key")
+        # Note: legacy create path is no longer primary (new YocoClient in utils/yoco.py is used for checkout creation).
+        # The old test-only assertions below were removed to fully support live sk_live_ keys in production.
 
     def verify_webhook_signature(self, payload: bytes, signature: str) -> bool:
         """

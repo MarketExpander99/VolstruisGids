@@ -249,12 +249,13 @@ def create_checkout():
         cancel_url = url_for('payments.payment_cancel', _external=True)
         failure_url = url_for('payments.payment_cancel', _external=True)
 
-        # Debug what key the app actually has (safe prefix only) — only in development
+        # Always log safe key prefix (critical for live key troubleshooting on production deploys)
+        cfg_key = current_app.config.get('YOCO_SECRET_KEY')
+        key_info = (cfg_key[:12] + '... (len=' + str(len(cfg_key)) + ')') if cfg_key else 'None'
+        mode = 'LIVE' if (cfg_key or '').startswith('sk_live_') else 'TEST/MOCK'
+        logger.info(f"Yoco create_checkout using {mode} key: {key_info} (FLASK_ENV={current_app.config.get('FLASK_ENV')}, TEST_MODE={current_app.config.get('YOCO_TEST_MODE')})")
         if current_app.config.get('FLASK_ENV') == 'development':
-            cfg_key = current_app.config.get('YOCO_SECRET_KEY')
-            key_info = (cfg_key[:12] + '... (len=' + str(len(cfg_key)) + ')') if cfg_key else 'None'
-            print(f"DEBUG: About to call Yoco with key {key_info}, FLASK_ENV=development")
-            logger.info(f"DEBUG: About to call Yoco with key {key_info}")
+            print(f"DEBUG: About to call Yoco with key {key_info} ({mode})")
 
         yoco_secret = current_app.config.get('YOCO_SECRET_KEY')
         # If using the known placeholder key from this dev setup, simulate success to allow testing the full flow
@@ -351,7 +352,11 @@ def create_checkout():
         if '401' in error_msg or 'Unauthorized' in error_msg:
             key = current_app.config.get('YOCO_SECRET_KEY')
             key_info = (key[:12] + '...' if key else 'None')
-            flash(f'Payment failed: Invalid Yoco API key (app using key starting with {key_info}). Get a real secret key (sk_test_...) from Yoco Dashboard (log in > Developers > API Keys > Secret keys section for test). Replace the full value in .env (no quotes/spaces), set FLASK_ENV=development, fully restart server. See console DEBUG for details.', 'danger')
+            is_live = (key or '').startswith('sk_live_')
+            mode_hint = 'LIVE' if is_live else 'TEST'
+            hint = ('For LIVE keys: confirm the sk_live_ secret is correct, Online Payments / Checkout is enabled on your Yoco business account, and the key has no extra spaces/quotes. ' if is_live
+                    else 'For TEST keys use sk_test_... ')
+            flash(f'Payment failed: Invalid or unauthorized Yoco {mode_hint} API key (app using key starting with {key_info}). {hint}See Yoco Dashboard > Developers > API Keys (Secret key, not Publishable). Check server logs for full error. Restart after fixing .env.', 'danger')
         else:
             flash('Failed to start payment. Please try again or contact support.', 'danger')
         return redirect(url_for('payments.buy_credits'))
@@ -482,9 +487,9 @@ def promote(listing_id):
 @login_required
 def credits_billing():
     """Credits & Billing page: Stripe credit packs + monthly business sub + tx history.
-    Per spec. Existing Yoco /buy-credits still available.
+    Per spec. Yoco is used for the main /buy-credits credit top-ups. Monthly uses Stripe.
     """
-    _init_stripe()
+    stripe_ready = _init_stripe()
 
     current_balance = current_user.credit_balance or current_user.credits or Decimal('0')
 
@@ -531,7 +536,8 @@ def credits_billing():
         is_business=is_business,
         subscription_status=sub_status,
         transactions=transactions,
-        stripe_pk=current_app.config.get('STRIPE_PUBLISHABLE_KEY')
+        stripe_pk=current_app.config.get('STRIPE_PUBLISHABLE_KEY'),
+        stripe_configured=stripe_ready
     )
 
 
@@ -540,7 +546,7 @@ def credits_billing():
 def create_credit_checkout(pack_id):
     """Stripe Checkout for one-time credit packs (spec v1)."""
     if not _init_stripe():
-        flash('Stripe is not configured. Set STRIPE_SECRET_KEY in your environment.', 'danger')
+        flash('Stripe is not configured for packs/monthly. Credit top-ups use Yoco at Buy Credits. Set Stripe keys only if using business subscription.', 'info')
         return redirect(url_for('payments.credits_billing'))
 
     pack = CREDIT_PACKS.get(pack_id)
@@ -585,7 +591,7 @@ def create_credit_checkout(pack_id):
 def create_business_subscription():
     """Stripe Checkout for monthly business subscription (R149/mo)."""
     if not _init_stripe():
-        flash('Stripe is not configured. Set STRIPE_SECRET_KEY.', 'danger')
+        flash('Stripe not configured for monthly sub. Use Yoco Buy Credits for regular purchases.', 'info')
         return redirect(url_for('payments.credits_billing'))
 
     try:

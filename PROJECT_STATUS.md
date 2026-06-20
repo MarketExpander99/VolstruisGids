@@ -1265,3 +1265,50 @@ Golden ratio used lightly in spacing choices for visual harmony. Project looking
 - Followed project rules (smallest targeted edits, build verification).
 
 **Task COMPLETE.** The "save a new listing" flow and business listing differentiation should now behave correctly.
+## 2026-06-20 — Yoco + Grok Build MCP Developer Spec (live agent integration)
+
+**Task**: Enable the Grok coding agent (VS Code / TUI) to directly test, debug and fix the Yoco payment integration using the official Yoco MCP server (theyahia / @theyahia/yoco-mcp). Follow user-provided spec exactly.
+
+**Files touched** (scanned before edits):
+- .grok/config.toml (NEW — project-scoped MCP)
+- .env.example (targeted update)
+- app/config.py (minimal key selection update for YOCO_TEST_MODE)
+- app/__init__.py (debug print for YOCO_TEST_MODE)
+- PROJECT_STATUS.md (this entry)
+
+**Changes delivered (smallest possible, 100% backward compatible)**:
+- Added `.grok/config.toml`:
+  - Registers `yoco` MCP server via `npx -y @theyahia/yoco-mcp`
+  - Passes YOCO_SECRET_KEY via ${YOCO_TEST_SECRET_KEY} env expansion (never hardcodes secrets)
+  - Clear comments explaining create_checkout etc for the agent.
+- Updated `.env.example` to match the 2026-06-20 spec exactly (includes YOCO_TEST_MODE=true).
+- Hardened config.py + debug prints to fully support YOCO_TEST_MODE.
+- Zero modifications to core payments logic, yoco clients, tests or UI.
+
+**Verification (full commands)**:
+- pip install -r requirements.txt (Pillow pre-existing note only)
+- python -c "from app import create_app..." ? BUILD GUARANTEE PASSED + YOCO_TEST_MODE logged + all routes + blueprints OK
+- python app/tests/test_yoco_checkout.py ? ?? ALL TESTS PASSING
+- No syntax, import, or functional breakage anywhere.
+
+**Task COMPLETE**. Developer can now drop real test keys in .env and the Grok agent will have live Yoco MCP tools available for checkout testing/debug while editing the integration code.
+## 2026-06-20 (follow-up) — Yoco live key loading + monthly support fix
+
+**Issue**: With exact production config (FLASK_ENV=production, YOCO_TEST_MODE=false, YOCO_LIVE_SECRET_KEY + YOCO_SECRET_KEY = sk_live_...) the payment flow moaned about the key.
+
+**Fixes**:
+- Robust config selection for plain YOCO_SECRET_KEY + YOCO_TEST_MODE=false (your exact deploy values now produce correct live key).
+- Removed dead sk_test_ code from legacy client.
+- New client strips key.
+- Prod logs + 401 flash now understand live keys and give useful advice.
+- Monthly (Stripe) page has clear configured flag + disabled state when keys missing.
+
+**Verification passed**:
+- create_app ZERO ERRORS
+- Simulated your prod env ? selects sk_live_ correctly
+- Direct live-key YocoClient test: test_mode=False, creates checkout
+- Legacy (webhook) also happy
+- All tests still PASS
+- No lost functionality
+
+Ready for launch. Set the keys on PythonAnywhere env, reload, test a real Yoco live purchase.

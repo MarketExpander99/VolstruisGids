@@ -42,8 +42,24 @@ class Config:
     YOCO_LIVE_SECRET_KEY = _clean_env_value(os.getenv('YOCO_LIVE_SECRET_KEY'))
     YOCO_WEBHOOK_SECRET = _clean_env_value(os.getenv('YOCO_WEBHOOK_SECRET'))
 
-    # Active key selection (use TEST in dev, LIVE in prod)
-    YOCO_SECRET_KEY = YOCO_TEST_SECRET_KEY if FLASK_ENV == 'development' else YOCO_LIVE_SECRET_KEY
+    # Also support plain YOCO_SECRET_KEY (user's production deploys often set this + YOCO_LIVE + YOCO_TEST_MODE)
+    YOCO_SECRET_KEY_RAW = _clean_env_value(os.getenv('YOCO_SECRET_KEY'))
+
+    # YOCO_TEST_MODE logic (supports user's exact prod config: YOCO_TEST_MODE=false + live keys)
+    test_mode_raw = os.getenv('YOCO_TEST_MODE', '').strip().lower()
+    if test_mode_raw in ('true', '1', 'yes', 'on'):
+        use_test_key = True
+    elif test_mode_raw in ('false', '0', 'no', 'off'):
+        use_test_key = False
+    else:
+        use_test_key = (FLASK_ENV == 'development')
+
+    YOCO_TEST_MODE = 'true' if use_test_key else 'false'
+
+    if use_test_key:
+        YOCO_SECRET_KEY = YOCO_TEST_SECRET_KEY or YOCO_SECRET_KEY_RAW
+    else:
+        YOCO_SECRET_KEY = YOCO_LIVE_SECRET_KEY or YOCO_SECRET_KEY_RAW or YOCO_TEST_SECRET_KEY
 
     YOCO_API_BASE = 'https://api.yoco.com'
     YOCO_CHECKOUTS_URL = f'{YOCO_API_BASE}/v1/checkouts'

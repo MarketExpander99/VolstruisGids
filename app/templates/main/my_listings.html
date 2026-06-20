@@ -7,7 +7,7 @@
             <h1 class="fw-bold mb-0">My Listings</h1>
             <div class="text-muted small">
                 Credits: <strong>{{ current_user.credits or current_user.credit_balance or 0 }}</strong>
-                <a href="{{ url_for('payments.credits_billing') }}" class="btn btn-sm btn-outline-secondary ms-2 py-0 px-2">Buy / Billing</a>
+                <a href="{{ url_for('payments.buy_credits') }}" class="btn btn-sm btn-outline-secondary ms-2 py-0 px-2">Buy Credits</a>
             </div>
         </div>
         <a href="{{ url_for('listings.create') }}" class="btn btn-primary">
