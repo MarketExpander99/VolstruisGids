@@ -245,9 +245,12 @@ def create_checkout():
         }
 
         # Success/Cancel URLs (adjust as needed for your flow)
-        success_url = url_for('payments.payment_success', _external=True)
-        cancel_url = url_for('payments.payment_cancel', _external=True)
-        failure_url = url_for('payments.payment_cancel', _external=True)
+        # Force https in production - critical for Yoco live checkouts (many hosts like PythonAnywhere default to http in url_for)
+        is_prod = current_app.config.get('FLASK_ENV') == 'production'
+        url_scheme = 'https' if is_prod else None
+        success_url = url_for('payments.payment_success', _external=True, _scheme=url_scheme)
+        cancel_url = url_for('payments.payment_cancel', _external=True, _scheme=url_scheme)
+        failure_url = url_for('payments.payment_cancel', _external=True, _scheme=url_scheme)
 
         # Always log safe key prefix (critical for live key troubleshooting on production deploys)
         cfg_key = current_app.config.get('YOCO_SECRET_KEY')
@@ -304,34 +307,40 @@ def create_checkout():
         yoco_checkout_id = checkout.get('id')
         redirect_url = checkout.get('redirectUrl') or checkout.get('redirect_url')
 
-        # Record in DB - prefer CreditTransaction for credits, Payment for promotions
-        if credits > 0 or package_id:
-            txn = CreditTransaction(
-                user_id=current_user.id,
-                amount=credits,
-                transaction_type='purchase',
-                reference=yoco_checkout_id,
-                status='pending'
-            )
-            db.session.add(txn)
-        else:
-            # Promotion / listing boost
-            payment = Payment(
-                user_id=current_user.id,
-                listing_id=listing_id,
-                amount=amount,
-                currency='ZAR',
-                payment_method='yoco',
-                status='pending',
-                transaction_id=None,
-                yoco_checkout_id=yoco_checkout_id,  # new field
-                yoco_status='created'
-            )
-            db.session.add(payment)
+        if not yoco_checkout_id or not redirect_url:
+            logger.error(f"Invalid Yoco checkout response (missing id or redirectUrl): {checkout}")
+            raise Exception("Yoco did not return a valid redirect URL. Check your live account settings.")
 
-        db.session.commit()
-
-        logger.info(f"Yoco checkout created for user {current_user.id}: {yoco_checkout_id}")
+        # Record pending transaction (best-effort in prod; webhook + success handler are authoritative)
+        try:
+            if credits > 0 or package_id:
+                txn = CreditTransaction(
+                    user_id=current_user.id,
+                    amount=credits,
+                    transaction_type='purchase',
+                    reference=yoco_checkout_id,
+                    status='pending'
+                )
+                db.session.add(txn)
+            else:
+                # Promotion / listing boost
+                payment = Payment(
+                    user_id=current_user.id,
+                    listing_id=listing_id,
+                    amount=amount,
+                    currency='ZAR',
+                    payment_method='yoco',
+                    status='pending',
+                    transaction_id=None,
+                    yoco_checkout_id=yoco_checkout_id,
+                    yoco_status='created'
+                )
+                db.session.add(payment)
+            db.session.commit()
+            logger.info(f"Yoco checkout created for user {current_user.id}: {yoco_checkout_id}")
+        except Exception as db_err:
+            logger.error(f"DB record after successful Yoco checkout failed (user will still be sent to pay; rely on webhook): {db_err}")
+            db.session.rollback()
 
         if request.is_json:
             return jsonify({
@@ -340,6 +349,7 @@ def create_checkout():
             })
         else:
             # Form post from buy-credits → redirect user to Yoco
+            # (do this even if our local record had issues)
             return redirect(redirect_url)
 
     except Exception as e:
@@ -358,7 +368,12 @@ def create_checkout():
                     else 'For TEST keys use sk_test_... ')
             flash(f'Payment failed: Invalid or unauthorized Yoco {mode_hint} API key (app using key starting with {key_info}). {hint}See Yoco Dashboard > Developers > API Keys (Secret key, not Publishable). Check server logs for full error. Restart after fixing .env.', 'danger')
         else:
-            flash('Failed to start payment. Please try again or contact support.', 'danger')
+            # For live Yoco issues: most common are bad success/cancel URLs (must be public https),
+            # account not enabled for live online payments, or network from host.
+            # The real error details are in the server logs (search for "Yoco create_checkout error").
+            is_live = (current_app.config.get('YOCO_SECRET_KEY') or '').startswith('sk_live_')
+            hint = " (Using live key — verify Yoco account has live Checkout enabled + success URLs are public HTTPS.)" if is_live else ""
+            flash(f'Failed to start payment with Yoco. Please try again or contact support.{hint} Check server logs for the exact error.', 'danger')
         return redirect(url_for('payments.buy_credits'))
 
 

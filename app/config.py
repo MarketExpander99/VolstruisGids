@@ -19,6 +19,9 @@ class Config:
     FLASK_APP = 'run.py'
     FLASK_ENV = os.environ.get('FLASK_ENV') or 'development'
 
+    # URL scheme for external links (important for payment provider success/cancel URLs)
+    PREFERRED_URL_SCHEME = os.environ.get('PREFERRED_URL_SCHEME') or ('https' if FLASK_ENV == 'production' else 'http')
+
     # Flask-Login settings
     LOGIN_VIEW = 'auth.login'
     LOGIN_MESSAGE = 'Please log in to access this page.'

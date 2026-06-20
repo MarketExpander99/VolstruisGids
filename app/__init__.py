@@ -13,6 +13,10 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Ensure external URLs (for payment redirects) use the correct scheme in production
+    if app.config.get('PREFERRED_URL_SCHEME'):
+        app.config['PREFERRED_URL_SCHEME'] = app.config['PREFERRED_URL_SCHEME']
+
     # === YOCO DEBUG AT STARTUP ===
     print("=== YOCO CONFIG DEBUG (at app startup) ===")
     flask_env = app.config.get('FLASK_ENV')

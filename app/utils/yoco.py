@@ -36,6 +36,13 @@ class YocoClient:
 
         self.secret_key = self.secret_key.strip()
 
+        # Always log safe info for troubleshooting (especially prod)
+        try:
+            prefix = self.secret_key[:12] + "..." if self.secret_key else "None"
+            current_app.logger.info(f"YocoClient ready: mode={'LIVE' if self.is_live else 'TEST'}, key={prefix}")
+        except Exception:
+            pass
+
         # Safety check
         if not self.test_mode and not self.secret_key.startswith("sk_live_"):
             current_app.logger.warning(
