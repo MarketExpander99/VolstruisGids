@@ -159,19 +159,19 @@
 <div class="modal fade" id="grokChatModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
+            <div class="modal-header bg-secondary text-white">
                 <h5 class="modal-title"><img src="{{ url_for('static', filename='img/GrokLogo.png') }}" alt="Grok" height="26" class="me-2" style="vertical-align: middle;"> Ask Grok about this listing</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div id="chat-log" style="max-height: 320px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px;"></div>
                 <div id="grok-thinking" style="display: none; align-items: center; gap: 10px; margin-bottom: 10px;">
-                    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+                    <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
                     <span class="text-muted">Grok is thinking<span class="thinking-dots">...</span></span>
                 </div>
                 <div class="input-group">
                     <input type="text" id="grok-input" class="form-control" placeholder="e.g. Would this gearbox work in my 2018 Hilux?" onkeypress="if (event.key === 'Enter') sendGrokMessage()">
-                    <button class="btn btn-info" onclick="sendGrokMessage()">
+                    <button class="btn btn-secondary" onclick="sendGrokMessage()">
                         <i class="bi bi-send"></i> Send
                     </button>
                 </div>
@@ -610,7 +610,7 @@ document.addEventListener('click', function(e) {
                                 </div>
                                 <div class="card-footer bg-transparent border-0 pt-0 pb-3">
                                     ${window.isLoggedIn ? `
-                                    <button type="button" class="btn btn-outline-info btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-pill grok-ask-btn"
+                                    <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-pill grok-ask-btn"
                                             data-grok-listing-id="${listing.id}"
                                             data-grok-title="${(listing.title || '').replace(/"/g, '&quot;')}"
                                             data-grok-description="${(listing.description || '').replace(/"/g, '&quot;').substring(0,180)}"
