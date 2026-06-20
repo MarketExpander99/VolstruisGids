@@ -74,6 +74,11 @@ class User(UserMixin, db.Model):
         Uses both legacy is_business flag and account_type for robustness."""
         return bool(getattr(self, 'is_business', False) or getattr(self, 'account_type', None) == 'business')
 
+    @property
+    def storefront_enabled(self):
+        """Business accounts only get the professional storefront experience."""
+        return self.is_business_account
+
     def set_credits(self, value):
         dec_val = value if isinstance(value, Decimal) else Decimal(str(value or 0))
         self.credit_balance = dec_val

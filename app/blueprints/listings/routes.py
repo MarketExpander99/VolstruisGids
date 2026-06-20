@@ -44,7 +44,9 @@ def resize_image_to_square(image_path, size=800, bg_color=(250, 244, 235)):
 @listings_bp.route('/improve-with-ai', methods=['POST'])
 @login_required
 def improve_with_ai():
-    """One powerful AI improvement for the whole listing (professional ad + realistic Klein Karoo market price)."""
+    """Grok polish: ONLY title + description. Separate locally-researched price recommendation.
+    Price fields are never mutated. Follows VolstruisGids Klein Karoo expert prompt.
+    """
     data = request.get_json() or {}
     title = (data.get('title') or '').strip()
     description = (data.get('description') or '').strip()
@@ -52,6 +54,7 @@ def improve_with_ai():
     category_id = data.get('category_id')
     town = (data.get('town') or '').strip()
     price = data.get('price') or ''
+    price_type = (data.get('price_type') or 'fixed').strip()
 
     if not title and not description:
         return jsonify({'error': 'Please add a title or description first.'}), 400
@@ -85,40 +88,75 @@ def improve_with_ai():
             if cat:
                 category_name = cat.name
 
-        prompt = f"""You are a professional classifieds copywriter and local market pricing expert for VolstruisGids, serving the Klein Karoo towns (Oudtshoorn, Ladismith, Calitzdorp, etc.) in the Western Cape, South Africa.
+        # === NEW SPEC PROMPT: Title + Description only. Separate researched price insight. ===
+        prompt = f"""You are "VolstruisGids Klein Karoo Market Expert" — a trusted, no-nonsense advisor who has helped hundreds of local sellers in Oudtshoorn, Ladismith, Calitzdorp, De Rust, and the surrounding Western Cape farms get fair prices and quick sales on VolstruisGids.
 
-Your goal: Create a clean, professional, fact-based listing that will actually help this item sell quickly. Stay honest, local-sounding, and trustworthy. Never overpromise.
+You deeply understand:
+- Local buyer behaviour (cash buyers, farm collections, tourism trade, agricultural community needs)
+- Seasonal demand (hunting season, school holidays, harvest time, winter vs summer)
+- What actually sells fast vs what lingers in the Klein Karoo classifieds market
+- Realistic price ranges for used goods in this region (not Johannesburg or Cape Town prices)
 
-Key context for this listing:
+TASK: Polish a draft classifieds listing.
+
+INPUTS YOU WILL RECEIVE:
+- category
+- draft_title (may be rough)
+- draft_description (may be short or unstructured)
+- draft_price (user's current number or range — treat as reference only)
+- price_type ("fixed", "range", or null)
+- town_or_area (e.g. "Ladismith", "Oudtshoorn", "Klein Karoo")
+- condition (if mentioned: new, like-new, good, fair, needs work)
+
+STRICT RULES:
+1. TITLE (polished_title)
+   - Make it clear, specific, and searchable.
+   - Max ~70 characters.
+   - Include key attributes buyers search for (brand, size, material, condition signal).
+   - Honest and professional — no clickbait.
+
+2. DESCRIPTION (polished_description)
+   - Rewrite into scannable, friendly paragraphs or short bullets.
+   - Lead with the strongest selling point.
+   - Mention condition, age, reason for selling, and practical local details (collection, delivery radius, cash/EFT, farm access).
+   - End with a warm, low-pressure CTA.
+   - 80–160 words ideal. Natural South African English.
+
+3. PRICE RECOMMENDATION (completely separate from title/desc polish)
+   - Base your recommendation on:
+     * Real market value for this category + condition in the Klein Karoo right now
+     * Local supply/demand signals you know
+     * Practical factors (pickup convenience, tourism route proximity, farm vs town)
+   - **NEVER** suggest a price simply by taking "X% less than what the user typed". That is lazy and forbidden.
+   - Provide a single recommended price (or tight range if price_type=range).
+   - Write a short, credible "why" explanation (2–4 sentences) that references local context.
+   - Add a confidence level: High / Medium / Low + one-line note.
+   - If the draft has very little information, still give a solid category benchmark and note that more details would sharpen the recommendation.
+
+4. OUTPUT FORMAT — ONLY valid JSON, nothing else:
+{{
+  "polished_title": "string",
+  "polished_description": "string (use \\n for line breaks)",
+  "price_recommendation": {{
+    "recommended_price": number,
+    "range_low": number or null,
+    "range_high": number or null,
+    "currency": "ZAR",
+    "why": "string (local market reasoning)",
+    "confidence": "High" | "Medium" | "Low",
+    "local_context": "string (optional extra Klein Karoo flavour)"
+  }}
+}}
+
+Key context for this request:
 - Post type: {post_type}
 - Category: {category_name}
 - Town / Area: {town}
-- Original Title: {title}
-- Original Description: {description}
-- User's current price input (if provided): {price if price else 'not specified by user'}
-
-For the pricing suggestion:
-You must suggest a single realistic **suggested_price** (integer in ZAR) that reflects current fair market value for this specific item in the Klein Karoo / rural Western Cape second-hand market.
-
-Consider these real market variables when deciding the price:
-- Typical prices for similar items in this category in small Karoo towns (lower than Cape Town metro due to smaller buyer pool and logistics).
-- Item condition, age, brand, and features described (or implied).
-- Local demand drivers: agricultural/farming season, tourism/high season, school holidays, or economic factors in the region.
-- Supply: how common this item is locally (e.g. bakkie parts, farming equipment, household appliances, furniture, livestock-related).
-- Quick-sale pricing psychology for classifieds platforms — slightly competitive but fair so it sells without long wait.
-- If post_type is 'wanted': suggest a realistic offer price a buyer would make.
-- If 'rental' or 'services': the rate should be sensible per the duration unit.
-
-DO NOT default to any example number like 1250 or copy from previous responses. Base it purely on your trained knowledge of South African rural marketplace values in the Western Cape Karoo region. Make it specific to the described item.
-
-Return ONLY valid JSON with these exact keys (no extra text, no markdown):
-
-{{
-  "improved_title": "Clear, professional, benefit-focused title (max 85 characters, include key specs or town if helpful)",
-  "improved_description": "Professional, scannable description. Use short paragraphs or bullet points where helpful. Highlight real benefits, condition, location advantages, and call-to-action. Keep it trustworthy and easy to read. Max 380 words.",
-  "suggested_price": <the integer ZAR price you determined from market analysis>,
-  "price_reason": "1-2 sentences explaining the suggested price with reference to specific local Klein Karoo market factors (e.g. comparable farm gear prices in Oudtshoorn area this season, demand for this item type, condition-based adjustment)."
-}}"""
+- Draft Title: {title}
+- Draft Description: {description}
+- Draft price input: {price if price else 'not provided'}
+- Price type: {price_type}
+"""
 
         headers = {
             "Authorization": f"Bearer {grok_api_key}",
@@ -128,7 +166,7 @@ Return ONLY valid JSON with these exact keys (no extra text, no markdown):
             "model": grok_model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.6,
-            "max_tokens": 950
+            "max_tokens": 1100
         }
 
         resp = requests.post(grok_api_url, headers=headers, json=payload, timeout=30)
@@ -139,19 +177,36 @@ Return ONLY valid JSON with these exact keys (no extra text, no markdown):
         try:
             improved = pyjson.loads(cleaned)
         except Exception:
-            # Robust JSON extraction if model adds extra text
             match = re.search(r'\{[\s\S]*\}', cleaned)
             if match:
                 improved = pyjson.loads(match.group(0))
             else:
                 raise
 
+        # Extract polished text (fall back to original if missing)
+        polished_title = improved.get('polished_title') or title
+        polished_description = improved.get('polished_description') or description
+
+        # Price recommendation is SEPARATE and optional
+        raw_reco = improved.get('price_recommendation') or {}
+        price_reco = None
+        if isinstance(raw_reco, dict) and (raw_reco.get('recommended_price') is not None or raw_reco.get('range_low') is not None):
+            price_reco = {
+                'recommended_price': raw_reco.get('recommended_price'),
+                'range_low': raw_reco.get('range_low'),
+                'range_high': raw_reco.get('range_high'),
+                'currency': raw_reco.get('currency') or 'ZAR',
+                'why': raw_reco.get('why') or '',
+                'confidence': raw_reco.get('confidence') or 'Medium',
+                'local_context': raw_reco.get('local_context') or ''
+            }
+
         return jsonify({
             'success': True,
-            'improved_title': improved.get('improved_title', title),
-            'improved_description': improved.get('improved_description', description),
-            'suggested_price': improved.get('suggested_price'),
-            'price_reason': improved.get('price_reason', ''),
+            'polished_title': polished_title,
+            'polished_description': polished_description,
+            'price_recommendation': price_reco,
+            # Legacy fields kept minimal for any very old client bits (harmless)
             'is_free': is_free,
             'credits_used': cost,
             'remaining_credits': float((current_user.credit_balance or Decimal('0')) - Decimal(str(cost))) if not is_free else float(current_user.credit_balance or 0),

@@ -277,25 +277,74 @@ document.addEventListener('click', function(e) {
         if (cats) cats.classList.add('d-none');
     }
 
-    function populateStoreHeader(listing) {
-        if (!listing) return;
+    function populateStoreHeader(listing, storefrontOwner) {
+        const header = document.getElementById('user-store-header');
         const logoEl = document.getElementById('user-store-logo');
         const nameEl = document.getElementById('user-store-name');
-        const header = document.getElementById('user-store-header');
-        if (header) header.classList.remove('d-none');
-        if (!logoEl || !nameEl) return;
-        const logoSrc = listing.business_logo || listing.profile_pic || '';
-        if (logoEl) logoEl.src = logoSrc;
-        let displayName = '';
-        if (listing.business_name && listing.business_name.trim()) {
-            displayName = listing.business_name.trim();
-        } else if (listing.username) {
-            let u = (listing.username || '').replace(/^@+/, '');
-            displayName = '@' + u;
-        } else {
-            displayName = 'Local store';
+        if (!header) return;
+
+        // Determine if this is a business storefront
+        let isBusinessStore = false;
+        if (storefrontOwner && typeof storefrontOwner.is_business_account !== 'undefined') {
+            isBusinessStore = !!storefrontOwner.is_business_account;
+        } else if (listing && listing.is_business_ad) {
+            isBusinessStore = true;
         }
-        nameEl.textContent = displayName;
+
+        header.classList.remove('d-none');
+
+        if (!isBusinessStore) {
+            // Personal user — show clean non-storefront message (per spec). Listings still render normally below.
+            if (logoEl) logoEl.src = '';
+            if (nameEl) {
+                const personalName = (storefrontOwner && storefrontOwner.username) ? ('@' + storefrontOwner.username) : (listing ? ('@' + (listing.username || '').replace(/^@+/, '')) : 'Seller');
+                nameEl.innerHTML = `${personalName} <span class="badge bg-secondary ms-2" style="font-size:0.65rem;">Personal Seller</span>`;
+            }
+            // Inject / replace the header body with friendly business-only notice (non-destructive to structure)
+            let notice = header.querySelector('.storefront-notice');
+            if (!notice) {
+                notice = document.createElement('div');
+                notice.className = 'storefront-notice mt-2 p-2 rounded';
+                notice.style.background = '#fff3cd';
+                notice.style.border = '1px solid #ffeaa7';
+                notice.style.fontSize = '0.85rem';
+                header.appendChild(notice);
+            }
+            notice.innerHTML = `
+                <strong>Storefronts are for business accounts only.</strong><br>
+                Personal sellers on VolstruisGids have clean public listings. 
+                <a href="/how-it-works" class="text-decoration-underline">Upgrade to a business account</a> anytime for a professional storefront.
+            `;
+            // Hide share/store buttons area in this mode
+            const shareArea = header.querySelector('.standalone-share');
+            if (shareArea) shareArea.style.display = 'none';
+            return;
+        }
+
+        // Business storefront — full professional header
+        if (logoEl) {
+            const logoSrc = (storefrontOwner && storefrontOwner.profile_pic) || (listing && (listing.business_logo || listing.profile_pic)) || '';
+            logoEl.src = logoSrc || '';
+        }
+        if (nameEl) {
+            let displayName = 'Local store';
+            if (storefrontOwner && storefrontOwner.business_name && storefrontOwner.business_name.trim()) {
+                displayName = storefrontOwner.business_name.trim();
+            } else if (listing && listing.business_name && listing.business_name.trim()) {
+                displayName = listing.business_name.trim();
+            } else if (storefrontOwner && storefrontOwner.username) {
+                displayName = storefrontOwner.username;
+            } else if (listing && listing.username) {
+                displayName = '@' + (listing.username || '').replace(/^@+/, '');
+            }
+            nameEl.textContent = displayName;
+        }
+        // Ensure share is visible for business
+        const shareArea = header.querySelector('.standalone-share');
+        if (shareArea) shareArea.style.display = '';
+        // Remove any personal notice
+        const oldNotice = header.querySelector('.storefront-notice');
+        if (oldNotice) oldNotice.remove();
     }
 
     function updateStorefrontMode(data, append) {
@@ -306,21 +355,42 @@ document.addEventListener('click', function(e) {
             hideMainSections();
             if (header) header.classList.remove('d-none');
             if (!append) {
+                const owner = (data && data.storefront_owner) ? data.storefront_owner : null;
                 if (data && data.listings && data.listings.length > 0) {
-                    populateStoreHeader(data.listings[0]);
+                    populateStoreHeader(data.listings[0], owner);
                 } else {
-                    // graceful fallback when user_id present but zero listings
+                    // graceful fallback
                     const logoEl = document.getElementById('user-store-logo');
                     const nameEl = document.getElementById('user-store-name');
                     if (logoEl) logoEl.src = '';
-                    if (nameEl) nameEl.textContent = 'Local store';
+                    if (nameEl) nameEl.textContent = owner && owner.username ? ('@' + owner.username) : 'Local seller';
+                    if (owner && !owner.is_business_account && header) {
+                        let notice = header.querySelector('.storefront-notice');
+                        if (!notice) {
+                            notice = document.createElement('div');
+                            notice.className = 'storefront-notice mt-2 p-2 rounded';
+                            notice.style.background = '#fff3cd';
+                            notice.style.border = '1px solid #ffeaa7';
+                            notice.style.fontSize = '0.85rem';
+                            header.appendChild(notice);
+                        }
+                        notice.innerHTML = `
+                            <strong>Storefronts are for business accounts only.</strong><br>
+                            Personal sellers on VolstruisGids have clean public listings. 
+                            <a href="/how-it-works" class="text-decoration-underline">Upgrade to a business account</a> anytime for a professional storefront.
+                        `;
+                    }
                 }
                 focusStorefrontHeader();
             }
-            // on append (load more) while in storefront: do not auto-scroll
         } else {
             showMainSections();
-            if (header) header.classList.add('d-none');
+            if (header) {
+                header.classList.add('d-none');
+                // clean any injected notice
+                const n = header.querySelector('.storefront-notice');
+                if (n) n.remove();
+            }
         }
     }
 
@@ -337,7 +407,14 @@ document.addEventListener('click', function(e) {
         const url = new URL(window.location);
         url.searchParams.delete('user_id');
         window.history.pushState({}, '', url);
-        document.getElementById('user-store-header').classList.add('d-none');
+        const hdr = document.getElementById('user-store-header');
+        if (hdr) {
+            hdr.classList.add('d-none');
+            const n = hdr.querySelector('.storefront-notice');
+            if (n) n.remove();
+            const sh = hdr.querySelector('.standalone-share');
+            if (sh) sh.style.display = '';
+        }
         showMainSections();
         currentPage = 1;
         fetchListings(1, false);
@@ -459,7 +536,9 @@ document.addEventListener('click', function(e) {
                         const avatarImg = `<img src="${ownerPic}" alt="Profile Picture" class="rounded-circle me-2" width="36" height="36" style="object-fit:cover; border: 2px solid ${borderColor};">`;
                         const nameText = isBusinessType ? (listing.business_name || 'Business') : `@${(listing.username || '').replace(/^@+/, '')}`;
                         const badge = isBusinessType ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem; font-weight:600;">BUSINESS</span>` : '';
-                        const nameLink = `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
+                        const nameLink = isBusinessType
+                            ? `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`
+                            : `<span class="text-primary">${nameText}</span>`;
                         posterHTML = `<div class="d-flex align-items-center mb-3">${avatarImg}<div><strong class="small">${nameLink}</strong>${badge}</div></div>`;
                     } else {
                         const initialSource = listing.business_name || listing.username || 'U';
@@ -468,7 +547,9 @@ document.addEventListener('click', function(e) {
                         const avatarInitial = `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px; background:${bgColor}; color:white; font-weight:700; font-size:0.9rem;">${initial}</div>`;
                         const nameText = isBusinessType ? (listing.business_name || 'Business') : `@${(listing.username || '').replace(/^@+/, '')}`;
                         const badge = isBusinessType ? `<span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem; font-weight:600;">BUSINESS</span>` : '';
-                        const nameLink = `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`;
+                        const nameLink = isBusinessType
+                            ? `<a href="?user_id=${listing.user_id}" onclick="event.preventDefault(); filterByUser(${listing.user_id});" class="text-decoration-none text-primary">${nameText}</a>`
+                            : `<span class="text-primary">${nameText}</span>`;
                         posterHTML = `<div class="d-flex align-items-center mb-3">${avatarInitial}<div><strong class="small">${nameLink}</strong>${badge}</div></div>`;
                     }
 
@@ -600,7 +681,14 @@ document.addEventListener('click', function(e) {
         const url = new URL(window.location);
         url.searchParams.delete('user_id');
         window.history.pushState({}, '', url);
-        document.getElementById('user-store-header').classList.add('d-none');
+        const hdr = document.getElementById('user-store-header');
+        if (hdr) {
+            hdr.classList.add('d-none');
+            const n = hdr.querySelector('.storefront-notice');
+            if (n) n.remove();
+            const sh = hdr.querySelector('.standalone-share');
+            if (sh) sh.style.display = '';
+        }
         currentPage = 1;
         fetchListings(1, false);
         loadPopularCategories();

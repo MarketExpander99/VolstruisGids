@@ -149,10 +149,12 @@
 
                             <!-- Grok Result -->
                             <div id="ai-result" class="d-none mt-3">
-                                <div class="alert alert-success border-0 py-2 mb-0 small" style="background-color: #E8F5E9;">
-                                    <strong>✅ Ad updated with Grok!</strong><br>
-                                    <span id="ai-price-reason"></span>
+                                <div class="alert alert-success border-0 py-2 mb-2 small" style="background-color: #E8F5E9;">
+                                    <strong>✅ Title &amp; Description polished with Grok</strong>
+                                    <span class="text-muted">— price untouched</span>
                                 </div>
+                                <!-- AI Market Insight card injected here by JS after successful polish -->
+                                <div id="ai-market-insight"></div>
                             </div>
                         </div>
                         <!-- ========== END GROK SECTION ========== -->
@@ -419,14 +421,14 @@
     updatePriceVisibility();
     updatePriceType();
 
-    // ========== GROK IMPROVE BUTTON ==========
+    // ========== GROK IMPROVE BUTTON (Title+Desc only + separate price insight card) ==========
     const aiBtn = document.getElementById('ai-improve-btn');
     if (aiBtn) {
         aiBtn.addEventListener('click', async function () {
             const btnText = document.getElementById('ai-btn-text');
             const spinner = document.getElementById('ai-btn-spinner');
             const resultBox = document.getElementById('ai-result');
-            const priceReasonEl = document.getElementById('ai-price-reason');
+            const insightContainer = document.getElementById('ai-market-insight');
 
             const titleEl = document.getElementById('title');
             const descEl = document.getElementById('description');
@@ -440,12 +442,16 @@
 
             let price = null;
             const fixedPrice = document.getElementById('price');
-            const minPrice = document.getElementById('min_price');
+            const minPriceEl = document.getElementById('min_price');
+            const maxPriceEl = document.getElementById('max_price');
             if (fixedPrice && fixedPrice.offsetParent !== null) price = fixedPrice.value;
-            else if (minPrice && minPrice.offsetParent !== null) price = minPrice.value;
+            else if (minPriceEl && minPriceEl.offsetParent !== null) price = minPriceEl.value;
 
             const postTypeChecked = document.querySelector('input[name="post_type"]:checked');
             const post_type = postTypeChecked ? postTypeChecked.value : '';
+
+            const priceTypeChecked = document.querySelector('input[name="price_type"]:checked');
+            const price_type = priceTypeChecked ? priceTypeChecked.value : 'fixed';
 
             if (!title && !description) {
                 alert('Please add a title or description first before using Grok.');
@@ -456,6 +462,7 @@
             btnText.textContent = 'Improving with Grok...';
             spinner.classList.remove('d-none');
             resultBox.classList.add('d-none');
+            if (insightContainer) insightContainer.innerHTML = '';
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -465,7 +472,7 @@
                         'Content-Type': 'application/json',
                         ...(csrfToken && { 'X-CSRFToken': csrfToken })
                     },
-                    body: JSON.stringify({ title, description, post_type, category_id, price, town })
+                    body: JSON.stringify({ title, description, post_type, category_id, price, town, price_type })
                 });
 
                 let data;
@@ -479,19 +486,77 @@
                     throw new Error(data.error || 'Grok request failed');
                 }
 
-                if (data.improved_title && titleEl) titleEl.value = data.improved_title;
-                if (data.improved_description && descEl) descEl.value = data.improved_description;
+                // Apply ONLY polished title + description. Price stays exactly as user entered.
+                if (data.polished_title && titleEl) titleEl.value = data.polished_title;
+                if (data.polished_description && descEl) descEl.value = data.polished_description;
 
-                if (data.suggested_price) {
-                    if (fixedPrice && fixedPrice.offsetParent !== null) fixedPrice.value = data.suggested_price;
-                    else if (minPrice && minPrice.offsetParent !== null) minPrice.value = data.suggested_price;
-                    else if (fixedPrice) fixedPrice.value = data.suggested_price;
+                // Separate Market Insight card
+                const reco = data.price_recommendation;
+                if (reco && insightContainer) {
+                    let priceDisplay = '';
+                    if (reco.recommended_price != null) {
+                        priceDisplay = `R ${Number(reco.recommended_price).toLocaleString()}`;
+                    } else if (reco.range_low != null && reco.range_high != null) {
+                        priceDisplay = `R ${Number(reco.range_low).toLocaleString()} – R ${Number(reco.range_high).toLocaleString()}`;
+                    }
+
+                    const whyText = reco.why || 'Local Klein Karoo market benchmark applied.';
+                    const conf = reco.confidence || 'Medium';
+
+                    const cardHTML = `
+                        <div class="card border-0 shadow-sm" style="background:#fffaf0; border:1px solid #E6B800; border-radius:12px;">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-semibold small" style="color:#5C4033;">AI Market Insight – Recommended Price</span>
+                                    <span class="badge bg-light text-dark" style="font-size:0.65rem;">Klein Karoo tuned • Grok</span>
+                                </div>
+                                <div class="d-flex align-items-baseline gap-2 mb-1">
+                                    <span class="fs-5 fw-bold" style="color:#2C3E50;">${priceDisplay}</span>
+                                    <span class="small text-muted">(${conf} confidence)</span>
+                                </div>
+                                <div class="small text-muted" style="line-height:1.35;">${whyText}</div>
+                                ${reco.local_context ? `<div class="small mt-1" style="color:#6B5344;">${reco.local_context}</div>` : ''}
+                                <button type="button" id="use-reco-price-btn"
+                                        class="btn btn-sm mt-2 px-3"
+                                        style="background:#E6B800; color:#2C3E50; border:none; font-weight:600; border-radius:8px;">
+                                    Use this recommended price
+                                </button>
+                                <small class="text-muted d-block mt-1" style="font-size:0.7rem;">Price fields were left exactly as you entered them.</small>
+                            </div>
+                        </div>
+                    `;
+                    insightContainer.innerHTML = cardHTML;
+
+                    const useBtn = document.getElementById('use-reco-price-btn');
+                    if (useBtn) {
+                        useBtn.addEventListener('click', function() {
+                            const currentPriceType = (document.querySelector('input[name="price_type"]:checked') || {}).value || 'fixed';
+                            if (currentPriceType === 'range' && (minPriceEl || maxPriceEl)) {
+                                if (reco.range_low != null && minPriceEl) minPriceEl.value = reco.range_low;
+                                if (reco.range_high != null && maxPriceEl) maxPriceEl.value = reco.range_high;
+                                if (reco.recommended_price != null) {
+                                    if (minPriceEl && !minPriceEl.value) minPriceEl.value = reco.recommended_price;
+                                    if (maxPriceEl && !maxPriceEl.value) maxPriceEl.value = reco.recommended_price;
+                                }
+                            } else if (fixedPrice) {
+                                if (reco.recommended_price != null) fixedPrice.value = reco.recommended_price;
+                                else if (reco.range_low != null) fixedPrice.value = reco.range_low;
+                            }
+                            useBtn.textContent = '✓ Applied';
+                            useBtn.style.background = '#198754';
+                            useBtn.style.color = '#fff';
+                            setTimeout(() => {
+                                if (useBtn && useBtn.parentNode) {
+                                    useBtn.textContent = 'Use this recommended price';
+                                    useBtn.style.background = '#E6B800';
+                                    useBtn.style.color = '#2C3E50';
+                                }
+                            }, 1400);
+                        });
+                    }
                 }
-                if (data.price_reason) {
-                    const suggested = Number(data.suggested_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    priceReasonEl.innerHTML = `<strong>Grok suggested price:</strong> R ${suggested} — ${data.price_reason}`;
-                    resultBox.classList.remove('d-none');
-                }
+
+                resultBox.classList.remove('d-none');
 
                 btnText.textContent = '✅ Done!';
                 setTimeout(() => { btnText.textContent = 'Improve with Grok'; }, 1600);

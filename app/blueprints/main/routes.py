@@ -3,6 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, jsonify, c
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
+from app.models.user import User
 from app.models.category import Category
 from app.models.credit_transaction import CreditTransaction
 from sqlalchemy.orm import joinedload
@@ -175,10 +176,28 @@ def api_listings():
         'profile_pic': l.user.profile_pic if l.user else None
     } for l in listings.items]
 
+    # === STOREFRONT CONTEXT (for business-only storefront enforcement) ===
+    storefront_owner = None
+    if user_id:
+        try:
+            target = User.query.get(int(user_id))
+            if target:
+                storefront_owner = {
+                    'user_id': target.id,
+                    'username': (target.username or '').lstrip('@'),
+                    'business_name': target.business_name,
+                    'is_business_account': bool(target.is_business_account),
+                    'storefront_enabled': bool(target.storefront_enabled),
+                    'profile_pic': target.profile_pic,
+                }
+        except Exception:
+            pass
+
     return jsonify({
         'listings': listings_data,
         'has_more': listings.has_next,
-        'next_page': page + 1 if listings.has_next else None
+        'next_page': page + 1 if listings.has_next else None,
+        'storefront_owner': storefront_owner
     })
 
 
