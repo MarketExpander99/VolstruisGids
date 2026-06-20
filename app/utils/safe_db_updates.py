@@ -136,6 +136,21 @@ def apply_safe_db_updates(db):
                 except Exception:
                     pass
 
+        # status on credit_transactions (required for Yoco _fulfill_credit_purchase idempotency in prod)
+        if _column_exists(inspector, 'credit_transactions', 'status'):
+            logger.info("Column 'status' already exists on 'credit_transactions' — skipping.")
+        else:
+            try:
+                conn.execute(text("ALTER TABLE credit_transactions ADD COLUMN status VARCHAR(20) DEFAULT 'pending'"))
+                conn.commit()
+                logger.info("✅ Added 'status' column to 'credit_transactions' table (for payment fulfillment).")
+            except Exception as e:
+                logger.error(f"Failed to add status column to credit_transactions: {e}")
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
     logger.info("Safe DB update check completed.")
 
     # Call payment tables creation (Stripe credit packs + subscriptions)

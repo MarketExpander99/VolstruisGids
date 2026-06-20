@@ -286,8 +286,12 @@ def create_checkout():
                     amount=credits,
                     transaction_type='purchase',
                     reference=mock_checkout_id,
-                    status='pending'
                 )
+                if hasattr(txn, 'status'):
+                    try:
+                        txn.status = 'pending'
+                    except Exception:
+                        pass
                 db.session.add(txn)
             else:
                 payment = Payment(
@@ -332,8 +336,12 @@ def create_checkout():
                     amount=credits,
                     transaction_type='purchase',
                     reference=yoco_checkout_id,
-                    status='pending'
                 )
+                if hasattr(txn, 'status'):
+                    try:
+                        txn.status = 'pending'
+                    except Exception:
+                        pass
                 db.session.add(txn)
             else:
                 # Promotion / listing boost
@@ -391,7 +399,6 @@ def create_checkout():
 
 
 @payments_bp.route('/payment-success')
-@login_required
 def payment_success():
     """Yoco success redirect handler (user is redirected here after successful payment).
     Attempts to fulfill credits (or promotions) using the checkoutId so that
@@ -428,7 +435,6 @@ def payment_success():
 
 
 @payments_bp.route('/payment-cancel')
-@login_required
 def payment_cancel():
     """Yoco cancel/failure handler"""
     flash('Payment was cancelled or failed.', 'info')
@@ -441,22 +447,69 @@ def yoco_webhook():
     Yoco Webhook handler.
     Endpoint: https://yourdomain.com/payments/yoco-webhook
     Configure this URL in your Yoco Dashboard → Webhooks.
+    Supports both legacy Yoco sig and modern Checkout API (webhook-id/timestamp/signature + whsec base64).
     """
-    signature = request.headers.get('x-yoco-signature') or request.headers.get('X-Yoco-Signature')
     payload = request.get_data()
+    raw_sig = (
+        request.headers.get('webhook-signature')
+        or request.headers.get('Webhook-Signature')
+        or request.headers.get('x-yoco-signature')
+        or request.headers.get('X-Yoco-Signature')
+    )
+    wh_id = request.headers.get('webhook-id') or request.headers.get('Webhook-Id')
+    wh_ts = request.headers.get('webhook-timestamp') or request.headers.get('Webhook-Timestamp')
 
-    client = LegacyYocoClient()
-    if not client.verify_webhook_signature(payload, signature):
+    verified = False
+    webhook_secret = current_app.config.get('YOCO_WEBHOOK_SECRET')
+
+    # Try modern Checkout API / Standard Webhooks format first (used with payments.yoco.com)
+    if wh_id and wh_ts and raw_sig and webhook_secret and 'whsec_' in str(webhook_secret):
+        try:
+            import base64
+            import hmac as _hmac
+            import hashlib as _hashlib
+            # secret after whsec_ , base64 decode
+            secret_b64 = webhook_secret.split('_', 1)[1] if '_' in webhook_secret else webhook_secret
+            secret_bytes = base64.b64decode(secret_b64)
+            signed_content = f"{wh_id}.{wh_ts}.".encode() + payload
+            computed = base64.b64encode(
+                _hmac.new(secret_bytes, signed_content, _hashlib.sha256).digest()
+            ).decode()
+            # raw_sig may be "v1,xxx v2,yyy" or similar; take first sig part after comma or =
+            provided = raw_sig
+            if ' ' in provided:
+                provided = provided.split()[0]
+            if ',' in provided:
+                provided = provided.split(',')[-1]
+            if '=' in provided:
+                provided = provided.split('=')[-1]
+            provided = provided.strip()
+            if _hmac.compare_digest(computed, provided):
+                verified = True
+        except Exception as ve:
+            logger.warning(f"Modern webhook sig verify error (will try legacy): {ve}")
+
+    if not verified:
+        # Fallback to legacy/old Yoco signature (hex on payload only)
+        client = LegacyYocoClient()
+        if client.verify_webhook_signature(payload, raw_sig):
+            verified = True
+
+    if not verified:
         logger.warning("Invalid Yoco webhook signature")
         return jsonify({'status': 'invalid signature'}), 400
 
     try:
         event = json.loads(payload)
         event_type = event.get('type') or event.get('event')
-        data = event.get('data', {}) or event.get('object', {})
+        data = event.get('data', {}) or event.get('object', {}) or {}
 
-        checkout_id = data.get('id') or data.get('checkoutId')
-        status = data.get('status') or data.get('paymentStatus')
+        checkout_id = data.get('id') or data.get('checkoutId') or data.get('checkout_id')
+        # Per Yoco Checkout webhook docs: checkoutId may be inside metadata (our echoed metadata or Yoco's)
+        if not checkout_id:
+            meta = (data.get('metadata') or event.get('metadata') or {})
+            checkout_id = meta.get('checkoutId') or meta.get('id') or meta.get('checkout_id')
+        status = data.get('status') or data.get('paymentStatus') or data.get('state')
 
         if not checkout_id:
             return jsonify({'status': 'ignored'}), 200
@@ -464,14 +517,18 @@ def yoco_webhook():
         logger.info(f"Received Yoco webhook: {event_type} for {checkout_id} - {status} (data keys: {list(data.keys()) if isinstance(data, dict) else 'n/a'})")
 
         # === Handle Credit Purchase ===
-        if status in ('paid', 'successful', 'complete'):
+        is_paid = (
+            status in ('paid', 'successful', 'complete', 'succeeded')
+            or (event_type and any(k in str(event_type).lower() for k in ('paid', 'succeeded', 'complete')))
+        )
+        if is_paid:
             granted = _fulfill_credit_purchase(checkout_id)
             if granted > 0:
                 logger.info(f"Credits added via Yoco webhook: {granted} for {checkout_id}")
 
         # === Handle Promotion / Listing Boost ===
         payment = Payment.query.filter_by(yoco_checkout_id=checkout_id).first()
-        if payment and status in ('paid', 'successful', 'complete'):
+        if payment and is_paid:
             if payment.status != 'success':
                 payment.status = 'success'
                 payment.yoco_status = status
