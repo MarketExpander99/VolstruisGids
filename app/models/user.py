@@ -147,5 +147,129 @@ class User(UserMixin, db.Model):
             UserCreditPass.expires_at >= now
         ).first() is not None
 
+    # ============================================================
+    # AI Free Quota + Rate Limit helpers (Free Grok AI spec 2026-06-20)
+    # ============================================================
+    @staticmethod
+    def get_sast_today():
+        """Return the calendar date in Africa/Johannesburg for daily reset at midnight SAST."""
+        from datetime import datetime
+        try:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo('Africa/Johannesburg')
+            return datetime.now(tz).date()
+        except Exception:
+            # Fallback: naive approx (server likely SAST anyway in prod)
+            return datetime.utcnow().date()
+
+    def get_ai_usage(self):
+        """Get or create today's UserAIUsage row (SAST date).
+        Defensive: will try to ensure the table exists if a query fails (first-run safety).
+        """
+        from app.models.user_ai_usage import UserAIUsage
+        from app import db as _db
+        today = self.get_sast_today()
+
+        try:
+            usage = UserAIUsage.query.filter_by(user_id=self.id, usage_date=today).first()
+        except Exception:
+            # Table probably missing on a dev DB that didn't run the safe update or script yet.
+            self._ensure_ai_usage_table()
+            usage = UserAIUsage.query.filter_by(user_id=self.id, usage_date=today).first()
+
+        if not usage:
+            usage = UserAIUsage(user_id=self.id, usage_date=today, free_chat_used=0, total_ai_calls=0)
+            _db.session.add(usage)
+            _db.session.commit()
+        return usage
+
+    def _ensure_ai_usage_table(self):
+        """Last-resort: ensure the table exists using raw SQL (SQLite)."""
+        from sqlalchemy import text
+        try:
+            from app import db as _db
+            with _db.engine.connect() as conn:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS user_ai_usage (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        usage_date DATE NOT NULL,
+                        free_chat_used INTEGER NOT NULL DEFAULT 0,
+                        total_ai_calls INTEGER NOT NULL DEFAULT 0,
+                        last_ai_call_at DATETIME,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME,
+                        FOREIGN KEY(user_id) REFERENCES users(id),
+                        UNIQUE(user_id, usage_date)
+                    )
+                """))
+                conn.commit()
+        except Exception:
+            try:
+                from app import db as _db
+                _db.session.rollback()
+            except Exception:
+                pass
+
+    def get_remaining_free_chat(self):
+        """Return how many free chat questions remain today (max 2)."""
+        if self.has_active_unlimited_pass():
+            return 99
+        usage = self.get_ai_usage()
+        return max(0, 2 - (usage.free_chat_used or 0))
+
+    def record_ai_chat_use(self, used_free=True):
+        """Record one chat use. Increments free_chat_used if using free slot."""
+        from app import db as _db
+        from datetime import datetime
+        usage = self.get_ai_usage()
+        usage.free_chat_used = (usage.free_chat_used or 0) + (1 if used_free else 0)
+        usage.total_ai_calls = (usage.total_ai_calls or 0) + 1
+        usage.last_ai_call_at = datetime.utcnow()
+        _db.session.commit()
+
+    def check_ai_rate_limit(self, action='polish', max_per_hour=8):
+        """Simple DB-backed hourly rate limit based primarily on CreditTransaction history.
+        (UserAIUsage is used only for daily free_chat quota, not for hourly counting.)
+        Returns (allowed: bool, message or None).
+        """
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        one_hour_ago = now - timedelta(hours=1)
+
+        # Primary source: CreditTransaction records (always present, we log every AI call with ai_* types)
+        from app.models.credit_transaction import CreditTransaction
+        tx_recent = CreditTransaction.query.filter(
+            CreditTransaction.user_id == self.id,
+            CreditTransaction.transaction_type.in_(['ai_improve', 'ai_improve_free', 'ai_query', 'ai_polish']),
+            CreditTransaction.created_at >= one_hour_ago
+        ).count()
+
+        # Optional secondary (defensive): if UserAIUsage row exists and has recent last_ai_call_at, count it
+        recent = 0
+        try:
+            from app.models.user_ai_usage import UserAIUsage
+            recent = UserAIUsage.query.filter(
+                UserAIUsage.user_id == self.id,
+                UserAIUsage.last_ai_call_at >= one_hour_ago
+            ).count()
+        except Exception:
+            # Table may not exist yet or other transient error — fall back to tx count only
+            recent = 0
+
+        total_recent = tx_recent + recent
+        if total_recent >= max_per_hour:
+            return False, f'Rate limit: max {max_per_hour} AI requests per hour. Please wait a bit.'
+        return True, None
+
+    def record_ai_action(self):
+        """Update last call timestamp for rate limiting."""
+        from app import db as _db
+        from datetime import datetime
+        usage = self.get_ai_usage()
+        usage.last_ai_call_at = datetime.utcnow()
+        usage.total_ai_calls = (usage.total_ai_calls or 0) + 1
+        _db.session.commit()
+
     def __repr__(self):
         return f'<User {self.username}>'

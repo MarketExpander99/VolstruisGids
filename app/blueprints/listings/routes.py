@@ -12,6 +12,7 @@ from PIL import Image
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from app.models.credit_transaction import CreditTransaction
+from app.models.user_ai_usage import UserAIUsage
 import requests
 import json as pyjson
 import re
@@ -60,21 +61,25 @@ def improve_with_ai():
     if not title and not description:
         return jsonify({'error': 'Please add a title or description first.'}), 400
 
-    today = date.today()
-    ai_uses_today = CreditTransaction.query.filter(
-        CreditTransaction.user_id == current_user.id,
-        CreditTransaction.transaction_type.in_(['ai_improve', 'ai_improve_free']),
-        db.func.date(CreditTransaction.created_at) == today
-    ).count()
+    # Polish with Grok is COMPLETELY FREE (per 2026-06-20 spec). Only hourly rate limit.
+    try:
+        allowed, rate_msg = current_user.check_ai_rate_limit(action='polish', max_per_hour=8)
+        if not allowed:
+            return jsonify({'error': rate_msg}), 429
+    except Exception:
+        # Table or query hiccup on first run — allow the (free) request and let later calls settle
+        pass
 
-    has_unlimited = current_user.has_active_unlimited_pass()
-    is_free = ai_uses_today < 2 or has_unlimited
-    cost = 0 if is_free else 1
-
-    if not is_free and (current_user.credit_balance or Decimal('0')) < Decimal(str(cost)):
-        return jsonify({
-            'error': f'Not enough credits. After 2 free daily uses, this costs {cost} credits.'
-        }), 402
+    # Record usage (for rate limit window + monitoring). No credit deduction ever for polish.
+    current_user.record_ai_action()
+    tx = CreditTransaction(
+        user_id=current_user.id,
+        amount=Decimal('0'),
+        transaction_type='ai_improve_free',
+        reference='polish_free'
+    )
+    db.session.add(tx)
+    db.session.commit()
 
     try:
         grok_api_key = current_app.config.get('GROK_API_KEY')
@@ -208,11 +213,12 @@ Key context for this request:
             'polished_title': polished_title,
             'polished_description': polished_description,
             'price_recommendation': price_reco,
-            # Legacy fields kept minimal for any very old client bits (harmless)
-            'is_free': is_free,
-            'credits_used': cost,
-            'remaining_credits': float(current_user.credit_balance or 0),  # unlimited or free path shows current (no change)
-            'uses_today': ai_uses_today + 1
+            # Always free now
+            'is_free': True,
+            'credits_used': 0,
+            'remaining_credits': float(current_user.credit_balance or 0),
+            'uses_today': 0,
+            'remaining_free': 'unlimited'  # Polish is fully free
         })
 
     except Exception as e:
@@ -228,15 +234,10 @@ def create():
     if not form.category.choices:
         form.category.choices = [(-1, "No categories yet — please run seed_categories.py")]
 
-    # Grok Ad Polish usage tracking (for dynamic remaining free uses display)
-    today = date.today()
-    grok_uses_today = CreditTransaction.query.filter(
-        CreditTransaction.user_id == current_user.id,
-        CreditTransaction.transaction_type.in_(['ai_improve', 'ai_improve_free']),
-        db.func.date(CreditTransaction.created_at) == today
-    ).count()
+    # Polish with Grok is completely free (unlimited free subject only to hourly rate limit).
+    # Pass a high number / 'unlimited' signal for UI.
+    grok_remaining_free = 99
     has_unlimited_grok = current_user.has_active_unlimited_pass()
-    grok_remaining_free = max(0, 2 - grok_uses_today) if not has_unlimited_grok else 99
 
     if request.method == 'GET':
         form.contact_phone.data = getattr(current_user, 'phone', '') or getattr(current_user, 'contact_phone', '')
@@ -304,15 +305,11 @@ def create():
         rental_duration = form.rental_duration.data if form.post_type.data == 'rental' else None
         rental_duration_unit = form.rental_duration_unit.data if form.post_type.data == 'rental' else None
 
-        num_extra_photos = len(photo_urls_list)
-
         is_business = current_user.is_business_account
 
         # ============================================================
         # v1.1 Credit System — Free Tier Logic (one free active 7-day listing)
-        # Personal: if 0 active (non-expired) listings → this post is FREE
-        #          else (has active) → costs 1 credit (plus photo extras)
-        # Business: standard charges (no free slot limit applied here)
+        # Photos are COMPLETELY FREE (unlimited within max). No extra_photo_credits.
         # ============================================================
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
         freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
@@ -324,12 +321,10 @@ def create():
 
         if not is_business:
             if active_count == 0:
-                # FREE slot — first/renewed active listing
                 base_credits = 0
                 listing_type = 'normal'
                 is_free_slot = True
             else:
-                # Already 1+ active → charge 1 for this additional concurrent listing
                 base_credits = 1
                 listing_type = 'normal'
                 is_free_slot = False
@@ -338,13 +333,12 @@ def create():
             listing_type = 'super'
             is_free_slot = False
 
-        extra_photo_credits = num_extra_photos
-        required_credits = base_credits + extra_photo_credits
-        had_active_before = active_count >= 1   # capture for post-commit messages and guards
+        required_credits = base_credits   # photos always free
+        had_active_before = active_count >= 1
 
         has_unlimited = current_user.has_active_unlimited_pass()
         if has_unlimited:
-            required_credits = 0  # Unlimited pass = no credit cost for posting
+            required_credits = 0
 
         if required_credits > 0:
             current_balance = current_user.credit_balance or Decimal('0')
@@ -358,10 +352,7 @@ def create():
                     )
                 else:
                     who = "super/business" if is_business else "normal"
-                    msg = f'Not enough credits. This {who} listing requires {required_credits} credit(s).'
-                    if extra_photo_credits > 0:
-                        msg += f' ({extra_photo_credits} extra for additional photos)'
-                    flash(msg, 'warning')
+                    flash(f'Not enough credits. This {who} listing requires {required_credits} credit(s).', 'warning')
                 return redirect(url_for('listings.create'))
 
             current_user.credit_balance = current_balance - req_dec
@@ -373,7 +364,6 @@ def create():
             )
             db.session.add(txn)
         else:
-            # Free active slot or unlimited pass — no deduction
             txn = CreditTransaction(
                 user_id=current_user.id,
                 amount=Decimal('0'),
@@ -414,13 +404,11 @@ def create():
             action = request.form.get('action') or request.form.get('submit_action')
             if required_credits == 0:
                 if has_unlimited:
-                    base_msg = 'Posted successfully with your Unlimited Pass (no credits used).'
+                    base_msg = 'Posted successfully with your Unlimited Pass (no credits used). All photos free.'
                 else:
-                    base_msg = 'Posted successfully as your free active listing. It will be live for 7 days.'
+                    base_msg = 'Posted successfully as your free active listing. It will be live for 7 days. All photos free.'
             else:
-                base_msg = f'Listing created successfully! {required_credits} credit(s) deducted. New balance: {current_user.credit_balance}'
-                if not is_business and had_active_before:
-                    base_msg = f'Posted successfully. {required_credits} credit(s) used (you already had an active listing). New balance: {current_user.credit_balance}'
+                base_msg = f'Listing created successfully! {required_credits} credit(s) deducted. New balance: {current_user.credit_balance}. All photos free.'
 
             if action == 'create_new':
                 flash(base_msg + ' Category, town & contacts kept for your next listing.', 'success')
@@ -450,7 +438,7 @@ def create():
                 # Photos: fresh form render + client focus will handle; no photo data carried.
 
                 return render_template('listings/create.html', form=continue_form, editing=False,
-                                       grok_uses_today=grok_uses_today, grok_remaining_free=grok_remaining_free)
+                                       grok_remaining_free=grok_remaining_free)
             else:
                 flash(base_msg, 'success')
                 return redirect(url_for('main.my_listings'))
@@ -461,7 +449,7 @@ def create():
             return redirect(url_for('listings.create'))
 
     return render_template('listings/create.html', form=form,
-                           grok_uses_today=grok_uses_today, grok_remaining_free=grok_remaining_free)
+                           grok_remaining_free=grok_remaining_free)
 
 
 @listings_bp.route('/listing/<int:listing_id>/edit', methods=['GET', 'POST'])
@@ -588,9 +576,9 @@ def edit_listing(listing_id):
             db.session.rollback()
             flash(f'Error updating your listing: {str(e)}', 'danger')
             return render_template('listings/create.html', form=form, listing=listing, editing=True,
-                                   grok_uses_today=0, grok_remaining_free=0)
+                                   grok_remaining_free=99)
 
-    return render_template('listings/create.html', form=form, listing=listing, editing=True)
+    return render_template('listings/create.html', form=form, listing=listing, editing=True, grok_remaining_free=99)
 
 
 @listings_bp.route('/quick-create', methods=['GET', 'POST'])
@@ -671,8 +659,8 @@ def quick_create():
         rental_duration_unit = form.rental_duration_unit.data if form.post_type.data == 'rental' else None
 
         required_credits = 2
-        num_extra_photos = len(photo_urls_list)
-        total_required = required_credits + num_extra_photos
+        # Photos are completely free - no extra charge
+        total_required = required_credits
         total_dec = Decimal(str(total_required))
         curr_bal = current_user.credit_balance or Decimal('0')
 
@@ -683,7 +671,7 @@ def quick_create():
 
         if total_required > 0 and curr_bal < total_dec:
             flash(f'Not enough credits. Quick-create requires {total_required} credits.', 'warning')
-            return render_template('listings/quick_create.html', form=form)
+            return render_template('listings/quick_create.html', form=form, grok_remaining_free=99)
 
         if total_required > 0:
             current_user.credit_balance = curr_bal - total_dec
@@ -724,16 +712,16 @@ def quick_create():
             db.session.add(listing)
             db.session.commit()
             if has_unlimited:
-                flash('Listing saved with your Unlimited Pass (no credits used)!', 'success')
+                flash('Listing saved with your Unlimited Pass (no credits used)! All photos free.', 'success')
             else:
-                flash(f'Listing saved! {total_required} credits deducted. New balance: {current_user.credit_balance}.', 'success')
+                flash(f'Listing saved! {total_required} credits deducted. New balance: {current_user.credit_balance}. All photos free.', 'success')
             return redirect(url_for('listings.quick_create'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error saving your listing: {str(e)}', 'danger')
-            return render_template('listings/quick_create.html', form=form)
+            return render_template('listings/quick_create.html', form=form, grok_remaining_free=99)
 
-    return render_template('listings/quick_create.html', form=form)
+    return render_template('listings/quick_create.html', form=form, grok_remaining_free=99)
 
 
 @listings_bp.route('/boost/<int:listing_id>', methods=['POST'])

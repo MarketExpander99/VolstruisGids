@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.category import Category
 from app.models.credit_transaction import CreditTransaction
 from app.models.site_stat import SiteStat
+from app.models.user_ai_usage import UserAIUsage
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 from . import main_bp
@@ -353,12 +354,12 @@ def delete_listing(listing_id):
 
 
 # ============================================================
-# Grok AI Chat endpoint (Daily credits + 2 free queries per day)
+# Grok AI Chat endpoint (2 free questions per calendar day SAST, then 1 credit)
+# Fully free Polish handled in listings blueprint. Rate limits + quota display.
 # ============================================================
 @main_bp.route('/api/ai/ask', methods=['POST'])
 @login_required
 def ai_ask_listing():
-    # Ensure user receives their daily +2 free credits
     ensure_daily_free_credits(current_user)
 
     data = request.get_json() or {}
@@ -370,27 +371,31 @@ def ai_ask_listing():
 
     listing = Listing.query.get_or_404(listing_id)
 
-    # Count how many AI queries the user has made today
-    today = date.today()
-    start_of_day = datetime.combine(today, datetime.min.time())
+    # === Rate limit first (chat specific: 6/hour) ===
+    try:
+        allowed, rate_msg = current_user.check_ai_rate_limit(action='chat', max_per_hour=6)
+        if not allowed:
+            return jsonify({'error': rate_msg}), 429
+    except Exception:
+        # Defensive: on first-run table issues, allow the request (rate limiting is best-effort)
+        pass
 
-    ai_uses_today = CreditTransaction.query.filter(
-        CreditTransaction.user_id == current_user.id,
-        CreditTransaction.transaction_type == 'ai_query',
-        CreditTransaction.created_at >= start_of_day
-    ).count()
-
+    # === Daily free quota using dedicated model (midnight SAST reset) ===
     has_unlimited = current_user.has_active_unlimited_pass()
-    is_free = ai_uses_today < 2 or has_unlimited
+    remaining_free = current_user.get_remaining_free_chat()
+    is_free = (remaining_free > 0) or has_unlimited
 
     if not is_free:
         if (current_user.credit_balance or Decimal('0')) < Decimal('1'):
             return jsonify({
-                'error': 'You have used your 2 free AI questions today. Please purchase more credits to continue.'
+                'error': 'You have used your 2 free questions today. Additional questions cost 1 credit each.'
             }), 402
         current_user.credit_balance = (current_user.credit_balance or Decimal('0')) - Decimal('1')
 
-    # Record the transaction (amount=0 when unlimited pass is active — never deduct)
+    # Record usage
+    current_user.record_ai_chat_use(used_free=is_free and not has_unlimited)
+    current_user.record_ai_action()
+
     tx_amount = Decimal('0') if (is_free or has_unlimited) else Decimal('-1')
     tx = CreditTransaction(
         user_id=current_user.id,
@@ -400,6 +405,9 @@ def ai_ask_listing():
     )
     db.session.add(tx)
     db.session.commit()
+
+    # Recompute remaining for response
+    new_remaining = current_user.get_remaining_free_chat()
 
     # === Build context for Grok ===
     price_str = ''
@@ -452,7 +460,7 @@ Answer the user's question directly about this listing. If the question is unrel
         return jsonify({
             'answer': answer,
             'is_free': is_free,
-            'remaining_free_today': max(0, 2 - (ai_uses_today + 1))
+            'remaining_free_today': new_remaining
         })
 
     except requests.exceptions.RequestException as e:

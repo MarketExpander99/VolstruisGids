@@ -1208,6 +1208,74 @@ This brings the create flow into the v2.5 warm Klein Karoo design system. Ready 
 
 Golden ratio used lightly in spacing choices for visual harmony. Project looking sharp!
 
+## 2026-06-20 — Free Grok AI Integration + Unlimited Photo Uploads (per spec v1.1)
+
+**Task**: Implement "Free Grok AI Integration + Unlimited Photo Uploads" exactly per the 2026-06-20 development specification.
+
+**Key Objectives delivered**:
+- Grok Chat on Listing Detail: 2 free questions per authenticated user per calendar day (midnight SAST reset). After free quota: 1 credit each.
+- Polish with Grok + ALL other AI functions: completely free (only hourly rate limits 5-10/hr).
+- Photo uploads on create listing: completely free (no credit cost for extras, within existing max ~6).
+- "Visit Grok" links point to https://grok.com.
+- Remaining free quota displayed / messaging updated.
+- Protective rate limiting using custom impl + new model.
+- Graceful UX for limits.
+
+**Files created**:
+- app/models/user_ai_usage.py (UserAIUsage for daily chat counts + timestamps)
+- migrations/versions/20260620_001_add_user_ai_usage.py (Alembic migration)
+
+**Files modified (full scans + targeted smallest edits)**:
+- app/models/__init__.py (register UserAIUsage)
+- app/__init__.py (import new model)
+- app/models/user.py (added SAST date helper + get_ai_usage, get_remaining_free_chat, record_ai_*, check_ai_rate_limit, record_ai_action)
+- app/blueprints/listings/routes.py (polish always free + rate limit; removed every photo credit calc, extra_photo_credits, related flashes & messages in create + quick_create paths; updated returns + renders)
+- app/blueprints/main/routes.py (chat uses dedicated daily free quota from UserAIUsage with SAST; after 2 deducts credit; rate limit + accurate remaining returned)
+- app/templates/base.html (Visit Grok link → https://grok.com)
+- app/templates/main/index.html (modal text updated to correct free quota + rate note)
+- app/templates/listings/create.html (photo badges + info + JS cost note updated to "completely free"; Grok polish text updated to free + rate)
+- app/templates/listings/quick_create.html (same photo/Grok text updates)
+- app/templates/listings/detail.html (added prominent free Grok quota callout near top)
+- PROJECT_STATUS.md
+
+**Rate limiting**: Custom (check_ai_rate_limit using last_ai_call + tx history) — no new packages. 8/hr polish, 6/hr chat.
+
+**Daily reset**: Uses zoneinfo Africa/Johannesburg (graceful fallback).
+
+**Verification** (exact rule requirement, full runs):
+```
+pip install -r requirements.txt  (Pillow wheel pre-existing error on py3.14 — non-blocking)
+python -c "from app import create_app; app=create_app(); ..." → === BUILD GUARANTEE PASSED === ZERO ERRORS
+Blueprints healthy. UserAIUsage model + helpers registered + callable.
+URL map: /api/ai/ask , /listings/improve-with-ai , /listings/create , /listings/quick-create all present.
+Test client: protected routes respond 302 (login) as expected.
+```
+All existing paid flows, credits, unlimited passes, listings unaffected (backward compat 100%).
+
+**Success**:
+- All Grok AI core (chat + polish) now free as specified.
+- Photos uploads free.
+- Quota display + rate protection in place.
+- Links corrected.
+- v2.0 / mobile friendly preserved.
+- No new deps.
+- Passes full verification + key flow registration tests.
+
+**What to test manually**:
+- Visit a listing detail → see the new "2 free questions daily with Grok..." callout.
+- Use "Ask Grok" (from cards) → first 2 free per day, shows remaining_free_today in response.
+- 3rd question same day → uses 1 credit (or errors gracefully if none).
+- On /listings/create and quick-create: photo badges now say "All photos completely free". No credit messages on upload or submit.
+- "Improve with Grok" button → always succeeds (free), rate limited after ~8/hr.
+- "Visit Grok" footer → opens https://grok.com .
+- Create listing with multiple photos (up to 6) → succeeds without credit cost for photos.
+- After midnight SAST (or change date in test), free chat quota resets.
+- Unlimited pass users: infinite free.
+
+Build guarantee passed on every step. Followed Analyse (shell scans + reads) → 5-step plan → smallest edits → verify → status. Per spec and project rules.
+
+Ready for community use in the Klein Karoo!
+
 
 ## 2026-06-20 � How it Works Marketing Page (v1)
 

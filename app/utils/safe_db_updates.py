@@ -209,6 +209,12 @@ def apply_safe_db_updates(db):
     except Exception as ex:
         logger.warning(f"Non-fatal error creating site_stats table: {ex}")
 
+    # UserAIUsage table (Free Grok AI daily quota + rate signals, 2026-06-20 spec)
+    try:
+        create_user_ai_usage_table(db)
+    except Exception as ex:
+        logger.warning(f"Non-fatal error creating user_ai_usage table: {ex}")
+
 
 def create_payment_tables(db):
     """Create payment_transactions table (idempotent) + ensure Stripe user columns.
@@ -389,4 +395,47 @@ def create_site_stats_table(db):
         """))
         conn.commit()
         logger.info("✅ Ensured site_stats table exists (for total site views counter).")
+
+
+def create_user_ai_usage_table(db):
+    """Create user_ai_usage table for daily free Grok chat quota (2/day SAST) + basic AI rate signals.
+    Idempotent CREATE TABLE IF NOT EXISTS.
+    Per "Free Grok AI + Unlimited Photos" spec (2026-06-20).
+    """
+    from sqlalchemy import text
+
+    try:
+        engine = db.engine
+        inspector = inspect(engine)
+    except Exception as ex:
+        logger.warning(f"Could not obtain inspector for user_ai_usage: {ex}")
+        return
+
+    with engine.connect() as conn:
+        # Create the table if it does not exist
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS user_ai_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                usage_date DATE NOT NULL,
+                free_chat_used INTEGER NOT NULL DEFAULT 0,
+                total_ai_calls INTEGER NOT NULL DEFAULT 0,
+                last_ai_call_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME,
+                FOREIGN KEY(user_id) REFERENCES users(id),
+                UNIQUE(user_id, usage_date)
+            )
+        """))
+        conn.commit()
+        logger.info("✅ Ensured user_ai_usage table exists (daily Grok chat free quota).")
+
+        # Also create indexes if the inspector supports checking (SQLite is lenient)
+        try:
+            # These are mostly for performance; IF NOT EXISTS is SQLite 3.9+
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_ai_usage_user_id ON user_ai_usage (user_id)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_ai_usage_usage_date ON user_ai_usage (usage_date)"))
+            conn.commit()
+        except Exception:
+            pass
 

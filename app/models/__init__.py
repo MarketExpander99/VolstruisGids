@@ -8,8 +8,9 @@ from app.models.credit_transaction import CreditTransaction
 from app.models.payment_transaction import PaymentTransaction
 from app.models.user_credit_pass import UserCreditPass
 from app.models.site_stat import SiteStat
+from app.models.user_ai_usage import UserAIUsage
 
-__all__ = ['User', 'Category', 'Listing', 'Promotion', 'Message', 'Payment', 'CreditTransaction', 'PaymentTransaction', 'UserCreditPass', 'SiteStat']
+__all__ = ['User', 'Category', 'Listing', 'Promotion', 'Message', 'Payment', 'CreditTransaction', 'PaymentTransaction', 'UserCreditPass', 'SiteStat', 'UserAIUsage']
 
 from .user import User
 from .credit_transaction import CreditTransaction

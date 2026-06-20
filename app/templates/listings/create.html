@@ -136,11 +136,7 @@
                                         Grok Ad Polish
                                     </strong>
                                     <small class="text-muted d-block">
-                                        {% if grok_remaining_free is defined and grok_remaining_free > 0 and not (current_user.has_active_unlimited_pass() if current_user else False) %}
-                                            {{ grok_remaining_free }} free use{{ 's' if grok_remaining_free != 1 else '' }} today • then 1 credit
-                                        {% else %}
-                                            1 credit per use (unlimited pass or daily limit reached)
-                                        {% endif %}
+                                        Completely free • Rate limited to ~8 requests per hour
                                     </small>
                                 </div>
                                 <button type="button" id="ai-improve-btn"
@@ -218,12 +214,12 @@
                         <div class="mb-4">
                             <label class="form-label fw-bold d-flex align-items-center gap-2">
                                 <span>Photos (up to 6)</span>
-                                <span class="badge bg-warning text-dark small">First photo is free • extras cost 1 credit each</span>
+                                <span class="badge bg-success text-white small">All photos completely free</span>
                             </label>
                             
                             <div class="photo-upload-info small text-muted mb-3">
                                 High-quality square photos look best in the Klein Karoo marketplace. 
-                                Drag &amp; drop multiple photos or click below. Your first photo becomes the main image shown in listings and the beautiful detail page.
+                                Drag &amp; drop multiple photos or click below. All photos are free (max 6). Your first photo becomes the main image.
                             </div>
 
                             <!-- Premium Drag & Drop Zone -->
@@ -362,13 +358,7 @@
             costNote.classList.add('d-none');
             return;
         }
-        const extra = Math.max(0, count - 1);
-        let msg = `${count} photo(s) selected. `;
-        if (extra > 0) {
-            msg += `<strong>${extra} extra photo(s)</strong> will cost ${extra} credit(s). `;
-        } else {
-            msg += `First photo is free. `;
-        }
+        let msg = `${count} photo(s) selected. All photos are completely free.`;
         if (count >= MAX_PHOTOS) {
             msg += ` <span class="text-warning fw-semibold">Maximum reached.</span>`;
         }

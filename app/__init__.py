@@ -72,6 +72,7 @@ def create_app(config_class=Config):
     from app.models.payment_transaction import PaymentTransaction  # Stripe credit + sub transactions (spec v1)
     from app.models.user_credit_pass import UserCreditPass  # Unlimited Credit Passes (PAYG-UNLIMITED-2026-06-20)
     from app.models.site_stat import SiteStat  # Site hit counter / global views
+    from app.models.user_ai_usage import UserAIUsage  # Daily free Grok chat quota (v1.1 free AI spec)
 
     # Safe DB column updates for Credit System v1.1 (refreshed_at / credits / free tier)
     # Run inside app context so inspector/engine access is valid
