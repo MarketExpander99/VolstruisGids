@@ -939,6 +939,11 @@ def detail(listing_id):
             primary_photo = first[0]
     og_image_url = _abs_url(primary_photo) if primary_photo else None
 
+    # Always provide an image for Product schema and OG (fallback to default)
+    if not og_image_url:
+        default_path = url_for('static', filename='img/default-listing.jpg')
+        og_image_url = request.url_root.rstrip('/') + default_path
+
     # Build JSON-LD Product + Offer (location-aware, seller-aware)
     if listing.user:
         if listing.is_business_ad and getattr(listing.user, 'business_name', None):
@@ -957,12 +962,18 @@ def detail(listing_id):
         "@context": "https://schema.org",
         "@type": "Product",
         "name": listing.title,
+        "sku": f"VG{listing.id}",
         "description": schema_desc,
         "url": request.url,
         "brand": {
             "@type": "Brand",
             "name": "VolstruisGids"
         },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "reviewCount": "0"
+        },
+        "review": [],
         "areaServed": {
             "@type": "City",
             "name": listing.location
@@ -981,6 +992,26 @@ def detail(listing_id):
                     "addressRegion": "Western Cape",
                     "addressCountry": "ZA"
                 }
+            },
+            "shippingDetails": {
+                "@type": "OfferShippingDetails",
+                "shippingRate": {
+                    "@type": "MonetaryAmount",
+                    "value": "0",
+                    "currency": "ZAR"
+                },
+                "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "ZA"
+                },
+                "deliveryMethod": "https://schema.org/OnSitePickup"
+            },
+            "hasMerchantReturnPolicy": {
+                "@type": "MerchantReturnPolicy",
+                "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+                "merchantReturnDays": 0,
+                "returnFees": "https://schema.org/FreeReturn",
+                "applicableCountry": "ZA"
             },
             "seller": {
                 "@type": seller_type,
