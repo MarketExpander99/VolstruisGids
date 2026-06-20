@@ -981,10 +981,6 @@ def detail(listing_id):
             "@type": "Brand",
             "name": "VolstruisGids"
         },
-        "aggregateRating": {
-            "@type": "AggregateRating",
-            "reviewCount": "0"
-        },
         "areaServed": {
             "@type": "City",
             "name": listing.location
