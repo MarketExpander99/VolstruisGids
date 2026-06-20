@@ -9,6 +9,16 @@ from app.models.credit_transaction import CreditTransaction
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 from . import main_bp
+
+# Public pricing data for how-it-works page (and elsewhere)
+try:
+    from app.blueprints.payments.routes import UNLIMITED_PASSES
+except Exception:
+    UNLIMITED_PASSES = {
+        "pass_30": {"days": 30, "price_zar": 299, "name": "30-Day Unlimited Pass"},
+        "pass_60": {"days": 60, "price_zar": 499, "name": "60-Day Unlimited Pass"},
+        "pass_90": {"days": 90, "price_zar": 699, "name": "90-Day Unlimited Pass"},
+    }
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -283,7 +293,7 @@ def guidelines():
 
 @main_bp.route('/how-it-works')
 def how_it_works():
-    return render_template('main/how_it_works.html')
+    return render_template('main/how_it_works.html', unlimited_passes=UNLIMITED_PASSES)
 
 
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])

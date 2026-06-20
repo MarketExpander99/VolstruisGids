@@ -102,7 +102,7 @@
                             <ul class="small mb-3">
                                 <li><strong>Earn:</strong> 0.3 credits per share (max 3 per day)</li>
                                 <li><strong>Buy packs</strong> when you need more visibility</li>
-                                <li><strong>Best value:</strong> Monthly subscription</li>
+                                <li><strong>Best value:</strong> Unlimited Passes (pay once for 30/60/90 days)</li>
                             </ul>
 
                             <!-- Pricing -->
@@ -130,13 +130,26 @@
                                 </div>
                             </div>
 
-                            <div class="p-3 rounded mt-2" style="background: #FDF6E9; border: 2px solid #C9A227;">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                    <div>
-                                        <span class="fw-bold">Unlimited Passes</span><br>
-                                        <span class="small">30/60/90 days • unlimited promotions • pay once</span>
+                            <div class="p-3 rounded mt-2" style="background:#FDF6E9; border:2px solid #C9A227;">
+                                <div class="fw-semibold small mb-2">Unlimited Passes — 30/60/90 days • pay once</div>
+
+                                <div class="row g-2 mb-2">
+                                    {% for pass_id, p in (unlimited_passes or {}).items() %}
+                                    <div class="col-4">
+                                        <div class="text-center p-2 border rounded" style="background:#fff; border-color:#C9A227;">
+                                            <div class="fw-semibold">{{ p.days }} Days</div>
+                                            <div class="fw-bold text-warning" style="font-size:1.05rem;">R{{ p.price_zar }}</div>
+                                            <div class="text-muted" style="font-size:0.6rem;">unlimited promotions</div>
+                                        </div>
                                     </div>
-                                    <a href="{{ url_for('payments.credits_billing') }}" class="btn btn-sm btn-accent px-3 py-1">View Passes</a>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="small mb-2">Active pass = <strong>zero credit</strong> deductions for promotions, listings, reposts &amp; AI.</div>
+
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="{{ url_for('auth.register') }}" class="btn btn-sm btn-outline-accent">Join free to buy</a>
+                                    <a href="{{ url_for('payments.credits_billing') }}" class="btn btn-sm btn-accent">Buy now</a>
                                 </div>
                             </div>
 
@@ -205,7 +218,7 @@
                             <div class="d-flex flex-wrap justify-content-center gap-3">
                                 <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-5">Join for free</a>
                                 <a href="{{ url_for('listings.create') }}" class="btn btn-outline-primary btn-lg px-4">Post your first listing</a>
-                                <a href="{{ url_for('payments.credits_billing') }}" class="btn btn-accent btn-lg px-4">Explore Business Plans</a>
+                                <a href="{{ url_for('payments.credits_billing') }}" class="btn btn-accent btn-lg px-4">Get Unlimited Pass</a>
                             </div>
                             <p class="small text-muted mt-3 mb-0">No credit card required to start. 1 free active listing for everyone.</p>
                         </div>
