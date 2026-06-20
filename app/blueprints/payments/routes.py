@@ -157,7 +157,8 @@ def _fulfill_credit_purchase(checkout_id, raw_yoco_response=None):
 
     if not txn or txn.transaction_type != 'purchase' or (txn.amount or 0) <= 0:
         return 0
-    if getattr(txn, 'status', None) == 'success':
+    status = getattr(txn, 'status', None)
+    if status in ('success', 'cancelled', 'failed', 'cancel'):
         # still store raw response if provided and not already set (for debugging)
         if raw_yoco_response and not getattr(txn, 'raw_yoco_response', None):
             try:
@@ -214,31 +215,8 @@ from . import payments_bp
 @login_required
 def buy_credits():
     """Dedicated Buy Credits page powered by Yoco Checkout (replaces old modal).
-    Also auto-claims any recent pending credit purchases (robustness for redirect id issues).
+    Credits are only added on confirmed success (via payment_success redirect or webhook).
     """
-    # Auto-claim recent pending purchases for the logged-in user.
-    # This ensures credits appear even if the /payment-success redirect didn't receive/pass the Yoco id
-    # (or if the success handler fallback didn't run). Safe + idempotent.
-    try:
-        cutoff = datetime.utcnow() - timedelta(minutes=60)
-        pending_txns = CreditTransaction.query.filter(
-            CreditTransaction.user_id == current_user.id,
-            CreditTransaction.transaction_type == 'purchase',
-            CreditTransaction.created_at >= cutoff
-        ).order_by(CreditTransaction.created_at.desc()).all()
-        for ptxn in pending_txns:
-            if getattr(ptxn, 'status', None) != 'success' and (ptxn.amount or 0) > 0:
-                _fulfill_credit_purchase(ptxn.reference)
-    except Exception as claim_err:
-        logger.warning(f"Auto-claim pending credits on buy-credits failed (non-fatal): {claim_err}")
-
-    # Make sure current_user object sees any just-claimed credits for this render
-    if current_user.is_authenticated:
-        try:
-            db.session.refresh(current_user)
-        except Exception:
-            db.session.expire(current_user)
-
     personal_packages = [
         {"id": "single", "name": "Single Credit", "credits": 1, "price": 10, "note": "Try it out"},
         {"id": "small", "name": "Small", "credits": 5, "price": 55, "note": "Easy entry"},
@@ -542,10 +520,12 @@ def payment_success():
                 .order_by(CreditTransaction.created_at.desc())
                 .first()
             )
-            if recent_txn and getattr(recent_txn, 'status', None) != 'success' and (recent_txn.amount or 0) > 0:
-                granted = _fulfill_credit_purchase(recent_txn.reference)
-                if granted > 0:
-                    logger.info(f"payment_success used recent-pending txn fallback for user {current_user.id}")
+            if recent_txn:
+                rstatus = getattr(recent_txn, 'status', None)
+                if rstatus not in ('success', 'cancelled', 'failed', 'cancel') and (recent_txn.amount or 0) > 0:
+                    granted = _fulfill_credit_purchase(recent_txn.reference)
+                    if granted > 0:
+                        logger.info(f"payment_success used recent-pending txn fallback for user {current_user.id}")
         except Exception as fb_err:
             logger.warning(f"payment_success recent txn fallback error: {fb_err}")
 
@@ -559,7 +539,35 @@ def payment_success():
 
 @payments_bp.route('/payment-cancel')
 def payment_cancel():
-    """Yoco cancel/failure handler"""
+    """Yoco cancel/failure handler.
+    Extract checkout id if provided by Yoco and mark the txn as cancelled
+    so that auto-claim logic and fallbacks do not add credits.
+    """
+    # Extract checkout id similarly to success (Yoco may append id/checkoutId etc on cancel)
+    args = request.args
+    checkout_id = None
+    for key in ('checkoutId', 'id', 'checkout_id', 'checkoutid'):
+        if key in args:
+            checkout_id = args.get(key)
+            break
+    if not checkout_id and args:
+        for val in args.values():
+            val = str(val)
+            if val and (val.startswith(('ch_', 'chk_', 'CH_')) or len(val) > 10):
+                checkout_id = val
+                break
+
+    if checkout_id:
+        try:
+            txn = CreditTransaction.query.filter_by(reference=checkout_id).first()
+            if txn and getattr(txn, 'status', None) != 'success':
+                if hasattr(txn, 'status'):
+                    txn.status = 'cancelled'
+                db.session.commit()
+                logger.info(f"Marked txn {checkout_id} as cancelled (user cancelled on Yoco)")
+        except Exception as e:
+            logger.warning(f"Error marking cancel for {checkout_id}: {e}")
+
     flash('Payment was cancelled or failed.', 'info')
     return redirect(url_for('payments.buy_credits'))
 
