@@ -30,7 +30,7 @@ class Listing(db.Model):
     
     is_active = db.Column(db.Boolean, default=True)
     is_business_ad = db.Column(db.Boolean, default=False)
-    is_promoted = db.Column(db.Boolean, default=False)
+    is_promoted = db.Column(db.Boolean, default=False)  # Set on paid promotion purchase (or boost); badge shows only when True. Future: can derive/expire from Promotion records.
     views = db.Column(db.Integer, default=0)
     
     # === Credit System v1.0 additions (added only - no existing columns removed) ===

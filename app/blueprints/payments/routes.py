@@ -312,6 +312,49 @@ def _fulfill_unlimited_pass(checkout_id, raw_yoco_response=None):
     return False
 
 
+def _activate_listing_promotion(listing_id, amount=0):
+    """
+    Idempotent activation of a paid promotion for a listing.
+    Sets is_promoted=True (for badge + priority), refreshes last_reposted_at for top positioning,
+    and ensures a Promotion record with dates exists/updated.
+    Safe to call from both webhook and success redirect.
+
+    NOTE (future): For robust expiration, a scheduled task or query-time check can compare
+    Promotion.end_date and set is_promoted=False when expired. For now we rely on 7-day
+    freshness filter + manual repost to control visibility.
+    """
+    if not listing_id:
+        return False
+    try:
+        listing = Listing.query.get(listing_id)
+        now = datetime.utcnow()
+        if listing:
+            listing.is_promoted = True
+            listing.last_reposted_at = now
+        promotion = Promotion.query.filter_by(listing_id=listing_id).first()
+        if not promotion:
+            promotion = Promotion(
+                listing_id=listing_id,
+                start_date=now,
+                end_date=now + timedelta(days=7),
+                amount_paid=float(amount or 0),
+                payment_status='completed'
+            )
+            db.session.add(promotion)
+        else:
+            promotion.start_date = now
+            promotion.end_date = now + timedelta(days=7)
+            promotion.amount_paid = float(amount or 0)
+            promotion.payment_status = 'completed'
+        db.session.commit()
+        logger.info(f"Promotion activated for listing {listing_id} (amount={amount})")
+        return True
+    except Exception as e:
+        db.session.rollback()
+        logger.warning(f"_activate_listing_promotion error for {listing_id}: {e}")
+        return False
+
+
 # Import the blueprint object defined in the package __init__.py
 # so that all @payments_bp.route decorators attach to the *registered* blueprint.
 from . import payments_bp
@@ -685,6 +728,31 @@ def payment_success():
         except Exception as pass_err:
             logger.warning(f"Pass fulfill in success failed (non-fatal): {pass_err}")
 
+    # Promotion / listing boost activation (paid promotions set is_promoted for badge)
+    # Covers success redirect path (incl. mock/dev) and when webhook hasn't run yet.
+    if checkout_id:
+        try:
+            listing_id_for_promo = None
+            amount_for_promo = 0
+            # Prefer data from verified Yoco checkout if we fetched ch
+            try:
+                if 'ch' in locals() and ch:
+                    meta = (ch or {}).get('metadata') or {}
+                    lid = meta.get('listing_id')
+                    if lid:
+                        listing_id_for_promo = int(lid) if str(lid).isdigit() else None
+            except Exception:
+                pass
+            if not listing_id_for_promo:
+                p = Payment.query.filter_by(yoco_checkout_id=checkout_id).first()
+                if p and p.listing_id:
+                    listing_id_for_promo = p.listing_id
+                    amount_for_promo = p.amount or 0
+            if listing_id_for_promo:
+                _activate_listing_promotion(listing_id_for_promo, amount_for_promo)
+        except Exception as promo_err:
+            logger.warning(f"Promotion activation via payment_success failed (non-fatal): {promo_err}")
+
     # Last resort: most recent pending purchase for the logged-in user (covers when Yoco redirect has no usable id at all)
     if granted <= 0 and current_user.is_authenticated:
         try:
@@ -906,21 +974,9 @@ def yoco_webhook():
                 payment.transaction_id = data.get('paymentId') or data.get('id')
                 db.session.commit()
 
-                # Activate promotion (7 days default)
+                # Activate promotion using shared helper (sets is_promoted + Promotion record)
                 if payment.listing_id:
-                    # Use only fields that exist on the current Promotion model
-                    promotion = Promotion.query.filter_by(listing_id=payment.listing_id).first()
-                    if not promotion:
-                        promotion = Promotion(
-                            listing_id=payment.listing_id,
-                            start_date=datetime.utcnow(),
-                            end_date=datetime.utcnow() + timedelta(days=7),
-                            amount_paid=float(payment.amount or 0),
-                            payment_status='completed'
-                        )
-                        db.session.add(promotion)
-                        db.session.commit()
-                    logger.info(f"Promotion activated for listing {payment.listing_id} via Yoco")
+                    _activate_listing_promotion(payment.listing_id, payment.amount)
 
         return jsonify({'status': 'success'}), 200
 

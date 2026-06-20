@@ -529,7 +529,7 @@ document.addEventListener('click', function(e) {
 
                 data.listings.forEach(listing => {
                     const isBusinessType = listing.is_business_ad;
-                    const isBoosted = listing.is_promoted || listing.last_reposted_at;
+                    const isBoosted = listing.is_promoted;
 
                     let cardExtraClasses = 'card h-100 shadow-sm border-0 post-type-' + (listing.post_type || listing.ad_type || 'sale');
                     if (isBusinessType) cardExtraClasses += ' business-listing';

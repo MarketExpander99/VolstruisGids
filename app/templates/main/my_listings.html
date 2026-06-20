@@ -16,7 +16,7 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
             {% for listing in listings %}
             {% set isBusiness = listing.is_business_ad %}
-            {% set isPromoted = listing.is_promoted or listing.last_reposted_at %}
+            {% set isPromoted = listing.is_promoted %}
             {% set pt = listing.post_type or 'sale' %}
             <div class="col">
                 <div class="card h-100 shadow-sm business-listing {{ 'boosted' if isPromoted else '' }} {{ 'border-danger' if listing.is_expired else '' }}" style="position: relative;">

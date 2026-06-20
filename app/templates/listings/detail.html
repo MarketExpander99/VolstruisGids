@@ -48,7 +48,7 @@
 {% endif %}
 
 {% set is_business = listing.is_business_ad %}
-{% set is_promoted = listing.is_promoted or listing.last_reposted_at %}
+{% set is_promoted = listing.is_promoted %}
 {% set pt = listing.post_type or 'sale' %}
 
 <div class="listing-detail-page py-4 py-md-5">
@@ -236,7 +236,7 @@
                                 Boosted listings get a special badge and extra visibility for 7 days.
                             </p>
 
-                            {% if listing.is_promoted or listing.last_reposted_at %}
+                            {% if listing.is_promoted %}
                                 <div class="alert alert-success py-2 px-3 mb-3 small">
                                     This listing is currently promoted.
                                 </div>

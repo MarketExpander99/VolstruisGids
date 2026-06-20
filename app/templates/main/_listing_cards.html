@@ -1,6 +1,6 @@
 ﻿{% for listing in listings %}
 {% set isBusiness = listing.is_business_ad %}
-{% set isPromoted = listing.is_promoted or listing.last_reposted_at %}
+{% set isPromoted = listing.is_promoted %}
 {% set pt = listing.post_type or 'sale' %}
 <div class="col-md-6 col-lg-4 mb-4">
     <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">

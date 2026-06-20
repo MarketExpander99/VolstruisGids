@@ -8,7 +8,7 @@
         <!-- Left: Photo + Additional Photos -->
         <div class="col-lg-7">
             {% set isBusiness = listing.is_business_ad %}
-            {% set isPromoted = listing.is_promoted or listing.last_reposted_at %}
+            {% set isPromoted = listing.is_promoted %}
             {% set photoContainerClasses = 'position-relative rounded-4 shadow-sm overflow-hidden border' %}
             {% if isBusiness %} {% set photoContainerClasses = photoContainerClasses ~ ' business-listing' %} {% endif %}
             {% if isPromoted %} {% set photoContainerClasses = photoContainerClasses ~ ' boosted' %} {% endif %}
@@ -138,7 +138,7 @@
                             Boosted listings get a special badge and extra visibility for 7 days.
                         </p>
 
-                        {% if listing.is_promoted or listing.last_reposted_at %}
+                        {% if listing.is_promoted %}
                             <div class="alert alert-success py-2 px-3 mb-3 small">
                                 This listing is currently promoted.
                             </div>
