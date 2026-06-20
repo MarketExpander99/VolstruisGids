@@ -148,6 +148,12 @@ def _fulfill_credit_purchase(checkout_id):
     if not checkout_id:
         return 0
     txn = CreditTransaction.query.filter_by(reference=checkout_id).first()
+    if txn:
+        logger.info(f"_fulfill: txn found ref={txn.reference} type={txn.transaction_type} amount={txn.amount} status={getattr(txn, 'status', None)}")
+    else:
+        logger.warning(f"_fulfill: no CreditTransaction found for reference={checkout_id}")
+        return 0
+
     if not txn or txn.transaction_type != 'purchase' or (txn.amount or 0) <= 0:
         return 0
     if getattr(txn, 'status', None) == 'success':
@@ -157,7 +163,14 @@ def _fulfill_credit_purchase(checkout_id):
     if not user:
         return 0
     credits = txn.amount or Decimal('0')
-    user.credit_balance = (user.credit_balance or Decimal('0')) + credits
+    new_balance = (user.credit_balance or Decimal('0')) + credits
+    user.credit_balance = new_balance
+    # Use setter to keep both credit_balance and credits columns in sync for display
+    # (navbar and pages use .credits which prefers the dedicated column)
+    try:
+        user.credits = new_balance
+    except Exception:
+        user.credit_balance = new_balance
     if hasattr(txn, 'status'):
         txn.status = 'success'
     db.session.commit()
@@ -191,7 +204,7 @@ def buy_credits():
                 if is_business else
                 "Personal accounts: maximum 10 credits per purchase (v1).")
 
-    current_balance = current_user.credit_balance or Decimal('0')
+    current_balance = current_user.credits  # use property for consistent display (syncs balance + credits col)
     account_type_label = 'Business' if is_business else 'Personal'
 
     return render_template(
@@ -385,7 +398,24 @@ def payment_success():
     mock/dev flows and real Yoco redirects result in immediate credit allocation.
     Webhook is still authoritative for server-confirmed payments.
     """
-    checkout_id = request.args.get('checkoutId') or request.args.get('id')
+    # Robust extraction of Yoco checkout id - Yoco appends ?id=... or ?checkoutId=...
+    # to the successUrl after payment. Try common names + fallback for robustness.
+    args = request.args
+    checkout_id = None
+    for key in ('checkoutId', 'id', 'checkout_id', 'checkoutid'):
+        if key in args:
+            checkout_id = args.get(key)
+            break
+    if not checkout_id and args:
+        # Fallback: take first value that looks like a Yoco checkout id
+        for val in args.values():
+            val = str(val)
+            if val and (val.startswith(('ch_', 'chk_', 'CH_')) or len(val) > 10):
+                checkout_id = val
+                break
+
+    logger.info(f"payment_success received args={dict(args)}, extracted_checkout_id={checkout_id}")
+
     granted = _fulfill_credit_purchase(checkout_id)
 
     if granted > 0:
@@ -431,7 +461,7 @@ def yoco_webhook():
         if not checkout_id:
             return jsonify({'status': 'ignored'}), 200
 
-        logger.info(f"Received Yoco webhook: {event_type} for {checkout_id} - {status}")
+        logger.info(f"Received Yoco webhook: {event_type} for {checkout_id} - {status} (data keys: {list(data.keys()) if isinstance(data, dict) else 'n/a'})")
 
         # === Handle Credit Purchase ===
         if status in ('paid', 'successful', 'complete'):
