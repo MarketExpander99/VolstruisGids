@@ -91,3 +91,20 @@ class YocoClient:
         except Exception as e:
             current_app.logger.exception("Unexpected error calling Yoco API")
             raise
+
+    def get_checkout(self, checkout_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a checkout by id to verify status (useful in success redirect fallback)."""
+        if not checkout_id:
+            return None
+        url = f"{self.BASE_URL}/checkouts/{checkout_id}"
+        headers = {
+            "Authorization": f"Bearer {self.secret_key}",
+            "Content-Type": "application/json",
+        }
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            current_app.logger.error(f"Failed to get Yoco checkout {checkout_id}: {e}")
+            return None

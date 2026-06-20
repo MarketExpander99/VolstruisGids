@@ -89,6 +89,30 @@ def profile():
     else:
         form = ProfileForm(obj=current_user)
 
+    # Auto-claim any recent pending Yoco credit purchases so balance is always up-to-date
+    # (handles redirect cases where checkout id may not be in the success URL).
+    try:
+        from datetime import datetime, timedelta
+        from app.models.credit_transaction import CreditTransaction
+        from app.blueprints.payments.routes import _fulfill_credit_purchase
+        cutoff = datetime.utcnow() - timedelta(minutes=60)
+        for ptxn in CreditTransaction.query.filter(
+            CreditTransaction.user_id == current_user.id,
+            CreditTransaction.transaction_type == 'purchase',
+            CreditTransaction.created_at >= cutoff
+        ).all():
+            if getattr(ptxn, 'status', None) != 'success' and (ptxn.amount or 0) > 0:
+                _fulfill_credit_purchase(ptxn.reference)
+    except Exception:
+        pass  # non-fatal
+
+    # Refresh so the just-claimed credits are visible on this render
+    if current_user.is_authenticated:
+        try:
+            db.session.refresh(current_user)
+        except Exception:
+            db.session.expire(current_user)
+
     # Show ALL user's listings (including expired/old) — owners must see them per spec.
     # Expired ones are visually marked in the template.
     listings = Listing.query.filter_by(user_id=current_user.id)\

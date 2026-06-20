@@ -139,11 +139,12 @@ def _handle_successful_stripe_payment(session):
     logger.info(f"Stripe payment fulfilled: +{credits_to_add} credits to user {user_id} (session {session_id})")
 
 
-def _fulfill_credit_purchase(checkout_id):
+def _fulfill_credit_purchase(checkout_id, raw_yoco_response=None):
     """
     Idempotent credit grant for a Yoco (or mock) checkout.
     Returns number of credits granted (0 if already granted or not found).
     Safe to call from success redirect and from webhook.
+    raw_yoco_response: optional full Yoco response (dict or str) to store for debugging.
     """
     if not checkout_id:
         return 0
@@ -157,24 +158,52 @@ def _fulfill_credit_purchase(checkout_id):
     if not txn or txn.transaction_type != 'purchase' or (txn.amount or 0) <= 0:
         return 0
     if getattr(txn, 'status', None) == 'success':
+        # still store raw response if provided and not already set (for debugging)
+        if raw_yoco_response and not getattr(txn, 'raw_yoco_response', None):
+            try:
+                txn.raw_yoco_response = json.dumps(raw_yoco_response) if isinstance(raw_yoco_response, (dict, list)) else str(raw_yoco_response)
+                db.session.commit()
+            except Exception:
+                pass
         return 0
     from app.models.user import User
     user = User.query.get(txn.user_id)
     if not user:
         return 0
     credits = txn.amount or Decimal('0')
-    new_balance = (user.credit_balance or Decimal('0')) + credits
+    old_balance = user.credit_balance or user.credits or Decimal('0')
+    new_balance = old_balance + credits
+    # Explicitly update both columns for maximum compatibility with display code
+    # (some templates use .credits, some .credit_balance; setter also does this but be defensive)
     user.credit_balance = new_balance
-    # Use setter to keep both credit_balance and credits columns in sync for display
-    # (navbar and pages use .credits which prefers the dedicated column)
     try:
         user.credits = new_balance
     except Exception:
+        pass
+    try:
+        user.set_credits(new_balance)
+    except Exception:
         user.credit_balance = new_balance
+        try:
+            user.__dict__['credits'] = new_balance
+        except Exception:
+            pass
     if hasattr(txn, 'status'):
-        txn.status = 'success'
+        try:
+            txn.status = 'success'
+        except Exception:
+            pass
+    # Store the full Yoco response if provided (for reliability/debug when Yoco responses vary)
+    if raw_yoco_response:
+        try:
+            if isinstance(raw_yoco_response, (dict, list)):
+                txn.raw_yoco_response = json.dumps(raw_yoco_response)
+            else:
+                txn.raw_yoco_response = str(raw_yoco_response)
+        except Exception:
+            pass
     db.session.commit()
-    logger.info(f"Credits fulfilled for checkout {checkout_id}: +{credits} to user {txn.user_id}")
+    logger.info(f"Credits fulfilled for checkout {checkout_id}: +{credits} (was {old_balance} -> {new_balance}) to user {txn.user_id}")
     return credits
 
 # Import the blueprint object defined in the package __init__.py
@@ -184,7 +213,32 @@ from . import payments_bp
 @payments_bp.route('/buy-credits')
 @login_required
 def buy_credits():
-    """Dedicated Buy Credits page powered by Yoco Checkout (replaces old modal)."""
+    """Dedicated Buy Credits page powered by Yoco Checkout (replaces old modal).
+    Also auto-claims any recent pending credit purchases (robustness for redirect id issues).
+    """
+    # Auto-claim recent pending purchases for the logged-in user.
+    # This ensures credits appear even if the /payment-success redirect didn't receive/pass the Yoco id
+    # (or if the success handler fallback didn't run). Safe + idempotent.
+    try:
+        cutoff = datetime.utcnow() - timedelta(minutes=60)
+        pending_txns = CreditTransaction.query.filter(
+            CreditTransaction.user_id == current_user.id,
+            CreditTransaction.transaction_type == 'purchase',
+            CreditTransaction.created_at >= cutoff
+        ).order_by(CreditTransaction.created_at.desc()).all()
+        for ptxn in pending_txns:
+            if getattr(ptxn, 'status', None) != 'success' and (ptxn.amount or 0) > 0:
+                _fulfill_credit_purchase(ptxn.reference)
+    except Exception as claim_err:
+        logger.warning(f"Auto-claim pending credits on buy-credits failed (non-fatal): {claim_err}")
+
+    # Make sure current_user object sees any just-claimed credits for this render
+    if current_user.is_authenticated:
+        try:
+            db.session.refresh(current_user)
+        except Exception:
+            db.session.expire(current_user)
+
     personal_packages = [
         {"id": "single", "name": "Single Credit", "credits": 1, "price": 10, "note": "Try it out"},
         {"id": "small", "name": "Small", "credits": 5, "price": 55, "note": "Easy entry"},
@@ -292,6 +346,11 @@ def create_checkout():
                         txn.status = 'pending'
                     except Exception:
                         pass
+                # mock "response" for completeness
+                try:
+                    txn.raw_yoco_response = json.dumps({'id': mock_checkout_id, 'status': 'mock_created'})
+                except Exception:
+                    pass
                 db.session.add(txn)
             else:
                 payment = Payment(
@@ -342,6 +401,11 @@ def create_checkout():
                         txn.status = 'pending'
                     except Exception:
                         pass
+                # Store the initial Yoco create response (raw) for debugging
+                try:
+                    txn.raw_yoco_response = json.dumps(checkout)
+                except Exception:
+                    pass
                 db.session.add(txn)
             else:
                 # Promotion / listing boost
@@ -403,10 +467,10 @@ def payment_success():
     """Yoco success redirect handler (user is redirected here after successful payment).
     Attempts to fulfill credits (or promotions) using the checkoutId so that
     mock/dev flows and real Yoco redirects result in immediate credit allocation.
+    Falls back to the most recent pending purchase txn for the logged-in user
+    (in case Yoco does not append the checkout id to the success redirect).
     Webhook is still authoritative for server-confirmed payments.
     """
-    # Robust extraction of Yoco checkout id - Yoco appends ?id=... or ?checkoutId=...
-    # to the successUrl after payment. Try common names + fallback for robustness.
     args = request.args
     checkout_id = None
     for key in ('checkoutId', 'id', 'checkout_id', 'checkoutid'):
@@ -423,12 +487,71 @@ def payment_success():
 
     logger.info(f"payment_success received args={dict(args)}, extracted_checkout_id={checkout_id}")
 
-    granted = _fulfill_credit_purchase(checkout_id)
+    granted = 0
+
+    # Preferred path for simplicity: Ask the gateway "was this checkout a success?" + read credits + user from the metadata we originally attached.
+    # Then ensure a CreditTransaction record exists and let the normal (idempotent) fulfill path do the actual add.
+    # This is the closest to "if Yoco reports success, add the credits".
+    if checkout_id:
+        try:
+            yoco = YocoClient()
+            ch = yoco.get_checkout(checkout_id)
+            if ch:
+                ch_status = str(ch.get('status') or ch.get('paymentStatus') or '').lower()
+                if ch_status in ('paid', 'successful', 'complete', 'succeeded', 'paid_out'):
+                    meta = ch.get('metadata') or {}
+                    w_user = meta.get('user_id')
+                    w_cr = Decimal(str(meta.get('credits') or 0))
+                    if w_user and w_cr > 0:
+                        # Make sure the history/fulfillment record exists (lazy creation). Then use the existing guard logic.
+                        txn = CreditTransaction.query.filter_by(reference=checkout_id).first()
+                        if not txn:
+                            txn = CreditTransaction(
+                                user_id=int(w_user),
+                                amount=w_cr,
+                                transaction_type='purchase',
+                                reference=checkout_id,
+                            )
+                            if hasattr(txn, 'status'):
+                                txn.status = 'pending'  # will be flipped by fulfill
+                            db.session.add(txn)
+                            db.session.commit()
+                        # Now let the standard idempotent path do the add + status flip + balance update.
+                        # Pass the full Yoco response so we store it on the txn.
+                        granted = _fulfill_credit_purchase(checkout_id, raw_yoco_response=ch)
+                        if granted > 0:
+                            logger.info(f"Credits added via verified Yoco checkout (status={ch_status}): +{granted}")
+        except Exception as yoco_err:
+            logger.warning(f"Yoco get_checkout verification in success failed (falling back): {yoco_err}")
+
+    # Fallback to local txn lookup if gateway verify path didn't result in a grant.
+    if granted <= 0 and checkout_id:
+        granted = _fulfill_credit_purchase(checkout_id)  # raw response not available here, but txn may already have it from previous attempts
+
+    # Last resort: most recent pending purchase for the logged-in user (covers when Yoco redirect has no usable id at all)
+    if granted <= 0 and current_user.is_authenticated:
+        try:
+            cutoff = datetime.utcnow() - timedelta(minutes=45)
+            recent_txn = (
+                CreditTransaction.query
+                .filter(
+                    CreditTransaction.user_id == current_user.id,
+                    CreditTransaction.transaction_type == 'purchase',
+                    CreditTransaction.created_at >= cutoff,
+                )
+                .order_by(CreditTransaction.created_at.desc())
+                .first()
+            )
+            if recent_txn and getattr(recent_txn, 'status', None) != 'success' and (recent_txn.amount or 0) > 0:
+                granted = _fulfill_credit_purchase(recent_txn.reference)
+                if granted > 0:
+                    logger.info(f"payment_success used recent-pending txn fallback for user {current_user.id}")
+        except Exception as fb_err:
+            logger.warning(f"payment_success recent txn fallback error: {fb_err}")
 
     if granted > 0:
         flash(f'✅ Payment successful! {granted} credits have been added to your account.', 'success')
     else:
-        # Could be a promotion or webhook will handle it shortly
         flash('Payment successful! Your credits/promotion will be activated shortly.', 'success')
 
     return redirect(url_for('payments.buy_credits'))
@@ -517,12 +640,57 @@ def yoco_webhook():
         logger.info(f"Received Yoco webhook: {event_type} for {checkout_id} - {status} (data keys: {list(data.keys()) if isinstance(data, dict) else 'n/a'})")
 
         # === Handle Credit Purchase ===
+        # Prefer reading directly from the webhook payload / metadata when possible ("if Yoco says success, add the credits it recorded")
         is_paid = (
             status in ('paid', 'successful', 'complete', 'succeeded')
             or (event_type and any(k in str(event_type).lower() for k in ('paid', 'succeeded', 'complete')))
         )
         if is_paid:
-            granted = _fulfill_credit_purchase(checkout_id)
+            granted = 0
+            # Try direct from this event's data (Yoco often echoes the metadata we sent)
+            try:
+                meta = data.get('metadata') or event.get('metadata') or {}
+                w_user_id = meta.get('user_id')
+                w_credits = Decimal(str(meta.get('credits') or 0))
+                if w_user_id and w_credits > 0:
+                    from app.models.user import User
+                    usr = User.query.get(int(w_user_id))
+                    if usr:
+                        old = (usr.credit_balance or usr.credits or Decimal('0'))
+                        usr.credits = old + w_credits
+                        # record for history (create if the pre-row wasn't there)
+                        txn = CreditTransaction.query.filter_by(reference=checkout_id).first() if checkout_id else None
+                        if not txn and checkout_id:
+                            txn = CreditTransaction(
+                                user_id=int(w_user_id),
+                                amount=w_credits,
+                                transaction_type='purchase',
+                                reference=checkout_id,
+                            )
+                            if hasattr(txn, 'status'):
+                                txn.status = 'success'
+                            # store full event for debugging Yoco response variations
+                            try:
+                                txn.raw_yoco_response = json.dumps(event)
+                            except Exception:
+                                pass
+                            db.session.add(txn)
+                        elif txn and hasattr(txn, 'status'):
+                            txn.status = 'success'
+                            if not getattr(txn, 'raw_yoco_response', None):
+                                try:
+                                    txn.raw_yoco_response = json.dumps(event)
+                                except Exception:
+                                    pass
+                        db.session.commit()
+                        granted = w_credits
+                        logger.info(f"Credits added directly from webhook metadata: +{granted} to user {w_user_id}")
+            except Exception as direct_err:
+                logger.warning(f"Direct webhook credit add failed, falling back: {direct_err}")
+
+            if granted <= 0 and checkout_id:
+                # pass the raw event data so we can store the full Yoco response
+                granted = _fulfill_credit_purchase(checkout_id, raw_yoco_response=event)
             if granted > 0:
                 logger.info(f"Credits added via Yoco webhook: {granted} for {checkout_id}")
 

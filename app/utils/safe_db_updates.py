@@ -151,6 +151,21 @@ def apply_safe_db_updates(db):
                 except Exception:
                     pass
 
+        # raw_yoco_response on credit_transactions - store full Yoco response JSON for debugging when gateway data is inconsistent
+        if _column_exists(inspector, 'credit_transactions', 'raw_yoco_response'):
+            logger.info("Column 'raw_yoco_response' already exists on 'credit_transactions' — skipping.")
+        else:
+            try:
+                conn.execute(text("ALTER TABLE credit_transactions ADD COLUMN raw_yoco_response TEXT"))
+                conn.commit()
+                logger.info("✅ Added 'raw_yoco_response' column to 'credit_transactions' table (full Yoco response for reliability).")
+            except Exception as e:
+                logger.error(f"Failed to add raw_yoco_response column to credit_transactions: {e}")
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
     logger.info("Safe DB update check completed.")
 
     # Call payment tables creation (Stripe credit packs + subscriptions)
