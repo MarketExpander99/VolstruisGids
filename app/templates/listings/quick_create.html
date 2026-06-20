@@ -467,8 +467,17 @@
                     },
                     body: JSON.stringify({ title, description, post_type, category_id, price, town })
                 });
-                const data = await response.json();
-                if (!response.ok || !data.success) throw new Error(data.error || 'Grok request failed');
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseErr) {
+                    throw new Error('Invalid JSON response from server (check logs)');
+                }
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Grok request failed');
+                }
 
                 if (data.improved_title && titleEl) titleEl.value = data.improved_title;
                 if (data.improved_description && descEl) descEl.value = data.improved_description;
@@ -508,5 +517,11 @@
             });
         });
     }
+
+    // Focus title (helpful for quick create flows)
+    setTimeout(function() {
+        const titleInput = document.getElementById('title');
+        if (titleInput) titleInput.focus();
+    }, 200);
 </script>
 {% endblock %}

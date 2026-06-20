@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
@@ -72,7 +72,10 @@ def improve_with_ai():
         }), 402
 
     try:
-        grok_api_key = os.environ.get('GROK_API_KEY')
+        grok_api_key = current_app.config.get('GROK_API_KEY')
+        grok_api_url = current_app.config.get('GROK_API_URL', 'https://api.x.ai/v1/chat/completions')
+        grok_model = current_app.config.get('GROK_MODEL', 'grok-3')
+
         if not grok_api_key:
             return jsonify({'error': 'AI service not configured. Add GROK_API_KEY to .env'}), 500
 
@@ -122,13 +125,13 @@ Return ONLY valid JSON with these exact keys (no extra text, no markdown):
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "grok-3-latest",
+            "model": grok_model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.6,
             "max_tokens": 950
         }
 
-        resp = requests.post("https://api.x.ai/v1/chat/completions", headers=headers, json=payload, timeout=30)
+        resp = requests.post(grok_api_url, headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
         content = resp.json()['choices'][0]['message']['content']
 
@@ -360,6 +363,18 @@ def create():
                 continue_form.allow_comments.data = form.allow_comments.data
                 if form.post_type.data == 'rental':
                     continue_form.rental_duration_unit.data = form.rental_duration_unit.data
+                    # Note: rental_duration cleared below
+
+                # Clear ONLY title, description, pricing fields and photos as requested.
+                # Everything else (category, town, contacts, post/price type, rental unit, allow_comments) stays.
+                continue_form.title.data = ''
+                continue_form.description.data = ''
+                continue_form.price.data = None
+                continue_form.min_price.data = None
+                continue_form.max_price.data = None
+                continue_form.rental_duration.data = None
+                # Photos: fresh form render + client focus will handle; no photo data carried.
+
                 return render_template('listings/create.html', form=continue_form, editing=False)
             else:
                 flash(base_msg, 'success')

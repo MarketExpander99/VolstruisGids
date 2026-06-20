@@ -27,7 +27,8 @@
                     <form id="create-form" method="POST" enctype="multipart/form-data" novalidate>
                         {{ form.hidden_tag() }}
 
-                        <!-- Action is captured natively via the submit button's name/value (most reliable) -->
+                        <!-- Hidden field to capture which submit button was used (Post vs Post & Create New) -->
+                        <input type="hidden" name="action" id="submit-action" value="post">
 
                         <!-- Post Type -->
                         <div class="mb-4">
@@ -42,7 +43,27 @@
                             </div>
                         </div>
 
-                        <!-- Pricing Type -->
+
+
+                        <!-- Title -->
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control form-control-lg") }}
+                            {% for error in form.title.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows=5) }}
+                            {% for error in form.description.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Pricing Type (moved below description) -->
                         <div class="mb-4" id="pricing-type-group">
                             {{ form.price_type.label(class="form-label fw-bold") }}
                             <div class="d-flex flex-wrap gap-2">
@@ -103,24 +124,6 @@
                                 </div>
                                 <small class="text-muted">e.g. 7 days, 2 weeks, 1 month. Price above is the rate per unit.</small>
                             </div>
-                        </div>
-
-                        <!-- Title -->
-                        <div class="mb-3">
-                            {{ form.title.label(class="form-label") }}
-                            {{ form.title(class="form-control form-control-lg") }}
-                            {% for error in form.title.errors %}
-                                <div class="text-danger small mt-1">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-
-                        <!-- Description -->
-                        <div class="mb-3">
-                            {{ form.description.label(class="form-label") }}
-                            {{ form.description(class="form-control", rows=5) }}
-                            {% for error in form.description.errors %}
-                                <div class="text-danger small mt-1">{{ error }}</div>
-                            {% endfor %}
                         </div>
 
                         <!-- GROK AD POLISH SECTION -->
@@ -278,20 +281,20 @@
                             {% if current_user.is_business_account %}
                                 <div class="row g-2">
                                     <div class="col-12 col-md-6">
-                                        <button type="submit" name="submit_action" value="post" 
+                                        <button type="submit" value="post"
                                                 class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
                                             <i class="bi bi-plus-circle me-1"></i>Post Listing
                                         </button>
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <button type="submit" name="submit_action" value="create_new" 
+                                        <button type="submit" value="create_new"
                                                 class="btn btn-success btn-lg w-100 py-3 fw-semibold">
                                             <i class="bi bi-plus-circle me-1"></i>Post &amp; Create New
                                         </button>
                                     </div>
                                 </div>
                             {% else %}
-                                <button type="submit" name="submit_action" value="post" 
+                                <button type="submit" value="post"
                                         class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
                                     <i class="bi bi-plus-circle me-1"></i>Post Listing
                                 </button>
@@ -310,9 +313,19 @@
 
     const form = document.getElementById('create-form');
     const submitButtons = form ? form.querySelectorAll('button[type="submit"]') : [];
+    const actionField = document.getElementById('submit-action');
 
-    // Optional: disable buttons briefly on submit to prevent double clicks (native submit)
-    // Also clean any formatted prices (###,###.00 → 1234.00) so WTForms FloatField accepts them.
+    // Set the action when a submit button is clicked (reliable for "Post" vs "Post & Create New")
+    submitButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (actionField) {
+                actionField.value = btn.value || 'post';
+            }
+        });
+    });
+
+    // Clean any formatted prices (###,###.00 → 1234.00) so WTForms FloatField accepts them.
+    // Do NOT disable buttons here — it can prevent the clicked button's value from being submitted.
     if (form) {
         form.addEventListener('submit', function() {
             ['price', 'min_price', 'max_price'].forEach(function(id) {
@@ -322,7 +335,6 @@
                     el.value = el.value.replace(/[^0-9.]/g, '');
                 }
             });
-            submitButtons.forEach(btn => btn.disabled = true);
         });
     }
 
@@ -599,8 +611,17 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ title, description, post_type, category_id, price, town })
                 });
-                const data = await response.json();
-                if (!response.ok || !data.success) throw new Error(data.error || 'Grok request failed');
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseErr) {
+                    throw new Error('Invalid JSON response from server (check logs)');
+                }
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Grok request failed');
+                }
 
                 if (data.improved_title && titleEl) titleEl.value = data.improved_title;
                 if (data.improved_description && descEl) descEl.value = data.improved_description;
@@ -629,5 +650,27 @@
 
     // Initialize empty cost note
     if (costNote) costNote.classList.add('d-none');
+
+    // After save (especially "Post & Create New"), focus the title field
+    // Also ensure photos are cleared for the "Post & Create New" flow (in case of any state).
+    setTimeout(function() {
+        const titleInput = document.getElementById('title');
+        if (titleInput) {
+            titleInput.focus();
+        }
+
+        // If this looks like a fresh post (title empty), clear any lingering photo state
+        if (titleInput && !titleInput.value.trim()) {
+            if (typeof selectedFiles !== 'undefined') {
+                selectedFiles = [];
+            }
+            const preview = document.getElementById('image-preview');
+            if (preview) preview.innerHTML = '';
+            const costNote = document.getElementById('photo-cost-note');
+            if (costNote) costNote.classList.add('d-none');
+            const photoInput = document.getElementById('photo');
+            if (photoInput) photoInput.value = '';
+        }
+    }, 300);
 </script>
 {% endblock %}
