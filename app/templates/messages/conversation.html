@@ -57,7 +57,7 @@
                         <div class="px-3 py-2 rounded-3 shadow-sm {% if is_mine %}bg-primary text-white{% else %}bg-white border{% endif %}" 
                              style="max-width: 78%; font-size: 0.95rem; white-space: pre-wrap; word-break: break-word;">
                             {{ msg.text }}
-                            <div class="mt-1" style="font-size: 0.7rem; opacity: 0.7; text-align: {% if is_mine %}right{% else %}left{% endif %};">
+                            <div class="mt-1" style="font-size: 0.7rem; opacity: 0.7; text-align: {{ 'right' if is_mine else 'left' }};">
                                 {{ msg.timestamp.strftime('%d %b %H:%M') if msg.timestamp else '' }}
                                 {% if is_mine %}
                                     <i class="bi bi-check2-all ms-1"></i>
