@@ -140,7 +140,14 @@ STRICT RULES:
    - Add a confidence level: High / Medium / Low + one-line note.
    - If the draft has very little information, still give a solid category benchmark and note that more details would sharpen the recommendation.
 
-4. OUTPUT FORMAT — ONLY valid JSON, nothing else:
+4. GOOGLE SEO OPTIMIZATION (important for VolstruisGids)
+   - Naturally weave in the town/area so the final listing performs well in our dynamic meta title, description, and keywords on the detail page.
+   - Use clear, searchable phrasing in the title (brand/model/year/condition + location signal is ideal).
+   - In the description, mention key buyer search terms naturally (never stuff keywords).
+   - The goal is higher visibility in local Klein Karoo / Western Cape searches on Google while staying honest and buyer-friendly.
+   - This helps the seller's ad get found faster.
+
+5. OUTPUT FORMAT — ONLY valid JSON, nothing else:
 {{
   "polished_title": "string",
   "polished_description": "string (use \\n for line breaks)",
