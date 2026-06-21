@@ -72,7 +72,7 @@
                     <label class="form-label small fw-semibold text-muted mb-1">Search</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                        <input type="text" id="q" class="form-control border-start-0" placeholder="What are you looking for?" value="">
+                        <input type="text" id="q" class="form-control border-start-0" placeholder="What are you looking for?" value="" onkeypress="if (event.key === 'Enter') { if (window.applyFilters) window.applyFilters(); else applyFilters(); }">
                     </div>
                 </div>
                 <div class="col-6 col-md-2">
@@ -105,8 +105,8 @@
                     </select>
                 </div>
                 <div class="col-12 col-md-4 d-flex gap-2">
-                    <button onclick="applyFilters()" class="btn btn-primary flex-fill">Apply Filters</button>
-                    <button onclick="resetFilters()" class="btn btn-outline-secondary flex-fill">Reset</button>
+                    <button onclick="if (window.applyFilters) window.applyFilters(); else applyFilters();" class="btn btn-primary flex-fill">Apply Filters</button>
+                    <button onclick="if (window.resetFilters) window.resetFilters(); else resetFilters();" class="btn btn-outline-secondary flex-fill">Reset</button>
                 </div>
             </div>
         </div>
@@ -546,13 +546,16 @@ document.addEventListener('click', function(e) {
                 if (!append) container.innerHTML = '';
 
                 if (data.listings.length === 0 && !append) {
+                    const qVal = (document.getElementById('q') && document.getElementById('q').value || '').trim();
+                    const emptyTitle = qVal ? `No results for "${qVal}"` : 'No listings found in the Karoo yet';
+                    const emptyHint = qVal ? 'Try a broader keyword, different town or clear filters.' : 'Try a different search or be the first to post something here.';
                     container.innerHTML = `
                         <div class="col-12 text-center py-5">
                             <i class="bi bi-search display-4 text-muted mb-3"></i>
-                            <h5 class="mb-2">No listings found in the Karoo yet</h5>
-                            <p class="text-muted small">Try a different search or be the first to post something here.</p>
+                            <h5 class="mb-2">${emptyTitle}</h5>
+                            <p class="text-muted small">${emptyHint}</p>
                             <a href="{{ url_for('listings.create') }}" class="btn btn-primary btn-sm mt-2">
-                                <i class="bi bi-plus-lg me-1"></i>Post the first ad
+                                <i class="bi bi-plus-lg me-1"></i>Post an ad
                             </a>
                         </div>`;
                     document.getElementById('load-more-btn').style.display = 'none';
@@ -946,6 +949,15 @@ document.addEventListener('click', function(e) {
         if (!append) container.innerHTML = '';
 
         if (businesses.length === 0 && !append) {
+            const qVal = (document.getElementById('q')?.value || '').trim();
+            if (qVal) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-shop display-5 text-muted"></i>
+                        <p class="mt-3 text-muted">No businesses found for "${qVal}". Try a different search term or town.</p>
+                    </div>`;
+                return;
+            }
             container.innerHTML = `
                 <div class="col-12 text-center py-5">
                     <i class="bi bi-shop display-5 text-muted"></i>
@@ -1009,6 +1021,10 @@ document.addEventListener('click', function(e) {
     }
 
     // Directory-aware filter wrappers (safe for existing functions in same scope)
+    // Capture originals *before* overwriting so we don't recurse in listings mode.
+    const _originalApplyFilters = (typeof applyFilters === 'function') ? applyFilters : null;
+    const _originalResetFilters = (typeof resetFilters === 'function') ? resetFilters : null;
+
     window.applyFilters = function() {
         if (currentView === 'directory') {
             const dirContainer = document.getElementById('directory-container');
@@ -1016,7 +1032,7 @@ document.addEventListener('click', function(e) {
             fetchBusinesses(1, false);
             return;
         }
-        if (typeof applyFilters === 'function') applyFilters();
+        if (typeof _originalApplyFilters === 'function') _originalApplyFilters();
     };
 
     window.resetFilters = function() {
@@ -1032,7 +1048,7 @@ document.addEventListener('click', function(e) {
             fetchBusinesses(1, false);
             return;
         }
-        if (typeof resetFilters === 'function') resetFilters();
+        if (typeof _originalResetFilters === 'function') _originalResetFilters();
     };
 
     window.onload = function() {

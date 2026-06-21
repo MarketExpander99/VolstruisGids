@@ -251,6 +251,7 @@ def create():
         form.contact_email.data = current_user.email
 
     if form.validate_on_submit():
+        print(f"[LISTINGS CREATE] validate_on_submit()=True for user_id={current_user.id}")
         selected = form.contact_methods.data or []
         contact_phone = form.contact_phone.data if 'phone' in selected else None
         contact_email = form.contact_email.data if 'email' in selected else None
@@ -261,6 +262,7 @@ def create():
         upload_dir = current_app.config.get('UPLOAD_FOLDER', UPLOAD_FOLDER)
         if form.photo.data:
             files = form.photo.data if isinstance(form.photo.data, (list, tuple)) else [form.photo.data]
+            print(f"[LISTINGS CREATE] photo files received: {len(files) if files else 0}")
             for f in files:
                 if f and getattr(f, 'filename', None) and allowed_file(f.filename):
                     filename = secure_filename(f.filename)
@@ -274,6 +276,7 @@ def create():
                     else:
                         photo_urls_list.append(url)
         photo_urls = ','.join(photo_urls_list) if photo_urls_list else None
+        print(f"[LISTINGS CREATE] photo_url set: {photo_url}")
 
         price_type = form.price_type.data or 'fixed'
 
@@ -406,8 +409,10 @@ def create():
         )
 
         try:
+            print(f"[LISTINGS CREATE] committing listing title={listing.title!r} user_id={listing.user_id} photo={bool(listing.photo_url)}")
             db.session.add(listing)
             db.session.commit()
+            print(f"[LISTINGS CREATE] COMMIT SUCCESS id={listing.id}")
 
             action = request.form.get('action') or request.form.get('submit_action')
             if required_credits == 0:
@@ -453,9 +458,15 @@ def create():
 
         except Exception as e:
             db.session.rollback()
+            print(f"[LISTINGS CREATE] COMMIT FAILED: {e}")
             flash(f'Error saving your listing: {str(e)}', 'danger')
             return redirect(url_for('listings.create'))
 
+    # If POST reached here, validate failed - surface errors (fixes silent validation case)
+    if request.method == 'POST' and form.errors:
+        for field, errs in form.errors.items():
+            for err in errs:
+                flash(f'{field.replace("_", " ").title()}: {err}', 'danger')
     return render_template('listings/create.html', form=form,
                            grok_remaining_free=grok_remaining_free)
 

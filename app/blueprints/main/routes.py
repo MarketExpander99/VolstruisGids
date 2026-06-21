@@ -9,7 +9,7 @@ from app.models.credit_transaction import CreditTransaction
 from app.models.site_stat import SiteStat
 from app.models.user_ai_usage import UserAIUsage
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from . import main_bp
 
 # Press releases data (easy to maintain)
@@ -185,9 +185,10 @@ def api_listings():
     )
 
     if query:
+        # Robust case-insensitive partial match on title OR description (per bugfix spec)
+        like = f'%{query}%'
         listings_query = listings_query.filter(
-            (Listing.title.ilike(f'%{query}%')) |
-            (Listing.description.ilike(f'%{query}%'))
+            or_(Listing.title.ilike(like), Listing.description.ilike(like))
         )
 
     if post_type:
@@ -290,9 +291,10 @@ def api_categories():
     ).filter(Listing.is_active == True, freshness >= seven_days_ago)
 
     if query:
+        # Robust case-insensitive partial match on title OR description (per bugfix spec)
+        like = f'%{query}%'
         cat_query = cat_query.filter(
-            (Listing.title.ilike(f'%{query}%')) |
-            (Listing.description.ilike(f'%{query}%'))
+            or_(Listing.title.ilike(like), Listing.description.ilike(like))
         )
 
     if post_type:
