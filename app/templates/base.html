@@ -328,6 +328,9 @@
             const awarded = (typeof data.awarded === 'number') ? data.awarded : 0.5;
             const serverMsg = (data && data.message) ? data.message : null;
 
+            // Remove any previous toasts so they don't pile up if sharing quickly
+            document.querySelectorAll('.share-reward-toast').forEach(el => el.remove());
+
             const toast = document.createElement('div');
             toast.className = 'share-reward-toast' + (reached ? ' final' : '');
 
@@ -361,16 +364,20 @@
             }
 
             toast.innerHTML = inner;
-            document.body.appendChild(toast);
 
-            // Auto-dismiss (longer for final message)
-            const dismissMs = reached ? 5600 : 3800;
-            setTimeout(() => {
-                toast.style.transition = 'opacity .28s ease, transform .28s ease';
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(-50%) translateY(-8px) scale(0.96)';
-                setTimeout(() => toast.parentNode && toast.parentNode.removeChild(toast), 260);
-            }, dismissMs);
+            // Add manual close button (user must dismiss it — stays visible after returning from WhatsApp/FB/X)
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'share-reward-close';
+            closeBtn.setAttribute('aria-label', 'Close notification');
+            closeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+            closeBtn.onclick = (e) => {
+                e.stopImmediatePropagation();
+                toast.remove();
+            };
+
+            toast.appendChild(closeBtn);
+            document.body.appendChild(toast);
         }
 
         // Helper: live-update credit balance displays
