@@ -19,7 +19,7 @@ import re
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
-UPLOAD_FOLDER = 'app/static/uploads'
+UPLOAD_FOLDER = 'app/static/uploads'  # fallback; prefer current_app.config['UPLOAD_FOLDER']
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 
@@ -258,13 +258,14 @@ def create():
 
         photo_url = None
         photo_urls_list = []
+        upload_dir = current_app.config.get('UPLOAD_FOLDER', UPLOAD_FOLDER)
         if form.photo.data:
             files = form.photo.data if isinstance(form.photo.data, (list, tuple)) else [form.photo.data]
             for f in files:
                 if f and getattr(f, 'filename', None) and allowed_file(f.filename):
                     filename = secure_filename(f.filename)
-                    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-                    filepath = os.path.join(UPLOAD_FOLDER, filename)
+                    os.makedirs(upload_dir, exist_ok=True)
+                    filepath = os.path.join(upload_dir, filename)
                     f.save(filepath)
                     resize_image_to_square(filepath)
                     url = f'/static/uploads/{filename}'
@@ -503,14 +504,15 @@ def edit_listing(listing_id):
 
         photo_url = listing.photo_url
         photo_urls = listing.photo_urls
+        upload_dir = current_app.config.get('UPLOAD_FOLDER', UPLOAD_FOLDER)
         if form.photo.data:
             files = form.photo.data if isinstance(form.photo.data, (list, tuple)) else [form.photo.data]
             new_photos = []
             for f in files:
                 if f and getattr(f, 'filename', None) and allowed_file(f.filename):
                     filename = secure_filename(f.filename)
-                    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-                    filepath = os.path.join(UPLOAD_FOLDER, filename)
+                    os.makedirs(upload_dir, exist_ok=True)
+                    filepath = os.path.join(upload_dir, filename)
                     f.save(filepath)
                     resize_image_to_square(filepath)
                     new_photos.append(f'/static/uploads/{filename}')
@@ -611,13 +613,14 @@ def quick_create():
 
         photo_url = None
         photo_urls_list = []
+        upload_dir = current_app.config.get('UPLOAD_FOLDER', UPLOAD_FOLDER)
         if form.photo.data:
             files = form.photo.data if isinstance(form.photo.data, (list, tuple)) else [form.photo.data]
             for f in files:
                 if f and getattr(f, 'filename', None) and allowed_file(f.filename):
                     filename = secure_filename(f.filename)
-                    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-                    filepath = os.path.join(UPLOAD_FOLDER, filename)
+                    os.makedirs(upload_dir, exist_ok=True)
+                    filepath = os.path.join(upload_dir, filename)
                     f.save(filepath)
                     resize_image_to_square(filepath)
                     url = f'/static/uploads/{filename}'

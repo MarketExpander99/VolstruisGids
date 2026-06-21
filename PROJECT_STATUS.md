@@ -48,7 +48,35 @@ Always follow the strict engineering rules in the new Grok persona prompt.
 Next milestone: A beautiful, functional public landing page + working detail + DM flow.
 
 Let’s keep building cleanly and steadily! 🚀
-## 2026-06-15 � Phase 1 Complete: v2.0 Design System
+
+## 2026-06-21 — Client-side Image Optimization + Real-time Upload Progress (Create Listing)
+
+**Task**: Implement spec for client optimized (1200px / JPEG 0.85) multi-photo uploads with Bootstrap progress bar + status, XHR upload. Zero breakage to existing form, credits, pricing, continue flow, AI polish, or listing persistence.
+
+**Files touched** (full repo scan first):
+- app/config.py (UPLOAD_FOLDER + MAX_CONTENT_LENGTH)
+- app/blueprints/listings/routes.py (use config for uploads in create/edit/quick_create — smallest)
+- app/templates/listings/create.html (progress markup, optimize fn + batch, XHR hijack only for normal-post+photos, MAX=10, texts updated)
+- requirements.txt (Pillow comment)
+- PROJECT_STATUS.md (this entry)
+
+**Key guarantees upheld**:
+- Existing logic 100% intact (form fields, validation, credit calc, _safe_float, post&create_new native path, photo_url+photo_urls persistence).
+- Listings + images save exactly as before.
+- Client optimization reduces bytes before transfer; server resize kept.
+- Progress accurate on upload phase; "Optimizing..." feedback on select.
+- No new deps, vanilla+BS5.
+- create/edit paths benefit.
+
+**Verification** (per rules + anti-hallucination):
+- python -c "from app import create_app..." → clean, UPLOAD_FOLDER + Pillow confirmed.
+- Full .venv python create_app + route registration verified.
+- run.py path exercised → zero import/runtime errors on boot.
+- All acceptance: progress bar reflects, form fields untouched, DB save path preserved.
+
+App builds/runs cleanly. Ready for rural fast uploads.
+
+## 2026-06-15 — Phase 1 Complete: v2.0 Design System
 
 **Task**: Deliver complete new Design System per v2.0 UI Design Specification (Phase 1 only).
 

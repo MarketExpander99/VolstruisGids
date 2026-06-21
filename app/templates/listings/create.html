@@ -223,13 +223,13 @@
                         <!-- LEVEL 10 SPECTACULAR PHOTO UPLOAD & PREVIEW -->
                         <div class="mb-4">
                             <label class="form-label fw-bold d-flex align-items-center gap-2">
-                                <span>Photos (up to 6)</span>
+                                <span>Photos (up to 10)</span>
                                 <span class="badge bg-success text-white small">All photos completely free</span>
                             </label>
                             
                             <div class="photo-upload-info small text-muted mb-3">
-                                High-quality square photos look best in the Klein Karoo marketplace. 
-                                Drag &amp; drop multiple photos or click below. All photos are free (max 6). Your first photo becomes the main image.
+                                Client-side optimized (max 1200px wide, JPEG ~85% quality) for fast uploads on rural connections. 
+                                Drag &amp; drop multiple photos or click below. All photos are free (max 10). Your first photo becomes the main image.
                             </div>
 
                             <!-- Premium Drag & Drop Zone -->
@@ -239,8 +239,8 @@
                                 <div class="py-2">
                                     <i class="bi bi-images display-5 text-warning mb-2 d-block" style="opacity: 0.85;"></i>
                                     <p class="mb-1 fw-semibold" style="color: #2C3E50;">Drop your photos here</p>
-                                    <p class="small text-muted mb-2">or click to browse (JPEG, PNG • max 6 total)</p>
-                                    <small class="text-muted">Photos are automatically resized to beautiful 800×800 squares with warm background.</small>
+                                    <p class="small text-muted mb-2">or click to browse (JPEG, PNG • max 10 total)</p>
+                                    <small class="text-muted">Client optimized to max 1200px • server makes 800px square preview for display.</small>
                                 </div>
                             </div>
 
@@ -282,8 +282,21 @@
                             <!-- Live photo cost & limit note -->
                             <div id="photo-cost-note" class="small mt-2 text-muted d-none"></div>
 
-                            <!-- Upload progress removed (native form submit is now used for reliability).
-                                 Photos are uploaded normally as part of the POST. -->
+                            <!-- Real-time upload progress (client-optimized + XHR for rural UX) -->
+                            <div id="upload-progress" class="mt-3 d-none">
+                                <div class="d-flex justify-content-between align-items-center small mb-1">
+                                    <span id="upload-status-text" class="text-muted">Optimizing...</span>
+                                    <span id="upload-percent" class="fw-semibold">0%</span>
+                                </div>
+                                <div class="progress" style="height: 10px; background-color: #f0e6d2;">
+                                    <div id="progress-bar"
+                                         class="progress-bar progress-bar-striped progress-bar-animated"
+                                         role="progressbar"
+                                         style="width: 0%; background-color: #E6B800;"
+                                         aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                            <div id="optimize-status" class="small text-muted mt-1 d-none"></div>
                         </div>
 
                         <!-- Submit Buttons -->
@@ -322,8 +335,9 @@
 </div>
 
 <script>
-    // Native form submission is now used for reliability (redirects + flashes work correctly).
-    // The complex XHR hijack was removed because it caused "save appears to do nothing" due to fragile responseURL handling.
+    // Form handling: native submit for "Post & Create New" (to keep exact prefill logic).
+    // For normal Post + photos: use XHR + real-time progress after client-side optimization.
+    // Client optimization (max 1200px, JPEG 0.85) happens on file selection for all paths.
 
     const form = document.getElementById('create-form');
     const submitButtons = form ? form.querySelectorAll('button[type="submit"]') : [];
@@ -338,17 +352,99 @@
         });
     });
 
-    // Clean any formatted prices (###,###.00 → 1234.00) so WTForms FloatField accepts them.
-    // Do NOT disable buttons here — it can prevent the clicked button's value from being submitted.
+    // ========== PROGRESS + XHR HANDLER (photos only, normal post) ==========
+    // create_new path uses native submit to preserve exact existing prefill + render logic (zero breakage).
+    const progressContainer = document.getElementById('upload-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercent = document.getElementById('upload-percent');
+    const statusText = document.getElementById('upload-status-text');
+
+    function setProgress(percent, statusMsg) {
+        if (progressBar) progressBar.style.width = percent + '%';
+        if (progressPercent) progressPercent.textContent = percent + '%';
+        if (statusText && statusMsg) statusText.textContent = statusMsg;
+    }
+
+    function resetProgress() {
+        if (progressContainer) progressContainer.classList.add('d-none');
+        if (progressBar) progressBar.style.width = '0%';
+        if (progressPercent) progressPercent.textContent = '0%';
+        if (statusText) statusText.textContent = 'Optimizing...';
+    }
+
     if (form) {
-        form.addEventListener('submit', function() {
+        form.addEventListener('submit', async function (e) {
+            // Always clean price fields for WTForms
             ['price', 'min_price', 'max_price'].forEach(function(id) {
                 const el = document.getElementById(id);
                 if (el && el.value) {
-                    // Strip everything except digits and dot
                     el.value = el.value.replace(/[^0-9.]/g, '');
                 }
             });
+
+            const hasFiles = photoInput && photoInput.files && photoInput.files.length > 0;
+            const action = (actionField && actionField.value) || 'post';
+
+            // Only hijack for progress when we have photos AND this is a normal post (not create_new)
+            if (!hasFiles || action === 'create_new') {
+                // Native submit: optimization already applied to files at selection time
+                return;
+            }
+
+            e.preventDefault();
+
+            // Disable submit buttons during process
+            submitButtons.forEach(b => b.disabled = true);
+
+            // Show progress UI
+            if (progressContainer) progressContainer.classList.remove('d-none');
+            setProgress(1, 'Optimizing...');
+
+            // Double-check optimization complete (selectedFiles already processed on add)
+            // Build fresh FormData from the (already optimized) form state + files
+            const formData = new FormData(form);
+
+            const xhr = new XMLHttpRequest();
+            const actionUrl = form.getAttribute('action') || window.location.href;
+
+            xhr.open('POST', actionUrl, true);
+
+            xhr.upload.onprogress = function (evt) {
+                if (evt.lengthComputable) {
+                    const pct = Math.max(5, Math.round((evt.loaded / evt.total) * 100));
+                    setProgress(pct, 'Uploading ' + pct + '%');
+                }
+            };
+
+            xhr.onload = function () {
+                submitButtons.forEach(b => b.disabled = false);
+
+                if (xhr.status === 200 || xhr.status === 302) {
+                    setProgress(100, 'Complete');
+                    // Navigate to final location (server redirect sets flash; responseURL works after follow)
+                    const finalUrl = xhr.responseURL || '';
+                    if (finalUrl && !finalUrl.includes('/create')) {
+                        window.location.href = finalUrl;
+                    } else {
+                        // Fallback for my_listings success path
+                        window.location.href = '/my-listings';
+                    }
+                } else {
+                    // Surface error without breaking page
+                    setProgress(0, 'Upload error');
+                    alert('Upload failed. Please try again or reduce file sizes.');
+                    resetProgress();
+                }
+            };
+
+            xhr.onerror = function () {
+                submitButtons.forEach(b => b.disabled = false);
+                setProgress(0, 'Network error');
+                alert('Network error during upload. Check your connection and try again.');
+                resetProgress();
+            };
+
+            xhr.send(formData);
         });
     }
 
@@ -359,7 +455,7 @@
     const costNote = document.getElementById('photo-cost-note');
     let selectedFiles = [];
 
-    const MAX_PHOTOS = 6;
+    const MAX_PHOTOS = 10;
 
     function updatePhotoCostNote() {
         if (!costNote) return;
@@ -465,15 +561,75 @@
         if (photoInput) photoInput.files = dataTransfer.files;
     }
 
+    // ========== CLIENT-SIDE OPTIMIZATION (1200px max width, JPEG 0.85) ==========
+    // Reduces payload for slow rural connections while preserving good visual quality.
+    async function optimizeImage(file, maxWidth = 1200, quality = 0.85) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                const img = new Image();
+                img.onload = function () {
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxWidth) {
+                        h = Math.round(h * (maxWidth / w));
+                        w = maxWidth;
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d', { alpha: false });
+                    ctx.fillStyle = '#faf4eb';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob(function (blob) {
+                        if (blob) {
+                            // Force .jpg extension for consistency + size
+                            const safeName = (file.name || 'photo.jpg').replace(/\.[^.]+$/, '') + '.jpg';
+                            const optFile = new File([blob], safeName, { type: 'image/jpeg' });
+                            resolve(optFile);
+                        } else {
+                            resolve(file); // fallback to original
+                        }
+                    }, 'image/jpeg', quality);
+                };
+                img.onerror = function () { resolve(file); };
+                img.src = ev.target.result;
+            };
+            reader.onerror = function () { resolve(file); };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function optimizeFiles(files) {
+        const out = [];
+        const statusEl = document.getElementById('optimize-status');
+        for (let i = 0; i < files.length; i++) {
+            if (statusEl) {
+                statusEl.textContent = `Optimizing image ${i + 1} of ${files.length}...`;
+                statusEl.classList.remove('d-none');
+            }
+            const opt = await optimizeImage(files[i]);
+            out.push(opt);
+        }
+        if (statusEl) {
+            statusEl.textContent = 'Optimization complete. Ready to upload.';
+            setTimeout(() => { if (statusEl) statusEl.classList.add('d-none'); }, 1200);
+        }
+        return out;
+    }
+
     // Wire the native input (for click on label or fallback)
     if (photoInput && previewContainer) {
-        photoInput.addEventListener('change', function(e) {
+        photoInput.addEventListener('change', async function(e) {
             const newFiles = Array.from(e.target.files || []);
-            const combined = [...selectedFiles, ...newFiles];
-            selectedFiles = combined.slice(0, MAX_PHOTOS);
-            if (combined.length > MAX_PHOTOS) {
+            const combinedRaw = [...selectedFiles, ...newFiles];
+            const limited = combinedRaw.slice(0, MAX_PHOTOS);
+            if (combinedRaw.length > MAX_PHOTOS) {
                 alert(`Maximum ${MAX_PHOTOS} photos allowed. Extra files were ignored.`);
             }
+            // Optimize for smaller faster uploads
+            selectedFiles = await optimizeFiles(limited);
             updateFileInput();
             renderPreviews();
         });
@@ -499,7 +655,7 @@
             });
         });
 
-        dropzone.addEventListener('drop', (e) => {
+        dropzone.addEventListener('drop', async (e) => {
             e.preventDefault();
             dropzone.style.background = '#FFF9E6';
             dropzone.style.borderColor = '#E6B800';
@@ -510,11 +666,12 @@
                 alert('Please drop image files only (JPEG or PNG).');
                 return;
             }
-            const combined = [...selectedFiles, ...imageFiles];
-            selectedFiles = combined.slice(0, MAX_PHOTOS);
-            if (combined.length > MAX_PHOTOS) {
+            const combinedRaw = [...selectedFiles, ...imageFiles];
+            const limited = combinedRaw.slice(0, MAX_PHOTOS);
+            if (combinedRaw.length > MAX_PHOTOS) {
                 alert(`Maximum ${MAX_PHOTOS} photos. Extra images were not added.`);
             }
+            selectedFiles = await optimizeFiles(limited);
             updateFileInput();
             renderPreviews();
         });

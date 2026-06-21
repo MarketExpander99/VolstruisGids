@@ -80,5 +80,9 @@ class Config:
     # === Admin Panel (environment controlled, no DB column) ===
     ADMIN_USERNAMES = os.environ.get('ADMIN_USERNAMES', '')
 
+    # Upload settings for listings (client-optimized images + progress)
+    UPLOAD_FOLDER = os.path.join('app', 'static', 'uploads')
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB total request limit
+
 # After class definition, we can add debug when module loads, but better in create_app
 # The debug will be printed in create_app below.
