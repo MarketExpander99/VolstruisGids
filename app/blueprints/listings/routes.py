@@ -988,6 +988,27 @@ def detail(listing_id):
     if len(meta_description) > 158:
         meta_description = meta_description[:155].rsplit(' ', 1)[0] + "..."
 
+    # === Dynamic keywords meta (SEO polish for per-listing relevance) ===
+    # Builds a targeted, deduplicated list: title + location + post_type + core site terms
+    kw_parts = [listing.title, listing.location]
+    if listing.post_type:
+        kw_parts.append(listing.post_type)
+    kw_parts.extend(['Klein Karoo', 'VolstruisGids', 'local classifieds'])
+
+    if listing.post_type in ('services', 'service'):
+        kw_parts.append('services')
+
+    # Deduplicate while preserving order (case-insensitive)
+    seen = set()
+    unique_kw = []
+    for p in kw_parts:
+        p_clean = p.strip().lower()
+        if p_clean and p_clean not in seen:
+            seen.add(p_clean)
+            unique_kw.append(p)
+
+    meta_keywords = ', '.join(unique_kw) + ', buy sell local, Western Cape ads, free listings'
+
     # Absolute URLs for images (OG + schema)
     def _abs_url(p):
         if not p:
@@ -1126,6 +1147,7 @@ def detail(listing_id):
                            message_form=message_form,
                            page_title=page_title,
                            meta_description=meta_description,
+                           meta_keywords=meta_keywords,          # NEW
                            structured_data=structured_data,
                            og_image_url=og_image_url)
 

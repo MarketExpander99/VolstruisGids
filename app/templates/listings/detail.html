@@ -4,6 +4,7 @@
 
 {# Override base meta blocks for per-listing SEO (no duplicates, server-rendered) #}
 {% block meta_description %}{{ meta_description }}{% endblock %}
+{% block meta_keywords %}{{ meta_keywords }}{% endblock %}
 
 {% block og_title %}{{ page_title }}{% endblock %}
 {% block og_description %}{{ meta_description }}{% endblock %}
@@ -62,13 +63,6 @@
         </div>
 
         <div class="row g-4 g-lg-5">
-            <!-- Free Grok chat quota callout (spec 2.1) -->
-            <div class="col-12">
-                <div class="d-flex align-items-center justify-content-center gap-2 mb-2 p-2 rounded-pill" style="background:#FFF8E7; border:1px solid #E6B800; max-width: 420px; margin: 0 auto;">
-                    <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" alt="Grok" height="18">
-                    <small class="text-muted fw-semibold">2 free questions daily with Grok on this listing • completely free Polish elsewhere</small>
-                </div>
-            </div>
             <!-- ELEVATED PHOTO GALLERY (v2.0) -->
             <div class="col-lg-7">
                 <div class="listing-detail-hero position-relative rounded-4 overflow-hidden shadow-sm post-type-{{ pt }} {{ 'business-listing' if is_business else '' }} {{ 'boosted' if is_promoted else '' }}">
