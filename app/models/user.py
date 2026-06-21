@@ -271,5 +271,39 @@ class User(UserMixin, db.Model):
         usage.total_ai_calls = (usage.total_ai_calls or 0) + 1
         _db.session.commit()
 
+    def sync_share_reward_counter(self):
+        """Recompute shares_rewarded_today + last_share_reward_date from actual tx log.
+        Safe to call often. Makes the denorm fields match reality (used for display).
+        The cap enforcement itself now uses the tx count directly.
+        """
+        from app import db as _db
+        from app.models.credit_transaction import CreditTransaction
+        from datetime import datetime as dt
+
+        try:
+            sast_today = self.get_sast_today()
+            start = dt.combine(sast_today, dt.min.time())
+
+            count = CreditTransaction.query.filter(
+                CreditTransaction.user_id == self.id,
+                CreditTransaction.transaction_type == 'share_reward',
+                CreditTransaction.created_at >= start
+            ).count()
+
+            changed = False
+            if self.shares_rewarded_today != count:
+                self.shares_rewarded_today = count
+                changed = True
+            if self.last_share_reward_date != sast_today:
+                self.last_share_reward_date = sast_today
+                changed = True
+
+            if changed:
+                _db.session.commit()
+            return count
+        except Exception:
+            _db.session.rollback()
+            return self.shares_rewarded_today or 0
+
     def __repr__(self):
         return f'<User {self.username}>'

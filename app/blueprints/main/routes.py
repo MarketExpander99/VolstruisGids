@@ -138,7 +138,22 @@ def get_total_site_views():
 def index():
     # Record a visit (increments this month's counter + lifetime)
     monthly_views = record_site_view()
-    return render_template('main/index.html', monthly_views=monthly_views)
+
+    # Credits for homepage top section (spec: pass explicit value; None for anonymous)
+    user_credits = None
+    if current_user.is_authenticated:
+        if current_user.has_active_unlimited_pass():
+            user_credits = 'unlimited'
+        else:
+            bal = current_user.credits
+            if bal is None:
+                bal = current_user.credit_balance
+            try:
+                user_credits = float(bal) if bal is not None else 0.0
+            except (TypeError, ValueError):
+                user_credits = 0.0
+
+    return render_template('main/index.html', monthly_views=monthly_views, user_credits=user_credits)
 
 
 @main_bp.route('/api/listings')

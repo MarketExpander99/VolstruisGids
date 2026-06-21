@@ -795,15 +795,14 @@ def repost_listing(listing_id):
 
 
 # ============================================================
-# Share-to-Earn (Share Buttons with Credit Rewards spec 2026-06-21)
-# +0.5 credits per share (WA/FB/X). Daily cap 2 credits = max 4 shares/day.
-# SAST midnight reset (reuse get_sast_today). Per-listing dedup to prevent rapid spam.
-# Supports JS fetch (returns JSON) + legacy redirects. Only for authenticated.
+# Share-to-Earn (Share Buttons with Credit Rewards)
+# +0.5 credits per share (WA/FB/X). Daily cap 3 credits = max 6 shares/day (SAST midnight reset).
+# Per-listing dedup to prevent rapid spam. Supports AJAX JSON + legacy.
 # ============================================================
 @listings_bp.route('/listing/<int:listing_id>/share', methods=['POST'])
 @login_required
 def share_listing(listing_id):
-    # Robust AJAX detection — works from index, my_listings, storefront etc.
+    # Robust AJAX detection
     accept = (request.headers.get('Accept') or '').lower()
     is_ajax = bool(
         request.headers.get('HX-Request') or
@@ -812,61 +811,99 @@ def share_listing(listing_id):
         request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     )
 
-    today = current_user.get_sast_today() if hasattr(current_user, 'get_sast_today') else date.today()
+    SHARE_REWARD = Decimal('0.5')
+    DAILY_CAP = Decimal('3.0')
+    MAX_SHARES = 6
 
-    # Reset if new SAST day
-    if current_user.last_share_reward_date != today:
-        current_user.last_share_reward_date = today
-        current_user.shares_rewarded_today = 0
+    today = current_user.get_sast_today() if hasattr(current_user, 'get_sast_today') else date.today()
+    start_of_today = datetime.combine(today, datetime.min.time())
+
+    # Compute authoritative daily share count DIRECTLY from the transaction log.
+    # This is robust: 6 shares = 6 'share_reward' tx rows today (resets naturally at midnight SAST
+    # because we filter by created_at >= start_of_today). No reliance on the denorm counter for decisions.
+    # The user.shares_rewarded_today / last_share... are still updated for compatibility/display but
+    # the cap/earned use the real tx history so counters can't get out of sync or block early.
+    shares_today = CreditTransaction.query.filter(
+        CreditTransaction.user_id == current_user.id,
+        CreditTransaction.transaction_type == 'share_reward',
+        CreditTransaction.created_at >= start_of_today
+    ).count()
 
     current_balance = float(current_user.credits or 0)
 
-    # Daily cap (4 shares = 2 credits)
-    if (current_user.shares_rewarded_today or 0) >= 4:
-        msg = "Daily share limit reached (2 credits max). Thanks for spreading the word in the Karoo!"
+    # Daily cap check (based on actual rewards recorded today)
+    if shares_today >= MAX_SHARES:
+        msg = "Daily share limit reached (3 credits max). Thanks for spreading the word in the Karoo!"
         if is_ajax:
-            return jsonify({'success': False, 'awarded': 0, 'message': msg, 'limit_reached': True, 'new_balance': current_balance, 'shares_today': current_user.shares_rewarded_today or 0})
+            earned_today = float(DAILY_CAP)
+            return jsonify({
+                'success': False, 'awarded': 0, 'message': msg,
+                'limit_reached': True, 'new_balance': current_balance,
+                'shares_today': shares_today,
+                'earned_today': earned_today, 'cap': float(DAILY_CAP), 'reached_cap': True
+            })
         flash(msg, "info")
         return redirect(request.referrer or url_for('main.my_listings'))
 
-    # Per-listing dedup for today
+    # Per-listing dedup for today (still uses tx log)
     already = CreditTransaction.query.filter(
         CreditTransaction.user_id == current_user.id,
         CreditTransaction.transaction_type == 'share_reward',
         CreditTransaction.reference == f'share_listing_{listing_id}',
-        CreditTransaction.created_at >= datetime.combine(today, datetime.min.time())
+        CreditTransaction.created_at >= start_of_today
     ).first()
 
     if already:
         msg = "You've already earned credit for sharing this listing today."
         if is_ajax:
-            return jsonify({'success': True, 'awarded': 0, 'message': msg, 'duplicate': True, 'new_balance': current_balance, 'shares_today': current_user.shares_rewarded_today or 0})
+            earned_today = min(float(DAILY_CAP), float(shares_today * 0.5))
+            return jsonify({
+                'success': True, 'awarded': 0, 'message': msg, 'duplicate': True,
+                'new_balance': current_balance, 'shares_today': shares_today,
+                'earned_today': earned_today, 'cap': float(DAILY_CAP), 'reached_cap': earned_today >= float(DAILY_CAP)
+            })
         flash(msg, "info")
         return redirect(request.referrer or url_for('main.index'))
 
-    # Award
+    # Award the credit
     try:
-        current_user.credits = (current_user.credits or Decimal('0')) + Decimal('0.5')
-        current_user.shares_rewarded_today = (current_user.shares_rewarded_today or 0) + 1
+        current_user.credits = (current_user.credits or Decimal('0')) + SHARE_REWARD
+
+        # Update denorm counter from authoritative count (for any other UI that reads the user column)
+        new_shares_count = shares_today + 1
+        current_user.shares_rewarded_today = new_shares_count
+        current_user.last_share_reward_date = today
 
         db.session.add(CreditTransaction(
             user_id=current_user.id,
-            amount=Decimal('0.5'),
+            amount=SHARE_REWARD,
             transaction_type='share_reward',
             reference=f'share_listing_{listing_id}'
         ))
         db.session.commit()
 
-        remaining = max(0, 4 - current_user.shares_rewarded_today)
-        msg = f"You've earned 0.5 credits for sharing! ({remaining} shares left today)"
+        earned_today = float(new_shares_count * 0.5)
+        reached_cap = earned_today >= float(DAILY_CAP)
+
+        if reached_cap:
+            cap_str = f"{float(DAILY_CAP):g}"
+            msg = f"You have earned {cap_str}/{cap_str} credits for today! You will be eligible to earn credits again after midnight."
+        else:
+            # e.g. "Congrats you have earned 0.5 of 3 credits today"
+            earned_str = f"{earned_today:g}"
+            cap_str = f"{float(DAILY_CAP):g}"
+            msg = f"Congrats you have earned {earned_str} of {cap_str} credits today"
 
         if is_ajax:
             return jsonify({
                 'success': True,
-                'awarded': 0.5,
+                'awarded': float(SHARE_REWARD),
                 'message': msg,
                 'new_balance': float(current_user.credits or 0),
-                'shares_today': current_user.shares_rewarded_today
+                'shares_today': new_shares_count,
+                'earned_today': earned_today,
+                'cap': float(DAILY_CAP),
+                'reached_cap': reached_cap
             })
 
         flash(msg, "success")

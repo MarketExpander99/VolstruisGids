@@ -2,6 +2,21 @@
 
 {% block content %}
 <div class="container mt-4">
+    <!-- CREDITS BANNER (moved from nav per spec) - small elegant top section, visible + actionable -->
+    {% if user_credits is not none %}
+    <div class="credits-banner d-flex flex-wrap align-items-center justify-content-between gap-2 gap-md-3 mb-3 px-3 py-2 rounded-3 shadow-sm">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-coin fs-5 credits-coin"></i>
+            <span class="fw-semibold small">{% if user_credits == 'unlimited' %}Unlimited Credits Available{% else %}{% set bal = (user_credits | float) %}{% if bal == bal | int %}{{ bal | int }}{% else %}{{ bal | round(1) }}{% endif %} Credits Available{% endif %}</span>
+        </div>
+        {% if user_credits == 0 or user_credits == 0.0 %}
+        <a href="{{ url_for('payments.buy_credits') }}" class="btn btn-sm btn-accent px-3 py-1 fw-semibold credits-buy-btn">
+            Buy Credits
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- HERO BANNER - Level 10 warm premium -->
     <div id="hero-banner" class="hero-bg position-relative overflow-hidden rounded-4 mb-4 mb-md-5 text-white text-center shadow-sm">
         <picture class="position-absolute top-0 start-0 w-100 h-100 m-0" style="z-index: 0;">

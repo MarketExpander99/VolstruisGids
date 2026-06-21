@@ -1027,6 +1027,68 @@ python -c "from app import create_app; app = create_app(); print('OK')"
 - python -c "from app import create_app; ..." → ZERO ERRORS
 - Full structure + route registration confirmed.
 
+## 2026-06-21 — Move Credits Available to Homepage Top Section
+
+**Spec**: Relocate "Credits Available" display from navigation to prominent but subtle banner at top of homepage (index). Button "Buy Credits" appears ONLY when balance==0. Strict v2.0 warm Klein Karoo. Minimal high-impact change. Server-rendered.
+
+**Files modified** (full scan + analysis performed first):
+- app/blueprints/main/routes.py (index route now passes explicit `user_credits=None | float | 'unlimited'`)
+- app/templates/main/index.html (new `.credits-banner` inserted immediately after container open, above hero; conditional rendering + Buy link)
+- app/templates/base.html (exact removal of the balance display `<li>` block containing coin + strong/Unlimited; Buy Credits action link preserved for global access)
+- app/static/css/custom.css (tiny targeted addition: `.credits-banner` + coin + btn overrides using only existing --tokens, cream bg, clean spacing)
+- PROJECT_STATUS.md (this entry)
+- test_credits_banner.py (temporary verification helper — not part of deliverable)
+
+**Plan followed (max 5 steps)**:
+1. Update backend index to pass credits data (graceful anon + unlimited support).
+2. Remove credits display from navbar.
+3. Insert elegant top homepage section in index.html (balance + button only on zero).
+4. Add minimal reusable CSS (no inline styles in final templates).
+5. Verify + document.
+
+**Implementation details**:
+- "12.5 Credits Available" (or whole numbers) or "Unlimited Credits Available".
+- Button uses existing `.btn-accent` (gold) + custom size overrides inside banner.
+- Link correctly resolves to `payments.buy_credits`.
+- 100% respects `has_active_unlimited_pass()`.
+- Mobile: flex-wrap, good tap targets.
+- No other pages, no model, no JS, no buy_credits flow changes.
+- updateCreditDisplays() left untouched (still services profile + other live spots).
+
+**Verification** (exact workflow):
+- `pip install -r requirements.txt` (Pillow pre-existing build note on py3.14 win — non-blocking, app runs).
+- `python -c "from app import create_app; app=create_app()"` → **ZERO ERRORS**. All blueprints + index route healthy.
+- Dedicated render tests (`test_credits_banner.py`): 
+  - Anon → no banner
+  - credits=0 → "0 Credits Available" + Buy button
+  - credits=12.5 → "12.5 Credits Available" only (no button)
+  - unlimited → "Unlimited..." (no button)
+- Nav display removed (confirmed no coin balance markup left).
+- Template renders cleanly in test_request_context + real route.
+
+**Acceptance Criteria met**:
+- Credits section at top of homepage (above hero).
+- Accurate balance shown.
+- Buy button **only** when balance == 0.
+- Visual cohesion with v2.0 (earthy cream + gold + tokens + Bootstrap patterns).
+- Credits display removed from navigation menu.
+- Excellent mobile.
+- No breakage to hero/filters/feed/other homepage features.
+- Passed all verification + manual logic tests.
+
+**Task COMPLETE — here is what you should test:**
+- Visit `/` while logged in with positive credits (e.g. 5 or more): small elegant banner near top reads "X Credits Available". No button.
+- With a user at exactly 0 credits: banner + prominent "Buy Credits" gold button. Clicking goes to /payments/buy-credits.
+- Unlimited pass user: "Unlimited Credits Available".
+- Logged-out: no banner appears.
+- Check nav: balance display gone; only clean "Buy Credits" remains.
+- Responsive on mobile (wraps nicely).
+- All other homepage functionality untouched.
+
+Build guarantee passed. Clean, minimal, high-leverage change delivered per spec.
+
+## (end of 2026-06-21 credits-to-homepage entry)
+
 **Task COMPLETE — here is what you should test:**
 1. Set ADMIN_USERNAMES=yourusername (or any existing user) in .env
 2. Restart app
