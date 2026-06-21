@@ -24,10 +24,31 @@
                         <h3 class="mb-0 fw-bold">{{ business_user.business_name or business_user.username }}</h3>
                         <span class="badge business-badge px-2 py-1" style="font-size: 0.7rem;">BUSINESS</span>
                     </div>
-                    <div class="text-muted small mt-1">Verified Business • Klein Karoo</div>
+                    <div class="text-muted small mt-1">{{ 'Verified ' if business_user.business_verified else '' }}Business • Klein Karoo</div>
                     {% if business_user.bio %}
                         <div class="mt-2 small" style="max-width: 620px;">{{ business_user.bio }}</div>
                     {% endif %}
+
+                    {% set wa_phone = business_user.business_phone or business_user.phone %}
+                    {% if wa_phone or business_user.email %}
+                    <div class="mt-2 d-flex flex-wrap gap-2">
+                        {% if wa_phone %}
+                            {% set clean = (wa_phone | string).replace(' ', '').replace('-','').replace('(','').replace(')','') %}
+                            {% if not clean.startswith('+') %}{% set clean = '+27' + clean.lstrip('0') %}{% endif %}
+                            <a href="https://wa.me/{{ clean | replace('+','') }}" target="_blank"
+                               class="btn btn-sm btn-success d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill" style="font-size:0.85rem;">
+                                <i class="bi bi-whatsapp"></i> WhatsApp
+                            </a>
+                        {% endif %}
+                        {% if business_user.email %}
+                            <a href="mailto:{{ business_user.email }}" 
+                               class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill" style="font-size:0.85rem;">
+                                <i class="bi bi-envelope"></i> Email
+                            </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
                     <div class="mt-2">
                         <a href="{{ url_for('main.index') }}" class="small text-muted text-decoration-none">← Back to all listings</a>
                     </div>

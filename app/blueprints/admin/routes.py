@@ -158,6 +158,15 @@ def user_edit(user_id):
                 db.session.rollback()
                 flash(f'Credit adjustment failed: {e}', 'danger')
 
+        # === 4. Business verification toggle (new Directory feature) ===
+        elif request.form.get('action') == 'toggle_business_verify':
+            user.business_verified = not bool(user.business_verified)
+            db.session.commit()
+            status = 'VERIFIED' if user.business_verified else 'un-verified'
+            log_admin_action('toggle_business_verify', 'user', user.id, f"set={status}")
+            flash(f'Business account marked as {status}.', 'success')
+            return redirect(url_for('admin.user_edit', user_id=user.id))
+
     # Fresh credit balance for display
     current_credits = user.credits
 

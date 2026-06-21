@@ -53,7 +53,7 @@
                     <div class="p-4 h-100 rounded-4 shadow-sm text-center" style="background:#fff; border:1px solid #E8DFD3;">
                         <i class="bi bi-shop fs-3 mb-2 d-block" style="color:#4A7043;"></i>
                         <div class="fw-bold small mb-1">Focus</div>
-                        <div class="small text-muted">Local classifieds, services &amp; micro-business storefronts for the ostrich region</div>
+                        <div class="small text-muted">Local classifieds, services, storefronts &amp; Business Directory for the ostrich region</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
@@ -112,18 +112,18 @@
                                 Read Full Article
                             </button>
 
-                            <a href="{{ release.pdf_url }}" 
+                            <a href="{{ url_for('main.press_print', release_id=release.id) }}" 
                                class="btn btn-outline-primary"
                                target="_blank"
-                               rel="noopener"
-                               onclick="handlePdfDownload(this, event, '{{ release.id }}')">
+                               rel="noopener">
                                 <i class="bi bi-download me-1"></i>
                                 Download PDF
                             </a>
                         </div>
 
                         <div class="mt-3 small text-muted">
-                            Issued by: {{ release.author }}
+                            Issued by: {{ release.author }} &nbsp;·&nbsp; 
+                            <span class="text-muted">Uses clean print layout (no cutoffs)</span>
                         </div>
                     </div>
                 </div>
@@ -150,9 +150,11 @@
                                 </div>
                             </div>
                             <div class="modal-footer" style="background:#FAF6F0; border-top:1px solid #E8DFD3;">
-                                <button type="button" class="btn btn-outline-primary" onclick="printRelease('{{ release.id }}')">
-                                    <i class="bi bi-printer me-1"></i> Print / Save as PDF
-                                </button>
+                                <a href="{{ url_for('main.press_print', release_id=release.id) }}" 
+                                   target="_blank"
+                                   class="btn btn-outline-primary">
+                                    <i class="bi bi-download me-1"></i> Print / Save as PDF
+                                </a>
                                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
                             </div>
                         </div>
@@ -278,60 +280,6 @@
 </style>
 
 <script>
-function printRelease(releaseId) {
-    const modalEl = document.getElementById('releaseModal-' + releaseId);
-    if (!modalEl) return;
-    
-    // Trigger browser print (user can choose "Save as PDF")
-    // The @media print CSS above hides nav/footer etc. inside the modal
-    setTimeout(() => {
-        window.print();
-    }, 120);
-}
-
-// Graceful handling for PDF button while we don't have real PDFs yet
-function handlePdfDownload(linkEl, event, releaseId) {
-    // If the PDF file does not exist yet, intercept and guide user to the excellent print flow
-    // This keeps the button "working" and professional
-    const pdfPath = linkEl.getAttribute('href');
-    
-    // We try a quick HEAD to see if it exists. On failure we show nice guidance.
-    fetch(pdfPath, { method: 'HEAD' })
-        .then(res => {
-            if (!res.ok) {
-                event.preventDefault();
-                showPdfGuidance(releaseId);
-            }
-            // If it succeeds (future), let the browser download normally
-        })
-        .catch(() => {
-            event.preventDefault();
-            showPdfGuidance(releaseId);
-        });
-}
-
-function showPdfGuidance(releaseId) {
-    // Open the modal first so user sees the full text
-    const modal = new bootstrap.Modal(document.getElementById('releaseModal-' + releaseId));
-    modal.show();
-
-    // After modal opens, show a friendly toast / hint
-    setTimeout(() => {
-        const toast = document.createElement('div');
-        toast.className = 'position-fixed bottom-0 start-50 translate-middle-x mb-4 px-4 py-2 rounded-pill shadow';
-        toast.style.cssText = 'background:#2C2522;color:#fff;font-size:0.9rem;z-index:99999;';
-        toast.innerHTML = `
-            <div class="d-flex align-items-center gap-2">
-                <span>Official PDF coming soon. Use <strong>Print / Save as PDF</strong> above for now.</span>
-            </div>
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.transition = 'opacity .3s';
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 200);
-        }, 4200);
-    }, 900);
-}
+// No extra JS needed — Download PDF now links to a dedicated clean print view.
 </script>
 {% endblock %}

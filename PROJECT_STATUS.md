@@ -1748,6 +1748,32 @@ All changes minimal, production-ready, and follow the Analyse → Plan (≤5) �
 
 **Next suggested (low effort):** When real PDF is ready, drop vol-2026-001.pdf into `app/static/press/` and the download button will serve it automatically. Add more releases to the list as needed.
 
-Task complete. Build guarantee passed. Followed all rules.
+---
+
+### 2026-06-21 — PDF Download Refinement (follow-up)
+
+After initial press page delivery, refined the PDF/download experience:
+
+- Replaced fragile modal + basic `window.print()` flow with a **dedicated clean `/press/print/<id>` route + standalone template**.
+- New `press_print.html` is a purpose-built, professional press release document:
+  - Beautiful formal header (logo + OFFICIAL PRESS RELEASE badge + date)
+  - Large readable title
+  - Full body content in excellent typography
+  - Proper document footer with contact
+- Strong print CSS:
+  - `@page { size: A4; margin: 1.8cm 2.2cm }`
+  - `page-break-inside: avoid` on paragraphs, lists, headers, footer
+  - `orphans` / `widows` protection
+  - Clean linear flow — no overlapping, no mid-section cutoffs
+  - High contrast, generous line height, print-optimized font sizes
+- Main "Download PDF" buttons now directly open the clean printable view in a new tab.
+- Inside the "Read Full Article" modal, the Print button also links to the same clean view.
+- On-screen instruction bar tells the user exactly what to do.
+- Result: Reliable, clean, easy-to-read multi-page PDF when user chooses “Save as PDF”.
+
+Tested: Both `/press` and `/press/print/vol-2026-001` return 200 cleanly. 404 handled.
+
+Much better experience for journalists downloading the release.
+
 
 

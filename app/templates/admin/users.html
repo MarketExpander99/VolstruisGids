@@ -32,6 +32,7 @@
                 <td>
                     <strong>{{ u.username }}</strong>
                     {% if u.is_business_account %}<span class="badge bg-success ms-1">business</span>{% endif %}
+                    {% if u.business_verified %}<span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">verified</span>{% endif %}
                 </td>
                 <td class="small text-muted">
                     {{ u.email or '—' }}<br>

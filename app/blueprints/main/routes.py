@@ -314,6 +314,91 @@ def api_categories():
     ])
 
 
+# ============================================================
+# BUSINESS DIRECTORY API + VIEW (Business Directory + Homepage Toggle feature)
+# ============================================================
+@main_bp.route('/api/businesses')
+def api_businesses():
+    """Return business accounts for the directory view.
+    Supports search, town, and business category filters.
+    Only returns accounts that have upgraded to business.
+    Includes active (recent) listing count.
+    """
+    q = (request.args.get('q', '') or '').strip()
+    town = (request.args.get('town', '') or '').strip()
+    category = (request.args.get('category', '') or '').strip()  # maps to business_type
+    verified_only = request.args.get('verified_only', 'false').lower() == 'true'
+
+    query = User.query.filter(
+        db.or_(
+            User.is_business == True,
+            User.account_type == 'business'
+        )
+    )
+
+    if q:
+        like = f'%{q}%'
+        query = query.filter(
+            db.or_(
+                User.business_name.ilike(like),
+                User.username.ilike(like),
+                User.bio.ilike(like)
+            )
+        )
+
+    if town:
+        query = query.filter(User.location == town)
+
+    if category:
+        query = query.filter(User.business_type == category)
+
+    if verified_only:
+        query = query.filter(User.business_verified == True)
+
+    # Order: verified first, then by name
+    businesses = query.order_by(
+        User.business_verified.desc(),
+        User.business_name.asc().nullslast(),
+        User.username.asc()
+    ).limit(60).all()   # reasonable cap for MVP
+
+    results = []
+    for b in businesses:
+        # Count active listings (use same 7-day freshness as homepage for "active")
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+        active_count = Listing.query.filter(
+            Listing.user_id == b.id,
+            Listing.is_active == True,
+            freshness >= seven_days_ago
+        ).count()
+
+        # Prefer business_phone for WhatsApp, fall back to personal phone
+        wa_phone = getattr(b, 'business_phone', None) or getattr(b, 'phone', None)
+        contact_email = getattr(b, 'email', None)
+
+        results.append({
+            'id': b.id,
+            'username': (b.username or '').lstrip('@'),
+            'business_name': b.business_name or b.username,
+            'bio': (b.bio or '')[:140],
+            'location': b.location,
+            'profile_pic': b.profile_pic,
+            'business_type': b.business_type,
+            'business_verified': bool(getattr(b, 'business_verified', False)),
+            'active_listings': active_count,
+            'store_url': url_for('main.business_storefront', username=(b.username or '').lstrip('@')),
+            'is_business_account': True,
+            'wa_phone': wa_phone,
+            'email': contact_email
+        })
+
+    return jsonify({
+        'businesses': results,
+        'total': len(results)
+    })
+
+
 @main_bp.route('/my-listings')
 @login_required
 def my_listings():
@@ -365,6 +450,17 @@ def how_it_works():
 def press():
     """Official Press & Media hub. Easy to extend by updating press_releases.py"""
     return render_template('main/press.html', releases=PRESS_RELEASES)
+
+
+@main_bp.route('/press/print/<string:release_id>')
+def press_print(release_id):
+    """Clean, print-optimized standalone view for generating beautiful PDFs.
+    Open this page then use browser Print > Save as PDF.
+    """
+    release = next((r for r in PRESS_RELEASES if r.get('id') == release_id), None)
+    if not release:
+        abort(404)
+    return render_template('main/press_print.html', release=release)
 
 
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])
@@ -525,3 +621,57 @@ def business_storefront(username):
     return render_template('main/business_storefront.html',
                            business_user=user,
                            listings=active_listings)
+
+
+@main_bp.route('/directory')
+def directory():
+    """Full Business Directory page (SEO + direct access).
+    Also used as the content source for homepage toggle.
+    """
+    # Optional server-side initial filter params
+    q = request.args.get('q', '')
+    town = request.args.get('town', '')
+    category = request.args.get('category', '')
+
+    # Load a reasonable set server-side for non-JS fallback
+    businesses_query = User.query.filter(
+        db.or_(User.is_business == True, User.account_type == 'business')
+    ).order_by(
+        User.business_verified.desc(),
+        User.business_name.asc().nullslast()
+    ).limit(48)
+
+    if q:
+        like = f'%{q}%'
+        businesses_query = businesses_query.filter(
+            db.or_(
+                User.business_name.ilike(like),
+                User.username.ilike(like)
+            )
+        )
+    if town:
+        businesses_query = businesses_query.filter(User.location == town)
+    if category:
+        businesses_query = businesses_query.filter(User.business_type == category)
+
+    businesses = businesses_query.all()
+
+    # Pre-compute active counts (small N)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+
+    business_data = []
+    for b in businesses:
+        active_count = Listing.query.filter(
+            Listing.user_id == b.id,
+            Listing.is_active == True,
+            freshness >= seven_days_ago
+        ).count()
+        business_data.append({
+            'user': b,
+            'active_listings': active_count
+        })
+
+    return render_template('main/directory.html',
+                           businesses=business_data,
+                           q=q, town=town, category=category)

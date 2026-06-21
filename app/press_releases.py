@@ -24,7 +24,7 @@ PRESS_RELEASES = [
         "date": "2026-06-21",
         "display_date": "21 June 2026",
         "title": "Connecting Klein Karoo Micro-Economies: VolstruisGids Turns Local Economic Growth into a Real Possibility",
-        "summary": "VolstruisGids, a locally built marketplace for the Klein Karoo, launches to give permanent visibility to local classifieds, services and businesses — replacing fleeting WhatsApp group posts with searchable, trustworthy local commerce that helps micro-economies thrive.",
+        "summary": "VolstruisGids, a locally built marketplace for the Klein Karoo, launches to give permanent visibility to local classifieds, services and businesses — including professional storefronts and an automatic Business Directory for verified business accounts — replacing fleeting WhatsApp group posts with searchable, trustworthy local commerce.",
         "slug": "connecting-klein-karoo-micro-economies",
         "pdf_url": "/static/press/vol-2026-001.pdf",
         "author": "Eben",
@@ -35,17 +35,18 @@ PRESS_RELEASES = [
 
 <p>Residents and businesses across Oudtshoorn, Ladismith, Calitzdorp, De Rust and the surrounding farms have traditionally relied on fast-moving WhatsApp groups to buy, sell, offer services and find local opportunities. While these groups are vibrant, posts vanish quickly, there is no meaningful search, and reach is limited to whoever is in the group at that exact moment.</p>
 
-<p>VolstruisGids solves this by offering a clean, permanent, mobile-first marketplace built specifically for the Klein Karoo. Key features include:</p>
+<p>VolstruisGids solves this by offering a clean, permanent, mobile-first marketplace built specifically for the Klein Karoo, including a powerful new Business Directory for local businesses. Key features include:</p>
 
 <ul>
     <li><strong>Free personal classifieds</strong> — one active listing at a time for everyone, no cost to start</li>
-    <li><strong>Professional business storefronts</strong> — local businesses can present a branded presence with all their listings in one place</li>
+    <li><strong>Professional business storefronts</strong> — your own branded page with logo and listings</li>
+    <li><strong>Automatic Business Directory</strong> — business accounts are automatically featured in the public searchable directory for maximum local discovery</li>
     <li><strong>Searchable across the region</strong> — buyers in any town can discover relevant offers without being in the right WhatsApp group</li>
     <li><strong>Share-to-earn credits</strong> — community members earn credits by sharing listings, which can be used for promotions and visibility boosts</li>
     <li><strong>Private messaging</strong> — safe, in-app contact that protects personal details until the seller chooses to share them</li>
 </ul>
 
-<p>"VolstruisGids is not another generic classifieds site," said founder Eben. "It is practical infrastructure for keeping economic activity visible and local. When a farmer in Zoar can reliably find a buyer in Oudtshoorn, or a tradesperson in Ladismith gets discovered by someone in Calitzdorp, real local growth happens."</p>
+<p>"VolstruisGids is not another generic classifieds site," said founder Eben. "It is practical infrastructure for keeping economic activity visible and local — now including automatic listing in our Business Directory for every business account alongside professional storefronts. When a farmer in Zoar can reliably find a buyer in Oudtshoorn, or a tradesperson in Ladismith gets discovered by someone in Calitzdorp, real local growth happens."</p>
 
 <p>The platform is live today at VolstruisGids and optimised for both mobile use and search visibility. Every listing benefits from clean structure that helps Google surface local results over time.</p>
 
