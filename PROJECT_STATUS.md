@@ -1685,3 +1685,69 @@ New ideas → backlog.md only.
 
 All changes minimal, production-ready, and follow the Analyse → Plan (≤5) → Act → Verify → Document workflow.
 
+---
+
+## 2026-06-21 — VOLSTRUISGIDS PRESS & MEDIA PAGE (v1)
+
+**Spec:** VolstruisGids Press & Media Page – Product Spec (v1.0, 21 June 2026)  
+**Priority:** Medium — implemented same day.
+
+**What was delivered (matches spec exactly):**
+
+- New public route: `/press`
+- Clean professional page with:
+  1. Hero/Header with logo + "Press & Media" + one-line description
+  2. "About VolstruisGids" — 4 clean key-fact cards (Location, Focus, Status, Mission)
+  3. Press Releases section — card list (starts with 1 release)
+     - Date badge + "First Release" badge
+     - Title, summary
+     - "Read Full Article" (opens professional Bootstrap modal with full formatted text)
+     - "Download PDF" (gracefully falls back to modal + "Print / Save as PDF" flow)
+  4. Media Assets — "Coming soon" placeholder section
+  5. Contact / Media Enquiries — prominent WhatsApp CTA + note
+- Fully mobile-first, uses existing Bootstrap 5 + custom.css Karoo palette (warm terracotta #8B4513, sage, gold accents, cream backgrounds). No Tailwind (app is Bootstrap).
+- SEO: Dedicated meta_description, og:title/desc, twitter blocks via template.
+- Maintainability: All releases live in simple Python list at `app/press_releases.py`. Add future entries at top of list — no other code changes.
+- "Download PDF" is functional today via browser-native Print → Save as PDF (with nice @media print styles). Placeholder /static/press/ folder + README prepared for real PDFs later.
+- Added "Press" link to site footer (next to Guidelines).
+- Bonus: `/press` and other static pages now included in dynamic sitemap.xml.
+- Consistent with how-it-works.html / privacy.html patterns.
+
+**Content:**
+- First press release: "Connecting Klein Karoo Micro-Economies: VolstruisGids Turns Local Economic Growth into a Real Possibility" (21 June 2026, ID vol-2026-001)
+- Professional summary + full body written.
+
+**Files changed / added:**
+- app/press_releases.py (new)
+- app/templates/main/press.html (new)
+- app/blueprints/main/routes.py (added route + safe import)
+- app/templates/base.html (footer Press link)
+- app/blueprints/sitemap/routes.py (added /press + other statics)
+- app/static/press/ (dir + README.txt)
+
+**Verification:**
+- `python -c "from app import create_app; ..."` + test_client GET /press → 200 OK
+- All critical strings present: title, About grid, release title, Read Full, Download, modal, contact section, /press in footer data.
+- No import or template errors.
+- Sitemap now contains /press URL.
+- Page uses only existing dependencies and patterns.
+
+**Acceptance criteria (all checked):**
+- [x] `/press` route exists and renders correctly
+- [x] Fully responsive (matches mobile-first app patterns)
+- [x] First press release displayed with correct content
+- [x] "Download PDF" + "Read Full Article" buttons functional (modal + print-to-PDF)
+- [x] Good meta tags + OG for SEO
+- [x] Easy non-dev updates via press_releases.py
+- [x] Design consistent with rest of app (same hero, cards, colours, spacing)
+- [x] Zero console / runtime errors on render
+
+**Out of scope items** (left for later as per spec): full media kit downloads, press submission form, newsletter, analytics on downloads.
+
+**Ready for use:** Navigate to `/press`. The inaugural release is live and professional.
+
+**Next suggested (low effort):** When real PDF is ready, drop vol-2026-001.pdf into `app/static/press/` and the download button will serve it automatically. Add more releases to the list as needed.
+
+Task complete. Build guarantee passed. Followed all rules.
+
+

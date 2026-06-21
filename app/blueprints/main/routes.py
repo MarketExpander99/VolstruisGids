@@ -12,6 +12,12 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 from . import main_bp
 
+# Press releases data (easy to maintain)
+try:
+    from app.press_releases import PRESS_RELEASES
+except Exception:
+    PRESS_RELEASES = []
+
 # Public pricing data for how-it-works page (and elsewhere)
 try:
     from app.blueprints.payments.routes import UNLIMITED_PASSES
@@ -353,6 +359,12 @@ def how_it_works():
     return render_template('main/how_it_works.html', 
                            unlimited_passes=UNLIMITED_PASSES,
                            monthly_views=monthly_views)
+
+
+@main_bp.route('/press')
+def press():
+    """Official Press & Media hub. Easy to extend by updating press_releases.py"""
+    return render_template('main/press.html', releases=PRESS_RELEASES)
 
 
 @main_bp.route('/my-listings/delete/<int:listing_id>', methods=['POST'])

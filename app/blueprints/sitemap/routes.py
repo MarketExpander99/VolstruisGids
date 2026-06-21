@@ -19,6 +19,24 @@ def sitemap():
         'priority': '1.0'
     })
 
+    # Important static pages (SEO)
+    for static_path, changefreq, priority in [
+        ('main.how_it_works', 'monthly', '0.7'),
+        ('main.press', 'weekly', '0.6'),
+        ('main.terms', 'yearly', '0.3'),
+        ('main.privacy', 'yearly', '0.3'),
+        ('main.guidelines', 'yearly', '0.4'),
+    ]:
+        try:
+            pages.append({
+                'loc': url_for(static_path, _external=True),
+                'lastmod': datetime.utcnow().strftime('%Y-%m-%d'),
+                'changefreq': changefreq,
+                'priority': priority
+            })
+        except Exception:
+            pass  # in case route not registered yet
+
     # All active listings
     listings = Listing.query.filter_by(is_active=True).order_by(Listing.created_at.desc()).all()
 

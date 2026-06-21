@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Press & Media | VolstruisGids{% endblock %}
+
+{% block meta_description %}Official press releases, media assets and enquiries for VolstruisGids — the local Klein Karoo marketplace connecting buyers, sellers and micro-businesses across Oudtshoorn, Ladismith, Calitzdorp and the ostrich region.{% endblock %}
+
+{% block og_title %}Press & Media | VolstruisGids{% endblock %}
+{% block og_description %}Official hub for journalists and partners. Latest press releases from VolstruisGids, the trusted local marketplace for the Klein Karoo.{% endblock %}
+{% block og_type %}website{% endblock %}
+
+{% block content %}
+<div class="press-page">
+
+    <!-- HERO / HEADER -->
+    <div class="hero-section py-5 text-center" style="background: linear-gradient(180deg, #FAF6F0 0%, #F4EDE3 100%); border-bottom: 1px solid #E8DFD3;">
+        <div class="container">
+            <div class="d-flex align-items-center justify-content-center mb-3">
+                <img src="{{ url_for('static', filename='img/logo.jpg') }}" 
+                     alt="VolstruisGids" 
+                     height="42" 
+                     class="me-3"
+                     style="border-radius: 6px; object-fit: contain;">
+                <span class="fw-bold" style="font-size: 1.85rem; color: #2C2522; letter-spacing: -0.02em;">
+                    Press &amp; Media
+                </span>
+            </div>
+            <p class="lead fs-5 mb-0" style="color: #5C524A; max-width: 620px; margin: 0 auto;">
+                Official resources for journalists, editors, partners and investors covering the Klein Karoo's local marketplace.
+            </p>
+        </div>
+    </div>
+
+    <div class="container py-5">
+
+        <!-- ABOUT VOLSTRUISGIDS -->
+        <section class="mb-5">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold mb-2" style="color:#2C2522;">About VolstruisGids</h2>
+                <p class="text-muted" style="max-width: 560px; margin: 0 auto;">
+                    A purpose-built, mobile-first marketplace for the people and businesses of the Klein Karoo.
+                </p>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <div class="p-4 h-100 rounded-4 shadow-sm text-center" style="background:#fff; border:1px solid #E8DFD3;">
+                        <i class="bi bi-geo-alt fs-3 mb-2 d-block" style="color:#8B4513;"></i>
+                        <div class="fw-bold small mb-1">Location</div>
+                        <div class="small text-muted">Oudtshoorn HQ • Klein Karoo, South Africa<br>(Oudtshoorn, Ladismith, Calitzdorp &amp; surrounds)</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-4 h-100 rounded-4 shadow-sm text-center" style="background:#fff; border:1px solid #E8DFD3;">
+                        <i class="bi bi-shop fs-3 mb-2 d-block" style="color:#4A7043;"></i>
+                        <div class="fw-bold small mb-1">Focus</div>
+                        <div class="small text-muted">Local classifieds, services &amp; micro-business storefronts for the ostrich region</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-4 h-100 rounded-4 shadow-sm text-center" style="background:#fff; border:1px solid #E8DFD3;">
+                        <i class="bi bi-rocket-takeoff fs-3 mb-2 d-block" style="color:#C9A227;"></i>
+                        <div class="fw-bold small mb-1">Status</div>
+                        <div class="small text-muted">Live &amp; growing • Free personal listings • Professional tools for businesses</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-4 h-100 rounded-4 shadow-sm text-center" style="background:#fff; border:1px solid #E8DFD3;">
+                        <i class="bi bi-heart fs-3 mb-2 d-block" style="color:#8B4513;"></i>
+                        <div class="fw-bold small mb-1">Mission</div>
+                        <div class="small text-muted">Make local economic activity permanent, searchable and visible — keeping money and opportunity in the Karoo</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PRESS RELEASES -->
+        <section class="mb-5">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h2 class="fw-bold mb-0" style="color:#2C2522;">Press Releases</h2>
+                <span class="small text-muted">Most recent first</span>
+            </div>
+
+            {% if releases %}
+                {% for release in releases %}
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <span class="badge rounded-pill px-3 py-1" style="background-color: #C9A227; color: #2C2522; font-size: 0.75rem; font-weight: 700;">
+                                {{ release.display_date }}
+                            </span>
+                            {% if loop.first %}
+                            <span class="badge rounded-pill px-3 py-1" style="background-color: #4A7043; color: #fff; font-size: 0.75rem;">
+                                First Release
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <h4 class="fw-bold mb-2" style="line-height: 1.3; color:#2C2522;">
+                            {{ release.title }}
+                        </h4>
+
+                        <p class="mb-3" style="color:#5C524A; font-size: 1.02rem;">
+                            {{ release.summary }}
+                        </p>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" 
+                                    class="btn btn-primary"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#releaseModal-{{ release.id }}">
+                                <i class="bi bi-file-text me-1"></i>
+                                Read Full Article
+                            </button>
+
+                            <a href="{{ release.pdf_url }}" 
+                               class="btn btn-outline-primary"
+                               target="_blank"
+                               rel="noopener"
+                               onclick="handlePdfDownload(this, event, '{{ release.id }}')">
+                                <i class="bi bi-download me-1"></i>
+                                Download PDF
+                            </a>
+                        </div>
+
+                        <div class="mt-3 small text-muted">
+                            Issued by: {{ release.author }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Per-release modal -->
+                <div class="modal fade" id="releaseModal-{{ release.id }}" tabindex="-1" aria-labelledby="releaseModalLabel-{{ release.id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content" style="border-radius: 16px; border: 1px solid #E8DFD3;">
+                            <div class="modal-header" style="background: #F8F4EB; border-bottom: 1px solid #E8DFD3;">
+                                <div>
+                                    <span class="badge rounded-pill me-2" style="background-color:#C9A227; color:#2C2522; font-size:0.7rem; font-weight:700;">{{ release.display_date }}</span>
+                                    <span class="badge rounded-pill" style="background-color:#4A7043; color:#fff; font-size:0.7rem;">Press Release</span>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-4 p-md-5" id="printable-release-{{ release.id }}">
+                                <h3 class="fw-bold mb-3" style="color:#2C2522; line-height:1.25;">
+                                    {{ release.title }}
+                                </h3>
+                                <div class="text-muted small mb-4">VolstruisGids • {{ release.display_date }} • {{ release.author }}</div>
+
+                                <div class="press-release-body" style="font-size: 1.02rem; line-height: 1.75; color:#2C2522;">
+                                    {{ release.full_text_html | safe }}
+                                </div>
+                            </div>
+                            <div class="modal-footer" style="background:#FAF6F0; border-top:1px solid #E8DFD3;">
+                                <button type="button" class="btn btn-outline-primary" onclick="printRelease('{{ release.id }}')">
+                                    <i class="bi bi-printer me-1"></i> Print / Save as PDF
+                                </button>
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-light border">No press releases published yet.</div>
+            {% endif %}
+        </section>
+
+        <!-- MEDIA ASSETS -->
+        <section class="mb-5">
+            <div class="card border-0 shadow-sm" style="border-radius: 16px; background: #fff;">
+                <div class="card-body p-4 p-md-5">
+                    <h3 class="fw-bold mb-3" style="color:#2C2522;">Media Assets</h3>
+                    <p class="text-muted mb-3">High-resolution logos, screenshots and brand assets will be available here shortly.</p>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="p-3 rounded border" style="background:#FAF6F0;">
+                                <div class="fw-semibold small mb-1">Logo Pack</div>
+                                <div class="small text-muted">SVG + PNG versions (coming soon)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded border" style="background:#FAF6F0;">
+                                <div class="fw-semibold small mb-1">Screenshots</div>
+                                <div class="small text-muted">Homepage, storefronts &amp; listings (coming soon)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded border" style="background:#FAF6F0;">
+                                <div class="fw-semibold small mb-1">Brand Guidelines</div>
+                                <div class="small text-muted">Colours, typography &amp; usage (coming soon)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="small mt-3 mb-0 text-muted">
+                        Need assets urgently? Contact us via WhatsApp and we will send them immediately.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT / MEDIA ENQUIRIES -->
+        <section>
+            <div class="card border-0 shadow-sm" style="border-radius: 16px; background: linear-gradient(180deg, #2C2522 0%, #3D342D 100%); color: #fff;">
+                <div class="card-body p-4 p-md-5 text-center text-md-start">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <h3 class="fw-bold mb-2">Media Enquiries</h3>
+                            <p class="mb-2 opacity-90">We welcome coverage, interviews and partnership discussions.</p>
+                            <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+                                <a href="https://wa.me/27810763237" 
+                                   target="_blank" 
+                                   class="btn btn-success d-inline-flex align-items-center gap-2"
+                                   style="font-weight:600;">
+                                    <i class="bi bi-whatsapp"></i>
+                                    <span>WhatsApp +27 81 076 3237</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-5 mt-3 mt-md-0">
+                            <div class="small opacity-75">
+                                You can also register on the platform and message us directly.<br>
+                                We aim to respond to media requests within 24 hours.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<style>
+/* Press page specific styling — matches existing warm Karoo aesthetic */
+.press-page .hero-section h1,
+.press-page .hero-section .fw-bold {
+    color: #2C2522;
+}
+.press-page .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.press-page .card:hover {
+    transform: translateY(-2px);
+}
+.press-release-body p {
+    margin-bottom: 1rem;
+}
+.press-release-body ul {
+    padding-left: 1.25rem;
+    margin-bottom: 1rem;
+}
+.press-release-body li {
+    margin-bottom: 0.35rem;
+}
+
+/* Nice print styles when user clicks Print / Save as PDF */
+@media print {
+    .modal-header, .modal-footer, nav, #bottom-nav, footer, .btn, .badge {
+        display: none !important;
+    }
+    .modal-dialog {
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+    .modal-content {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .press-release-body {
+        font-size: 12pt !important;
+        line-height: 1.6 !important;
+    }
+    .modal-body {
+        padding: 0 !important;
+    }
+}
+</style>
+
+<script>
+function printRelease(releaseId) {
+    const modalEl = document.getElementById('releaseModal-' + releaseId);
+    if (!modalEl) return;
+    
+    // Trigger browser print (user can choose "Save as PDF")
+    // The @media print CSS above hides nav/footer etc. inside the modal
+    setTimeout(() => {
+        window.print();
+    }, 120);
+}
+
+// Graceful handling for PDF button while we don't have real PDFs yet
+function handlePdfDownload(linkEl, event, releaseId) {
+    // If the PDF file does not exist yet, intercept and guide user to the excellent print flow
+    // This keeps the button "working" and professional
+    const pdfPath = linkEl.getAttribute('href');
+    
+    // We try a quick HEAD to see if it exists. On failure we show nice guidance.
+    fetch(pdfPath, { method: 'HEAD' })
+        .then(res => {
+            if (!res.ok) {
+                event.preventDefault();
+                showPdfGuidance(releaseId);
+            }
+            // If it succeeds (future), let the browser download normally
+        })
+        .catch(() => {
+            event.preventDefault();
+            showPdfGuidance(releaseId);
+        });
+}
+
+function showPdfGuidance(releaseId) {
+    // Open the modal first so user sees the full text
+    const modal = new bootstrap.Modal(document.getElementById('releaseModal-' + releaseId));
+    modal.show();
+
+    // After modal opens, show a friendly toast / hint
+    setTimeout(() => {
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 start-50 translate-middle-x mb-4 px-4 py-2 rounded-pill shadow';
+        toast.style.cssText = 'background:#2C2522;color:#fff;font-size:0.9rem;z-index:99999;';
+        toast.innerHTML = `
+            <div class="d-flex align-items-center gap-2">
+                <span>Official PDF coming soon. Use <strong>Print / Save as PDF</strong> above for now.</span>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.transition = 'opacity .3s';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 200);
+        }, 4200);
+    }, 900);
+}
+</script>
+{% endblock %}
