@@ -802,6 +802,7 @@ footer, #main-footer {
   border-radius: 16px;
   box-shadow: 0 1px 4px rgba(44, 37, 34, 0.06);
   border: 1px solid #EDE4D6;
+  overflow: hidden;
 }
 
 .message-row {
@@ -902,6 +903,7 @@ footer, #main-footer {
   .message-row {
     margin-bottom: 8px;
   }
+  #message-thread { max-height: 300px; min-height: 180px; }
 }
 
 /* Optional subtle date separator for flow (used if added in template) */

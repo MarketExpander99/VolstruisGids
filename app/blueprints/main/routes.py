@@ -601,12 +601,13 @@ Answer the user's question directly about this listing. If the question is unrel
 # Business Storefront (VOL-UI-STOREFRONT-ROBUST-2026-06-23)
 # Never 404 on "View Store" clicks. Gracefully handles @prefix/case/whitespace
 # variations from links or prod/dev data drift. Redirects + flash for bad cases.
-# Keeps full active listings (no 7-day limit) for valid business accounts.
+# Public storefront only shows currently fresh (non-expired) + active listings
+# using the same 7-day freshness rule as homepage/directory.
 # ============================================================
 @main_bp.route('/store/<string:username>')
 def business_storefront(username):
     """Robust public storefront. Handles username formatting drift.
-    /store/valid-business -> storefront
+    /store/valid-business -> storefront (only fresh/non-expired + active listings)
     /store/malformed or non-business -> flash + redirect (directory or home)
     """
     # Clean input (strip @, whitespace)
@@ -631,15 +632,20 @@ def business_storefront(username):
         flash("This profile belongs to a personal seller. Businesses have dedicated storefronts.", "info")
         return redirect(url_for('main.index'))
 
-    # Fetch ALL active listings for storefront (discovery feeds use 7-day freshness;
-    # a store should display the business's current active offerings).
+    # Public storefront: only non-expired (fresh within 7 days) + is_active=True listings.
+    # This ensures "View Store" never shows stale/expired ads (matches homepage, directory counts, etc.).
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    # Use full freshness (refreshed_at preferred for reposts per v1.2) to match is_expired semantics
+    freshness = func.coalesce(Listing.refreshed_at, Listing.last_reposted_at, Listing.created_at)
+
     active_listings = (Listing.query
         .options(joinedload(Listing.user))
         .filter(
             Listing.user_id == user.id,
             Listing.is_active == True,
+            freshness >= seven_days_ago,
         )
-        .order_by(Listing.is_promoted.desc(), Listing.created_at.desc())
+        .order_by(Listing.is_promoted.desc(), freshness.desc())
         .all())
 
     return render_template('main/business_storefront.html',
