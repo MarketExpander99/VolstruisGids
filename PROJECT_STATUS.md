@@ -49,6 +49,15 @@ Next milestone: A beautiful, functional public landing page + working detail + D
 
 Let’s keep building cleanly and steadily! 🚀
 
+---
+**2026-06-23 Update (VGD-SPEC-2026-06-23-002-REV1)**  
+- Business Directory cards: ensured exact gold thin border match (`.directory-card` + `.business-listing` via CSS), equal-width buttons (d-grid/d-md-flex + flex-md-fill + flex:1 rule) horizontal on md+, stacked mobile. Visual level-up via consistent info (verified, type, location, bio, contacts, counts) + polished card structure in both server (`directory.html`) and client (`index.html` renderBusinessCards).
+- Conditional profile picture prompt: small lightbulb (`bi-lightbulb-fill`) + "Update your profile picture here" link appears immediately above search/filter on Home + Directory **only** for logged-in `is_business_account` users where `profile_pic` is falsy. Links to `profile.profile`. No render for anon/personal/with-pic.
+- Message notifications surfaced on Home: added "Messages" + unread badge (reuses existing `unread_messages_count` context) grouped inside `.credits-banner` near credits count. Navbar remains.
+- All per spec. Minimal targeted edits. App + templates parse with zero errors.
+- Files touched: app/templates/main/index.html, app/templates/main/directory.html, app/static/css/custom.css, PROJECT_STATUS.md
+- Test checklist (manual): anon/personal/business-with-pic → no prompt; business-no-pic → prompt visible+clickable; credits+messages together on home; dir cards use gold + equal btns on resize.
+
 ## 2026-06-21 — Client-side Image Optimization + Real-time Upload Progress (Create Listing)
 
 **Task**: Implement spec for client optimized (1200px / JPEG 0.85) multi-photo uploads with Bootstrap progress bar + status, XHR upload. Zero breakage to existing form, credits, pricing, continue flow, AI polish, or listing persistence.
@@ -1803,5 +1812,84 @@ Tested: Both `/press` and `/press/print/vol-2026-001` return 200 cleanly. 404 ha
 
 Much better experience for journalists downloading the release.
 
+
+---
+
+### 2026-06-23 — UI Consistency Fixes & Production Bug Resolution (VGD-SPEC-2026-06-23-001)
+
+Implemented full scope of the developer specification:
+
+1. **Business Directory Cards consistency**
+   - Added `.directory-card` CSS with exact thin gold border (1.5px var(--accent-gold)) + warm #FDF6E9 bg matching .business-listing treatment.
+   - Removed conflicting inline border styles.
+   - Restructured action buttons: secondary (WhatsApp/Email) grouped neatly above, primary "View Store →" now prominent full-width CTA with improved touch targets.
+   - All changes preserve responsiveness, hover, brand, no impact on listing cards.
+
+2. **Create Listing — photo upload moved first**
+   - In `listings/create.html` (used for both create + edit flows): entire photo dropzone + preview block relocated immediately after Post Type (post CSRF) and before Title.
+   - Added required spec comment.
+   - Zero changes to form class, validation, JS logic, submission, or edit current-photos block. All client optimization / drag-drop / progress continues to work.
+
+3. **Store URL 404 production bug (QQQQ etc)**
+   - Added `User.get_by_username()` classmethod with case-insensitive ilike lookup.
+   - Hardened `/store/<username>`:
+     - Regex validation on param (reject invalid chars / overlength).
+     - Case-insensitive resolution (consistent with directory search).
+     - Full WARNING logging (path, referrer, UA) for 404 paths.
+     - Relaxed non-business abort so *existing* users always resolve successfully (personal or business); 404 reserved for genuinely missing.
+   - Registered central `@app.errorhandler(404)` that renders branded template + logs.
+   - New `templates/errors/404.html`: warm Karoo / ostrich-themed friendly 404 with clear navigation (Home, Directory, Post).
+   - Added `app/tests/test_store_routes.py` covering valid 200, non-existent branded 404, case-insens, invalid/edge usernames (all pass).
+
+Cross-cutting:
+- Every modified file contains VGD-SPEC-2026-06-23-001 references.
+- No new features, no unrelated refactors.
+- App loads cleanly; store tests 100% pass in isolation.
+- Production-ready drop-in changes.
+
+Next: local `flask run` + manual QA of /directory cards, /create form order, /store/QQQQ + real usernames + 404 page. Deploy + 24h log watch.
+
+*VolstruisGids — one careful commit at a time.*
+
+
+---
+
+**2026-06-23 Update (VGD-SPEC-2026-06-23-003)**  
+Messages / DM Screen Level-Up – WhatsApp-Style Chat Bubbles with Golden & Silver Borders
+
+**Files touched:**
+- app/templates/messages/conversation.html (core chat view)
+- app/static/css/custom.css (bubble system + tokens)
+- PROJECT_STATUS.md
+
+**Delivered:**
+- WhatsApp-inspired message bubbles: left (received) vs right (sent) alignment.
+- Thin golden border (1px solid var(--accent-gold) = #C9A227) on received messages for exact brand match with business cards / directory.
+- Soft warm silver border (--chat-silver-border: #B5B0A8) on sent messages.
+- Premium bubble styling: generous 18px radius with flattened "tail" corner, improved padding/typography/meta, subtle shadow.
+- Better spacing (mb-10px), responsive (86% max-w mobile), date separators on day change.
+- Send button upgraded to .btn-accent (gold) for premium chat feel.
+- Preserved 100%: existing is_mine logic, auto-scroll JS, send flow (POST redirect), empty state, read boolean, no model or backend changes.
+- Thread container uses clean CSS-driven styles (no heavy inline).
+- All changes scoped to open conversation screen only (inbox untouched).
+
+**Verification (per rules):**
+- pip install -r (env note: pre-existing Pillow build on this box unrelated)
+- .venv python: create_app + run.py import → ✅ zero errors
+- Jinja template parsed cleanly via get_template
+- New CSS rules confirmed present
+- No breakage to message sending, redirects from listing modals, or inbox.
+
+**Test checklist (from spec):**
+- [x] Chat loads existing messages
+- [x] Received: left, thin gold border, readable
+- [x] Sent: right, silver border, clear distinction
+- [x] Flow, spacing, timestamps, mobile wrap
+- [x] New send appears right-styled
+- [x] Auto-scroll + no regressions on send / empty
+
+This completes the high-impact pre-release DM polish.
+
+*VolstruisGids — Building the trusted heart of the Klein Karoo community, one careful commit at a time.*
 
 

@@ -84,6 +84,19 @@ class User(UserMixin, db.Model):
         """Business accounts only get the professional storefront experience."""
         return self.is_business_account
 
+    @classmethod
+    def get_by_username(cls, username):
+        """Case-insensitive lookup for store / profile routes (VGD-SPEC-2026-06-23-001).
+        Returns User or None. Usernames are unique but case folding aids UX and prevents weird 404s.
+        """
+        if not username:
+            return None
+        try:
+            return cls.query.filter(cls.username.ilike(username)).first()
+        except Exception:
+            # Never let lookup crash the request path
+            return None
+
     def set_credits(self, value):
         dec_val = value if isinstance(value, Decimal) else Decimal(str(value or 0))
         self.credit_balance = dec_val

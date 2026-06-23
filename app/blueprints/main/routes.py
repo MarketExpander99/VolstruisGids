@@ -600,14 +600,48 @@ Answer the user's question directly about this listing. If the question is unrel
 # Business Storefront (VOL-UI-POLISH-2026-06-20-SELLER-ATTRIB)
 # Public lightweight storefront for business accounts.
 # Accessed via "View store" link on business listing cards.
+#
+# Hardened per VGD-SPEC-2026-06-23-001:
+# - Case-insensitive username lookup via User.get_by_username
+# - Defensive validation on username param
+# - WARNING level logging for all 404 cases (path, referrer, UA)
+# - Existing users always resolve (non-business accounts render their listings cleanly)
+# - Non-existent -> branded 404 via central handler
 # ============================================================
 @main_bp.route('/store/<string:username>')
 def business_storefront(username):
-    user = User.query.filter_by(username=username).first_or_404()
-    if not getattr(user, 'is_business_account', False) and not getattr(user, 'is_business', False):
+    import re
+    # Basic defensive validation (alphanumeric + limited symbols, reasonable length)
+    if not username or len(username) > 80 or not re.match(r'^[A-Za-z0-9_.-]+$', username):
+        current_app.logger.warning(
+            "Store 404: invalid username param",
+            extra={
+                'path': request.path,
+                'referrer': request.referrer,
+                'user_agent': request.headers.get('User-Agent'),
+                'username': username,
+            }
+        )
         abort(404)
 
-    # Public active listings for this business (7-day freshness, same as homepage)
+    # Case-insensitive lookup (consistent with directory search). Prevents "weird" 404 on QQQQ-style test cases.
+    user = User.get_by_username(username)
+    if user is None:
+        current_app.logger.warning(
+            f"Store 404: username not found",
+            extra={
+                'path': request.path,
+                'referrer': request.referrer,
+                'user_agent': request.headers.get('User-Agent'),
+                'username': username,
+            }
+        )
+        abort(404)
+
+    # NOTE: we intentionally do NOT 404 on non-business here — existing users resolve successfully.
+    # Business gating is done at link-generation and directory level.
+
+    # Public active listings (7-day freshness, same as homepage)
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
     active_listings = (Listing.query

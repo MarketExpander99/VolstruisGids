@@ -43,7 +43,85 @@
                             </div>
                         </div>
 
+                        <!-- Photo upload moved above title per user testing feedback (VGD-SPEC-2026-06-23-001) -->
+                        <!-- LEVEL 10 SPECTACULAR PHOTO UPLOAD & PREVIEW -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold d-flex align-items-center gap-2">
+                                <span>Photos (up to 10)</span>
+                                <span class="badge bg-success text-white small">All photos completely free</span>
+                            </label>
+                            
+                            <div class="photo-upload-info small text-muted mb-3">
+                                Client-side optimized (max 1200px wide, JPEG ~85% quality) for fast uploads on rural connections. 
+                                Drag &amp; drop multiple photos or click below. All photos are free (max 10). Your first photo becomes the main image.
+                            </div>
 
+                            <!-- Premium Drag & Drop Zone -->
+                            <div id="photo-dropzone" 
+                                 class="photo-dropzone border rounded-4 p-4 text-center mb-3"
+                                 style="background: #FFF9E6; border-color: #E6B800; border-style: dashed; cursor: pointer; transition: all 0.2s ease;">
+                                <div class="py-2">
+                                    <i class="bi bi-images display-5 text-warning mb-2 d-block" style="opacity: 0.85;"></i>
+                                    <p class="mb-1 fw-semibold" style="color: #2C3E50;">Drop your photos here</p>
+                                    <p class="small text-muted mb-2">or click to browse (JPEG, PNG • max 10 total)</p>
+                                    <small class="text-muted">Client optimized to max 1200px • server makes 800px square preview for display.</small>
+                                </div>
+                            </div>
+
+                            <!-- Hidden original file input (required for form submit + accessibility) -->
+                            {{ form.photo(class="form-control d-none", id="photo", multiple=True) }}
+                            
+                            {% for error in form.photo.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+
+                            <!-- Current photos on EDIT (beautiful strip) -->
+                            {% if editing is defined and editing and listing is defined and listing and listing.photo_url %}
+                            <div class="mb-3 p-3 rounded-3" style="background-color: #F8F4EB; border: 1px solid #EDE4D6;">
+                                <small class="fw-semibold text-muted d-block mb-2">Current photos on this listing (uploading new will replace them)</small>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <div class="position-relative" style="width: 86px;">
+                                        <img src="{{ listing.photo_url }}" 
+                                             class="rounded-3 border shadow-sm" 
+                                             style="width:86px; height:86px; object-fit:cover; border-color:#E6B800;">
+                                        <span class="badge bg-success position-absolute bottom-0 start-0 m-1" style="font-size:0.6rem;">Main</span>
+                                    </div>
+                                    {% if listing.photo_urls %}
+                                        {% for purl in listing.photo_urls.split(',') if purl.strip() %}
+                                        <div style="width: 86px;">
+                                            <img src="{{ purl.strip() }}" 
+                                                 class="rounded-3 border shadow-sm" 
+                                                 style="width:86px; height:86px; object-fit:cover;">
+                                        </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted d-block mt-2">Tip: Upload new photos to refresh the entire set.</small>
+                            </div>
+                            {% endif %}
+
+                            <!-- LIVE PREVIEW GRID (spectacular, reorderable, credit-aware) -->
+                            <div id="image-preview" class="photo-preview-grid"></div>
+
+                            <!-- Live photo cost & limit note -->
+                            <div id="photo-cost-note" class="small mt-2 text-muted d-none"></div>
+
+                            <!-- Real-time upload progress (client-optimized + XHR for rural UX) -->
+                            <div id="upload-progress" class="mt-3 d-none">
+                                <div class="d-flex justify-content-between align-items-center small mb-1">
+                                    <span id="upload-status-text" class="text-muted">Optimizing...</span>
+                                    <span id="upload-percent" class="fw-semibold">0%</span>
+                                </div>
+                                <div class="progress" style="height: 10px; background-color: #f0e6d2;">
+                                    <div id="progress-bar"
+                                         class="progress-bar progress-bar-striped progress-bar-animated"
+                                         role="progressbar"
+                                         style="width: 0%; background-color: #E6B800;"
+                                         aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                            <div id="optimize-status" class="small text-muted mt-1 d-none"></div>
+                        </div>
 
                         <!-- Title -->
                         <div class="mb-3">
@@ -218,85 +296,6 @@
                         <div class="mb-4 form-check">
                             {{ form.allow_comments(class="form-check-input") }}
                             {{ form.allow_comments.label(class="form-check-label") }}
-                        </div>
-
-                        <!-- LEVEL 10 SPECTACULAR PHOTO UPLOAD & PREVIEW -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold d-flex align-items-center gap-2">
-                                <span>Photos (up to 10)</span>
-                                <span class="badge bg-success text-white small">All photos completely free</span>
-                            </label>
-                            
-                            <div class="photo-upload-info small text-muted mb-3">
-                                Client-side optimized (max 1200px wide, JPEG ~85% quality) for fast uploads on rural connections. 
-                                Drag &amp; drop multiple photos or click below. All photos are free (max 10). Your first photo becomes the main image.
-                            </div>
-
-                            <!-- Premium Drag & Drop Zone -->
-                            <div id="photo-dropzone" 
-                                 class="photo-dropzone border rounded-4 p-4 text-center mb-3"
-                                 style="background: #FFF9E6; border-color: #E6B800; border-style: dashed; cursor: pointer; transition: all 0.2s ease;">
-                                <div class="py-2">
-                                    <i class="bi bi-images display-5 text-warning mb-2 d-block" style="opacity: 0.85;"></i>
-                                    <p class="mb-1 fw-semibold" style="color: #2C3E50;">Drop your photos here</p>
-                                    <p class="small text-muted mb-2">or click to browse (JPEG, PNG • max 10 total)</p>
-                                    <small class="text-muted">Client optimized to max 1200px • server makes 800px square preview for display.</small>
-                                </div>
-                            </div>
-
-                            <!-- Hidden original file input (required for form submit + accessibility) -->
-                            {{ form.photo(class="form-control d-none", id="photo", multiple=True) }}
-                            
-                            {% for error in form.photo.errors %}
-                                <div class="text-danger small mt-1">{{ error }}</div>
-                            {% endfor %}
-
-                            <!-- Current photos on EDIT (beautiful strip) -->
-                            {% if editing is defined and editing and listing is defined and listing and listing.photo_url %}
-                            <div class="mb-3 p-3 rounded-3" style="background-color: #F8F4EB; border: 1px solid #EDE4D6;">
-                                <small class="fw-semibold text-muted d-block mb-2">Current photos on this listing (uploading new will replace them)</small>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <div class="position-relative" style="width: 86px;">
-                                        <img src="{{ listing.photo_url }}" 
-                                             class="rounded-3 border shadow-sm" 
-                                             style="width:86px; height:86px; object-fit:cover; border-color:#E6B800;">
-                                        <span class="badge bg-success position-absolute bottom-0 start-0 m-1" style="font-size:0.6rem;">Main</span>
-                                    </div>
-                                    {% if listing.photo_urls %}
-                                        {% for purl in listing.photo_urls.split(',') if purl.strip() %}
-                                        <div style="width: 86px;">
-                                            <img src="{{ purl.strip() }}" 
-                                                 class="rounded-3 border shadow-sm" 
-                                                 style="width:86px; height:86px; object-fit:cover;">
-                                        </div>
-                                        {% endfor %}
-                                    {% endif %}
-                                </div>
-                                <small class="text-muted d-block mt-2">Tip: Upload new photos to refresh the entire set.</small>
-                            </div>
-                            {% endif %}
-
-                            <!-- LIVE PREVIEW GRID (spectacular, reorderable, credit-aware) -->
-                            <div id="image-preview" class="photo-preview-grid"></div>
-
-                            <!-- Live photo cost & limit note -->
-                            <div id="photo-cost-note" class="small mt-2 text-muted d-none"></div>
-
-                            <!-- Real-time upload progress (client-optimized + XHR for rural UX) -->
-                            <div id="upload-progress" class="mt-3 d-none">
-                                <div class="d-flex justify-content-between align-items-center small mb-1">
-                                    <span id="upload-status-text" class="text-muted">Optimizing...</span>
-                                    <span id="upload-percent" class="fw-semibold">0%</span>
-                                </div>
-                                <div class="progress" style="height: 10px; background-color: #f0e6d2;">
-                                    <div id="progress-bar"
-                                         class="progress-bar progress-bar-striped progress-bar-animated"
-                                         role="progressbar"
-                                         style="width: 0%; background-color: #E6B800;"
-                                         aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
-                            </div>
-                            <div id="optimize-status" class="small text-muted mt-1 d-none"></div>
                         </div>
 
                         <!-- Submit Buttons -->

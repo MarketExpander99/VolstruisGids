@@ -1,4 +1,4 @@
-from flask import Flask, app
+from flask import Flask, app, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
@@ -105,6 +105,26 @@ def create_app(config_class=Config):
     app.register_blueprint(payments_bp)   # <-- Added (url_prefix='/payments' is defined inside the blueprint)
     app.register_blueprint(messages_bp)   # <-- /messages/inbox, /messages/conversation etc.
     app.register_blueprint(admin_bp)      # <-- /admin (protected by ADMIN_USERNAMES)
+
+    # ============================================================
+    # Custom 404 handler (VGD-SPEC-2026-06-23-001)
+    # Branded ostrich-friendly page + structured logging for store + all 404s.
+    # ============================================================
+    @app.errorhandler(404)
+    def page_not_found(e):
+        try:
+            app.logger.warning(
+                "404 Not Found",
+                extra={
+                    'path': request.path,
+                    'referrer': getattr(request, 'referrer', None),
+                    'user_agent': request.headers.get('User-Agent') if request else None,
+                    'method': request.method if request else None,
+                }
+            )
+        except Exception:
+            pass  # Never let logging break error response
+        return render_template('errors/404.html'), 404
 
     # Context processor to provide unread message count for navbar notifications (NEW messages only)
     @app.context_processor

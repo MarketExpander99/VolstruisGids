@@ -18,6 +18,9 @@
   --text-secondary: #5C524A;   /* Meta, secondary */
   --border: #E8DFD3;           /* Subtle borders */
 
+  /* Chat / DM specific (VGD-SPEC-2026-06-23-003) */
+  --chat-silver-border: #B5B0A8;   /* Warm soft silver for sent bubbles (harmonious with Karoo palette) */
+
   /* Design tokens */
   --radius-sm: 6px;
   --radius-md: 12px;
@@ -344,6 +347,85 @@ a:hover {
 .card.business-listing > div[style*="border-bottom"],
 .card.boosted > div[style*="border-bottom"] {
   border-bottom: none !important;
+}
+
+/* ============================================================
+   Business Directory cards (VGD-SPEC-2026-06-23-001 + follow-up)
+   Enhanced to visually align with main listing cards:
+   - Thin gold border (1.5px var(--accent-gold) + ::before) exactly like .business-listing
+   - Warm background + hover lift matching listing card behavior
+   - More generous padding and typography
+   - Responsive buttons (d-grid / flex-md): next to each other on desktop, stacked on mobile
+   ============================================================ */
+.card.directory-card {
+  background-color: #FDF6E9;
+  border: none;
+  position: relative;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition-slow);
+}
+.card.directory-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-elevated);
+}
+.card.directory-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--accent-gold);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+.card.directory-card .card-body {
+  position: relative;
+  z-index: 2;
+  padding: 1rem; /* generous, closer to main listing cards */
+}
+
+/* Inner content polish to match listing card formatting */
+.card.directory-card h6 {
+  font-size: 1.02rem;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+.card.directory-card .small {
+  color: var(--text-secondary);
+}
+.card.directory-card .directory-actions .btn {
+  white-space: nowrap;
+}
+
+/* Buttons: side-by-side (desktop) / stacked (mobile) */
+.directory-actions {
+  margin-top: 0.5rem;
+}
+.directory-actions .btn {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+@media (max-width: 767.98px) {
+  .directory-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Equal-width buttons on desktop for directory cards (flex share space) */
+.directory-actions .d-md-flex .btn {
+  flex: 1;
+}
+
+/* Small non-intrusive profile pic prompt (business users) */
+.profile-pic-prompt {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+.profile-pic-prompt a {
+  color: #8B4513;
+}
+.profile-pic-prompt a:hover {
+  color: #5C2E0A;
+  text-decoration: underline;
 }
 
 /* Promoted banner — warmer, refined */
@@ -699,24 +781,93 @@ footer, #main-footer {
 }
 
 /* ============================================
-   MESSAGING HINTS (Phase 1 base — calm bubbles ready)
+   DM CHAT BUBBLES — WhatsApp-style level-up (VGD-SPEC-2026-06-23-003)
+   Thin golden border for received (left), silver for sent (right).
+   Uses exact --accent-gold for brand consistency with business cards.
+   Fully responsive. Mobile thumb friendly. Preserves warm Karoo tone.
    ============================================ */
-.chat-bubble {
+#message-thread {
+  background-color: #f8f4eb;
+  min-height: 320px;
+  max-height: 520px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 10px 8px;
+}
+
+.message-row {
+  display: flex;
+  margin-bottom: 10px;
+}
+.message-row.received { justify-content: flex-start; }
+.message-row.sent { justify-content: flex-end; }
+
+.message-bubble {
   max-width: 78%;
-  padding: 12px 16px;
+  padding: 11px 15px;
   border-radius: 18px;
-  margin-bottom: 8px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 1px 2px rgba(44, 37, 34, 0.08);
+  position: relative;
 }
-.chat-bubble.sent {
-  background: var(--primary);
-  color: #fff;
-  margin-left: auto;
-  border-bottom-right-radius: 4px;
-}
-.chat-bubble.received {
-  background: #F0E6D9;
+.message-bubble.received {
+  background-color: #fff;
   color: var(--text-primary);
-  border-bottom-left-radius: 4px;
+  border: 1px solid var(--accent-gold);
+  border-bottom-left-radius: 5px;   /* subtle tail side */
+}
+.message-bubble.sent {
+  background-color: #F4EDE3;
+  color: var(--text-primary);
+  border: 1px solid var(--chat-silver-border);
+  border-bottom-right-radius: 5px;
+  margin-left: auto;
+}
+
+/* Timestamp + read indicator inside bubble */
+.message-bubble .msg-meta {
+  font-size: 0.68rem;
+  opacity: 0.65;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.message-bubble.received .msg-meta { justify-content: flex-end; }
+.message-bubble.sent .msg-meta { justify-content: flex-start; }
+
+.message-bubble .msg-meta .bi-check2-all {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* Responsive: slightly larger bubbles + padding on phones */
+@media (max-width: 767.98px) {
+  .message-bubble {
+    max-width: 86%;
+    padding: 10px 14px;
+    font-size: 0.94rem;
+  }
+  .message-row {
+    margin-bottom: 8px;
+  }
+}
+
+/* Optional subtle date separator for flow (used if added in template) */
+.chat-date-separator {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin: 12px 0 6px;
+  opacity: 0.75;
+}
+.chat-date-separator span {
+  background: #f8f4eb;
+  padding: 0 10px;
+  border-radius: 999px;
 }
 
 /* ============================================
