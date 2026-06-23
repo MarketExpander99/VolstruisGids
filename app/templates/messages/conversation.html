@@ -48,13 +48,33 @@
     {% endwith %}
 
     <!-- Thread -->
-    <div class="card shadow-sm border-0 mb-3" style="border-radius: 16px;">
-        <div class="card-body p-0" id="message-thread">
+    <div class="chat-thread-wrapper mb-3">
+        <div id="message-thread">
             {% if messages %}
                 {% for msg in messages %}
                     {% set is_mine = msg.sender_id == current_user.id %}
                     <div class="message-row {{ 'sent' if is_mine else 'received' }}">
+                        {% if not is_mine %}
+                        <div class="message-avatar flex-shrink-0">
+                            {% if other_user.profile_pic %}
+                                <img src="{{ other_user.profile_pic }}" alt="{{ other_user.username }}"
+                                     width="28" height="28"
+                                     style="object-fit: cover; border-radius: 50%; border: 1.5px solid var(--accent-gold);">
+                            {% else %}
+                                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                     style="width:28px; height:28px; font-size: 0.7rem; font-weight: 700; background: #F4EDE3; color: #8B4513; border: 1.5px solid var(--accent-gold);">
+                                    {{ (other_user.username or other_user.business_name or 'U')[0] | upper }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
                         <div class="message-bubble {{ 'sent' if is_mine else 'received' }}">
+                            {% if not is_mine %}
+                                <div class="sender-label">{{ other_user.username }}</div>
+                            {% else %}
+                                <div class="sender-label you">You</div>
+                            {% endif %}
                             {{ msg.text }}
                             <div class="msg-meta">
                                 {{ msg.timestamp.strftime('%H:%M') if msg.timestamp else '' }}

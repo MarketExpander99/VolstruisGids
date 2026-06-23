@@ -1854,8 +1854,8 @@ Next: local `flask run` + manual QA of /directory cards, /create form order, /st
 
 ---
 
-**2026-06-23 Update (VGD-SPEC-2026-06-23-003)**  
-Messages / DM Screen Level-Up – WhatsApp-Style Chat Bubbles with Golden & Silver Borders
+**2026-06-23 Update (VGD-SPEC-2026-06-23-003 + follow-up)**  
+Messages / DM Screen Level-Up – WhatsApp-Style Chat Bubbles with Golden & Silver Borders + stronger who-sent separation
 
 **Files touched:**
 - app/templates/messages/conversation.html (core chat view)
@@ -1889,6 +1889,9 @@ Messages / DM Screen Level-Up – WhatsApp-Style Chat Bubbles with Golden & Silv
 - [x] Auto-scroll + no regressions on send / empty
 
 This completes the high-impact pre-release DM polish.
+
+**Follow-up (user feedback):**  
+Added per-message avatars (gold-bordered, matching inbox style) on the left for received messages + explicit small sender labels ("SenderName" on left / "You" on right) inside every bubble. This makes it immediately obvious who each message came from. Also upgraded borders to 1.5px, gave received bubbles a warmer #FFFBF3 bg so the gold really pops, and replaced the heavy card wrapper with a lighter `.chat-thread-wrapper` so the conversation no longer feels like "one big box".
 
 *VolstruisGids — Building the trusted heart of the Klein Karoo community, one careful commit at a time.*
 

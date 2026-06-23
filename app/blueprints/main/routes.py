@@ -599,22 +599,28 @@ Answer the user's question directly about this listing. If the question is unrel
 # ============================================================
 # Business Storefront (VOL-UI-POLISH-2026-06-20-SELLER-ATTRIB)
 # Public lightweight storefront for business accounts.
-# Accessed via "View store" link on business listing cards.
+# Accessed via "View store" link on business listing cards and directory.
 #
-# Hardened per VGD-SPEC-2026-06-23-001:
-# - Case-insensitive username lookup via User.get_by_username
-# - Defensive validation on username param
-# - WARNING level logging for all 404 cases (path, referrer, UA)
-# - Existing users always resolve (non-business accounts render their listings cleanly)
-# - Non-existent -> branded 404 via central handler
+# - Always renders for any existing user (business or not) found via lookup.
+# - If the user has zero listings (or only old ones), shows the storefront + friendly
+#   \"No listings for this user.\" message (never 404 for valid users in directory).
+# - Robust username cleaning + safe case-insensitive lookup (handles the reported
+#   cases of business accounts 404ing on View Store).
+# - All *active* (is_active=True) listings are shown on the dedicated store (not limited
+#   to 7-day freshness window used for discovery feeds).
+# - New registrations enforce safe username chars so links can't break.
 # ============================================================
 @main_bp.route('/store/<string:username>')
 def business_storefront(username):
     import re
-    # Basic defensive validation (alphanumeric + limited symbols, reasonable length)
-    if not username or len(username) > 80 or not re.match(r'^[A-Za-z0-9_.-]+$', username):
+    # Aggressive cleaning first (handles @, spaces, etc from links or manual entry)
+    raw = (username or '').strip()
+    clean = raw.lstrip('@').strip()
+
+    # Soft validation - log but still attempt lookup for users that appear in directory
+    if len(clean) > 80 or (clean and not re.match(r'^[A-Za-z0-9_.-]+$', clean)):
         current_app.logger.warning(
-            "Store 404: invalid username param",
+            "Store: username param had unusual chars (proceeding to lookup anyway)",
             extra={
                 'path': request.path,
                 'referrer': request.referrer,
@@ -622,36 +628,39 @@ def business_storefront(username):
                 'username': username,
             }
         )
-        abort(404)
 
-    # Case-insensitive lookup (consistent with directory search). Prevents "weird" 404 on QQQQ-style test cases.
-    user = User.get_by_username(username)
+    # Robust case-insensitive lookup. Directory cards + API always generate links from real users.
+    # We 404 *only* if we truly cannot find a matching user.
+    user = User.get_by_username(clean or username)
+    if user is None:
+        # Last attempt: try the raw value as-is
+        user = User.get_by_username(username)
     if user is None:
         current_app.logger.warning(
-            f"Store 404: username not found",
+            f"Store 404: username not found after cleaning",
             extra={
                 'path': request.path,
                 'referrer': request.referrer,
                 'user_agent': request.headers.get('User-Agent'),
                 'username': username,
+                'cleaned': clean,
             }
         )
         abort(404)
 
-    # NOTE: we intentionally do NOT 404 on non-business here — existing users resolve successfully.
-    # Business gating is done at link-generation and directory level.
+    # NOTE: we intentionally do NOT 404 on non-business here — existing users (incl. the two problematic
+    # accounts mentioned) always resolve to their storefront (with empty state if needed).
+    # Business gating / "View Store" visibility is handled at link generation time.
 
-    # Public active listings (7-day freshness, same as homepage)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+    # Show ALL active listings for this user on their storefront (not just 7-day fresh).
+    # The freshness filter is for discovery feeds. A store page should show what the seller currently offers.
     active_listings = (Listing.query
         .options(joinedload(Listing.user))
         .filter(
             Listing.user_id == user.id,
             Listing.is_active == True,
-            freshness >= seven_days_ago
         )
-        .order_by(Listing.is_promoted.desc(), freshness.desc())
+        .order_by(Listing.is_promoted.desc(), Listing.created_at.desc())
         .all())
 
     return render_template('main/business_storefront.html',

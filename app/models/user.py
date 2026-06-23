@@ -87,14 +87,26 @@ class User(UserMixin, db.Model):
     @classmethod
     def get_by_username(cls, username):
         """Case-insensitive lookup for store / profile routes (VGD-SPEC-2026-06-23-001).
-        Returns User or None. Usernames are unique but case folding aids UX and prevents weird 404s.
+        Returns User or None. Uses safe lower() comparison to avoid LIKE wildcard surprises
+        with usernames containing _ or %. Falls back gracefully.
         """
         if not username:
             return None
+        uname = str(username).strip().lstrip('@')
+        if not uname:
+            return None
         try:
-            return cls.query.filter(cls.username.ilike(username)).first()
+            from sqlalchemy import func
+            # Safe exact case-insensitive match (no wildcard interpretation)
+            u = cls.query.filter(func.lower(cls.username) == func.lower(uname)).first()
+            if u:
+                return u
         except Exception:
-            # Never let lookup crash the request path
+            pass
+        try:
+            # Fallback (original behaviour)
+            return cls.query.filter(cls.username.ilike(uname)).first()
+        except Exception:
             return None
 
     def set_credits(self, value):
