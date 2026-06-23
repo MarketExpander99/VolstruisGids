@@ -76,8 +76,12 @@ class User(UserMixin, db.Model):
     @property
     def is_business_account(self):
         """Canonical way to check if user is a business account.
-        Uses both legacy is_business flag and account_type for robustness."""
-        return bool(getattr(self, 'is_business', False) or getattr(self, 'account_type', None) == 'business')
+        Uses flags + presence of business_name (for legacy/partial upgrades)."""
+        return bool(
+            getattr(self, 'is_business', False)
+            or getattr(self, 'account_type', None) == 'business'
+            or bool(getattr(self, 'business_name', None))
+        )
 
     @property
     def storefront_enabled(self):

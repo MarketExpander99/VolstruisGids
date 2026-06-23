@@ -167,6 +167,22 @@ def user_edit(user_id):
             flash(f'Business account marked as {status}.', 'success')
             return redirect(url_for('admin.user_edit', user_id=user.id))
 
+        # === 5. Toggle full Business Account status (is_business + account_type) ===
+        elif request.form.get('action') == 'toggle_business_account':
+            if user.is_business_account:
+                user.is_business = False
+                user.account_type = 'personal'
+                # Do not clear business_name etc, in case they want to re-enable later
+                action_desc = 'demoted to personal'
+            else:
+                user.is_business = True
+                user.account_type = 'business'
+                action_desc = 'promoted to business'
+            db.session.commit()
+            log_admin_action('toggle_business_account', 'user', user.id, action_desc)
+            flash(f'Account {action_desc}. It will now appear (or disappear) in the Business Directory.', 'success')
+            return redirect(url_for('admin.user_edit', user_id=user.id))
+
     # Fresh credit balance for display
     current_credits = user.credits
 

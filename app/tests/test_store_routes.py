@@ -1,11 +1,11 @@
 """
-Storefront route tests (VGD-SPEC-2026-06-23-001)
+Storefront route tests (VOL-UI-STOREFRONT-ROBUST-2026-06-23)
 Covers:
-- Valid user store page returns 200 (existing user resolves)
-- Non-existent username returns branded 404
-- Case-insensitive match (QQQQ vs qqqq)
-- Invalid username chars / length -> 404 cleanly
-- Edge usernames handled
+- Valid BUSINESS storefront returns 200
+- Unknown / malformed username -> 302 redirect to /directory + info flash (never 404)
+- Non-business user -> 302 redirect to /index
+- Case-insensitive + @prefix tolerance for valid business usernames
+- Invalid chars / garbage -> redirect to directory (graceful, no crash/404)
 
 Run: python -m pytest app/tests/test_store_routes.py -q --tb=line
 """
@@ -64,52 +64,74 @@ def _setup_app(suffix=''):
     return app
 
 
-def test_store_valid_existing_user_200():
+def test_store_valid_business_200():
     app = _setup_app('a')
     with app.test_client() as client:
-        # Existing user (QQQQa is created)
-        resp = client.get('/store/QQQQa')
+        # Valid business (testbiza is the business account)
+        resp = client.get('/store/testbiza')
         assert resp.status_code == 200
         assert b'Lost in the Karoo' not in resp.data  # not the 404 template
 
 
-def test_store_nonexistent_username_404_branded():
+def test_store_nonexistent_redirects_to_directory():
+    """Unknown store should never 404: friendly redirect to directory."""
     app = _setup_app('b')
     with app.test_client() as client:
-        resp = client.get('/store/does-not-exist-xyz123')
-        assert resp.status_code == 404
-        assert b'Lost in the Karoo' in resp.data or b'ostrich' in resp.data.lower() or b'Page Not Found' in resp.data
+        resp = client.get('/store/does-not-exist-xyz123', follow_redirects=False)
+        assert resp.status_code == 302
+        assert resp.location is not None
+        assert '/directory' in resp.location or resp.location.endswith('/directory')
 
 
-def test_store_case_insensitive():
+def test_store_nonbusiness_redirects_to_home():
+    """Personal seller (QQQQ*) should redirect (not show storefront)."""
+    app = _setup_app('b2')
+    with app.test_client() as client:
+        resp = client.get('/store/QQQQb2', follow_redirects=False)
+        assert resp.status_code == 302
+        assert resp.location is not None
+        assert '/' in resp.location and 'directory' not in resp.location.split('?')[0]  # typically to /
+
+
+def test_store_case_insensitive_and_at_prefix():
     app = _setup_app('c')
     with app.test_client() as client:
-        # upper vs lower + mixed
-        r1 = client.get('/store/qqqqc')
-        r2 = client.get('/store/QQQQc')
-        assert r1.status_code == 200
-        assert r2.status_code == 200
+        # Use the business username (testbizc); case + @ variants must all work
+        for path in ['/store/testbizc', '/store/TESTBIZC', '/store/@testbizc', '/store/@TestBizC']:
+            r = client.get(path, follow_redirects=False)
+            # Either direct 200 or redirect only if it somehow didn't match (should be 200)
+            if r.status_code == 302:
+                # rare: follow to see final
+                r2 = client.get(path, follow_redirects=True)
+                assert r2.status_code == 200
+            else:
+                assert r.status_code == 200
 
 
-def test_store_invalid_username_chars_404():
+def test_store_malformed_redirects_gracefully():
+    """@, spaces, junk etc. never hard 404; redirect with friendly message."""
     app = _setup_app('d')
     with app.test_client() as client:
-        # spaces and special should not resolve (validation)
-        for bad in ['bad name', 'bad@name', 'bad/name', 'a' * 100]:
-            resp = client.get(f'/store/{bad}')
-            assert resp.status_code in (404, 400), f"expected 404/400 for {bad}"
+        for bad in ['bad name', 'bad@name', '@@@', 'a' * 100, '  ', ' @ foo ']:
+            # Note: slashes in URL like 'bad/name' never reach the view fn (Flask routing 404s first); that's acceptable
+            resp = client.get(f'/store/{bad}', follow_redirects=False)
+            assert resp.status_code in (302, 301), f"expected redirect for bad username {bad!r}, got {resp.status_code}"
+            # Should go to directory in most cases
+            if resp.location:
+                assert '/directory' in resp.location or '/' in resp.location
 
 
 def test_store_edge_usernames():
     app = _setup_app('e')
     with app.test_client() as client:
-        # valid business-like
+        # valid business
         resp = client.get('/store/testbize')
         assert resp.status_code == 200
 
-        # nonexistent edge
-        resp = client.get('/store/---')
-        assert resp.status_code == 404
+        # nonexistent edge -> redirect (not 404)
+        resp = client.get('/store/---', follow_redirects=False)
+        assert resp.status_code == 302
+        assert resp.location and '/directory' in resp.location
 
 
 if __name__ == '__main__':

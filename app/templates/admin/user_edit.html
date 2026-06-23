@@ -98,6 +98,14 @@
                         {% endif %}
                     </div>
 
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="action" value="toggle_business_account">
+                        <button type="submit" class="btn btn-sm {{ 'btn-outline-secondary' if (user.is_business_account or user.is_business) else 'btn-warning' }}"
+                                onclick="return confirm('Toggle business account status for this user? This affects visibility in the Business Directory.');">
+                            {% if user.is_business_account or user.is_business %}Demote from Business{% else %}Make Business Account{% endif %}
+                        </button>
+                    </form>
+
                     <div>
                         {% if user.business_verified %}
                             <span class="badge bg-success">✓ Verified in Directory</span>

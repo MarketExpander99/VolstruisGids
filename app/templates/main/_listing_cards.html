@@ -48,7 +48,7 @@
                             {{ listing.user.business_name or listing.user.username }}
                         </span>
                         <span class="badge business-badge" style="font-size: 0.6rem; padding: 0.1em 0.4em; vertical-align: baseline;">BUSINESS</span>
-                        <a href="{{ url_for('main.business_storefront', username=listing.user.username) }}"
+                        <a href="{{ url_for('main.business_storefront', username=(listing.user.username or '').lstrip('@')) }}"
                            class="small text-decoration-none fw-medium"
                            style="color: #8B4513; white-space: nowrap;">
                             <i class="bi bi-shop-window me-1"></i>View store

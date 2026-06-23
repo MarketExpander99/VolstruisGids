@@ -138,6 +138,7 @@ def _handle_successful_stripe_payment(session):
         if isinstance(cust, str):
             user.stripe_customer_id = cust
         user.is_business = True
+        user.account_type = 'business'
         user.subscription_status = 'active'
         user.subscription_type = 'business_monthly'
         # period end will be set from subscription.updated webhook ideally

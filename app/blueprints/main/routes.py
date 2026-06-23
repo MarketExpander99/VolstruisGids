@@ -334,7 +334,8 @@ def api_businesses():
     query = User.query.filter(
         db.or_(
             User.is_business == True,
-            User.account_type == 'business'
+            User.account_type == 'business',
+            User.business_name.isnot(None)  # catch legacy / profile-upgraded accounts
         )
     )
 
@@ -597,63 +598,41 @@ Answer the user's question directly about this listing. If the question is unrel
 
 
 # ============================================================
-# Business Storefront (VOL-UI-POLISH-2026-06-20-SELLER-ATTRIB)
-# Public lightweight storefront for business accounts.
-# Accessed via "View store" link on business listing cards and directory.
-#
-# - Always renders for any existing user (business or not) found via lookup.
-# - If the user has zero listings (or only old ones), shows the storefront + friendly
-#   \"No listings for this user.\" message (never 404 for valid users in directory).
-# - Robust username cleaning + safe case-insensitive lookup (handles the reported
-#   cases of business accounts 404ing on View Store).
-# - All *active* (is_active=True) listings are shown on the dedicated store (not limited
-#   to 7-day freshness window used for discovery feeds).
-# - New registrations enforce safe username chars so links can't break.
+# Business Storefront (VOL-UI-STOREFRONT-ROBUST-2026-06-23)
+# Never 404 on "View Store" clicks. Gracefully handles @prefix/case/whitespace
+# variations from links or prod/dev data drift. Redirects + flash for bad cases.
+# Keeps full active listings (no 7-day limit) for valid business accounts.
 # ============================================================
 @main_bp.route('/store/<string:username>')
 def business_storefront(username):
-    import re
-    # Aggressive cleaning first (handles @, spaces, etc from links or manual entry)
-    raw = (username or '').strip()
-    clean = raw.lstrip('@').strip()
+    """Robust public storefront. Handles username formatting drift.
+    /store/valid-business -> storefront
+    /store/malformed or non-business -> flash + redirect (directory or home)
+    """
+    # Clean input (strip @, whitespace)
+    clean_username = (username or '').strip().lstrip('@')
 
-    # Soft validation - log but still attempt lookup for users that appear in directory
-    if len(clean) > 80 or (clean and not re.match(r'^[A-Za-z0-9_.-]+$', clean)):
-        current_app.logger.warning(
-            "Store: username param had unusual chars (proceeding to lookup anyway)",
-            extra={
-                'path': request.path,
-                'referrer': request.referrer,
-                'user_agent': request.headers.get('User-Agent'),
-                'username': username,
-            }
-        )
+    # Layered lookup (primary exact -> @ variant -> case-insensitive fallbacks)
+    # Works on both SQLite (dev) and PostgreSQL (prod)
+    user = User.query.filter_by(username=clean_username).first()
+    if not user:
+        user = User.query.filter_by(username='@' + clean_username).first()
+    if not user:
+        user = User.query.filter(User.username.ilike(clean_username)).first()
+    if not user:
+        user = User.query.filter(User.username.ilike('@' + clean_username)).first()
 
-    # Robust case-insensitive lookup. Directory cards + API always generate links from real users.
-    # We 404 *only* if we truly cannot find a matching user.
-    user = User.get_by_username(clean or username)
-    if user is None:
-        # Last attempt: try the raw value as-is
-        user = User.get_by_username(username)
-    if user is None:
-        current_app.logger.warning(
-            f"Store 404: username not found after cleaning",
-            extra={
-                'path': request.path,
-                'referrer': request.referrer,
-                'user_agent': request.headers.get('User-Agent'),
-                'username': username,
-                'cleaned': clean,
-            }
-        )
-        abort(404)
+    if not user:
+        flash("Store not found. Browse our Business Directory instead.", "info")
+        return redirect(url_for('main.directory'))
 
-    # NOTE: we intentionally do NOT 404 on non-business here — existing users (incl. the two problematic
-    # accounts mentioned) always resolve to their storefront (with empty state if needed).
-    # Business gating / "View Store" visibility is handled at link generation time.
+    # Business validation (support legacy is_business flag + is_business_account property)
+    if not getattr(user, 'is_business_account', False) and not getattr(user, 'is_business', False):
+        flash("This profile belongs to a personal seller. Businesses have dedicated storefronts.", "info")
+        return redirect(url_for('main.index'))
 
-    # Show ALL active listings for this user on their storefront (not just 7-day fresh).
-    # The freshness filter is for discovery feeds. A store page should show what the seller currently offers.
+    # Fetch ALL active listings for storefront (discovery feeds use 7-day freshness;
+    # a store should display the business's current active offerings).
     active_listings = (Listing.query
         .options(joinedload(Listing.user))
         .filter(
@@ -680,7 +659,11 @@ def directory():
 
     # Load a reasonable set server-side for non-JS fallback
     businesses_query = User.query.filter(
-        db.or_(User.is_business == True, User.account_type == 'business')
+        db.or_(
+            User.is_business == True,
+            User.account_type == 'business',
+            User.business_name.isnot(None)  # catch legacy / profile-upgraded accounts
+        )
     ).order_by(
         User.business_verified.desc(),
         User.business_name.asc().nullslast()
