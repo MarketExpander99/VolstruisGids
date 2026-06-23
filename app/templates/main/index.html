@@ -606,21 +606,33 @@ document.addEventListener('click', function(e) {
                     let cardExtraClasses = 'card h-100 shadow-sm border-0 post-type-' + (listing.post_type || listing.ad_type || 'sale');
                     if (isBusinessType) cardExtraClasses += ' business-listing';
 
-                    // Owner info - updated for VOL-UI-POLISH (name not clickable; separate View store for businesses)
+                    // Reinstated clickable DM links
                     let posterHTML = '';
                     const usernameClean = (listing.username || '').replace(/^@+/, '');
+                    const userIdForDM = listing.user_id || listing.poster_id || '';
+
                     if (isBusinessType) {
                         const bizName = listing.business_name || usernameClean || 'Business';
                         posterHTML = `
-                            <div class="seller-attribution mt-1 mb-2">
-                                <span class="fw-semibold small">${bizName}</span>
-                                <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem; padding:0.1em 0.4em;">BUSINESS</span>
-                                <a href="/store/${encodeURIComponent(usernameClean)}" class="small text-decoration-none fw-medium ms-1" style="color:#8B4513; white-space:nowrap;">
+                            <div class="seller-attribution mt-1 mb-2 d-flex align-items-center gap-2 flex-wrap">
+                                <a href="${userIdForDM ? '/messages/new?to_user_id=' + userIdForDM : '#'}" 
+                                   class="text-decoration-none fw-semibold small text-primary">
+                                    ${bizName}
+                                </a>
+                                <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">BUSINESS</span>
+                                <a href="/store/${encodeURIComponent(usernameClean)}" class="small text-decoration-none fw-medium ms-1" style="color:#8B4513;">
                                     <i class="bi bi-shop-window me-1"></i>View store
                                 </a>
                             </div>`;
+                    } else if (usernameClean && userIdForDM) {
+                        posterHTML = `
+                            <div class="seller-attribution mt-1 mb-2">
+                                Posted by 
+                                <a href="/messages/new?to_user_id=${userIdForDM}" 
+                                   class="text-decoration-none fw-semibold text-primary">@${usernameClean}</a>
+                            </div>`;
                     } else if (usernameClean) {
-                        posterHTML = `<div class="seller-attribution mt-1 mb-2"><span class="text-muted small">Posted by <strong class="text-dark">@${usernameClean}</strong></span></div>`;
+                        posterHTML = `<div class="seller-attribution mt-1 mb-2"><span class="text-muted small">Posted by <strong>@${usernameClean}</strong></span></div>`;
                     } else {
                         posterHTML = `<div class="seller-attribution mt-1 mb-2"><span class="text-muted small">Posted by Seller</span></div>`;
                     }

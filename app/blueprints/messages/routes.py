@@ -60,6 +60,31 @@ def inbox():
     )
 
 
+@messages_bp.route('/new')
+@login_required
+def new_message():
+    """Convenience route to start a DM (used by clickable names on index cards etc.).
+    Supports ?to_user_id= and redirects to general conversation (listing_id=0).
+    Login-gated as required.
+    """
+    to_user_id = request.args.get('to_user_id', type=int)
+    if not to_user_id:
+        flash('No recipient specified for message.', 'warning')
+        return redirect(url_for('messages.inbox'))
+
+    other_user = User.query.get(to_user_id)
+    if not other_user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('messages.inbox'))
+
+    if other_user.id == current_user.id:
+        flash('You cannot message yourself.', 'danger')
+        return redirect(url_for('messages.inbox'))
+
+    # General DM (no specific listing)
+    return redirect(url_for('messages.conversation', other_user_id=to_user_id, listing_id=0))
+
+
 @messages_bp.route('/conversation/<int:other_user_id>/<int:listing_id>')
 @login_required
 def conversation(other_user_id, listing_id):
