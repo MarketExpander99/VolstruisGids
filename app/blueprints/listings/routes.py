@@ -3,9 +3,11 @@ from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
 from app.models.category import Category, seed_categories
-from .forms import ListingForm
+from .forms import ListingForm, CommentForm
 from app.blueprints.messages.forms import MessageForm
 from . import listings_bp
+from app.models.like import Like
+from app.models.comment import Comment
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -1030,6 +1032,21 @@ def detail(listing_id):
         message_form.receiver_id.data = listing.user_id
         message_form.listing_id.data = listing.id
 
+    # Community engagement data (spec: comments + likes only on detail page)
+    comment_form = None
+    if current_user.is_authenticated and getattr(listing, 'allow_comments', True) is not False:
+        comment_form = CommentForm()
+
+    comments = []
+    try:
+        comments = Comment.query.filter_by(listing_id=listing.id).order_by(Comment.created_at.desc()).all()
+    except Exception:
+        pass
+
+    user_has_liked = False
+    if current_user.is_authenticated:
+        user_has_liked = Like.query.filter_by(user_id=current_user.id, listing_id=listing.id).first() is not None
+
     # SEO Enhancement (spec v1.0): server-rendered title, meta, OG-ready, full Product+Offer JSON-LD
     page_title = f"{listing.title} in {listing.location}, Klein Karoo | VolstruisGids"
 
@@ -1213,11 +1230,94 @@ def detail(listing_id):
     return render_template('listings/detail.html',
                            listing=listing,
                            message_form=message_form,
+                           comment_form=comment_form,
+                           comments=comments,
+                           user_has_liked=user_has_liked,
                            page_title=page_title,
                            meta_description=meta_description,
                            meta_keywords=meta_keywords,          # NEW
                            structured_data=structured_data,
                            og_image_url=og_image_url)
+
+
+# ============================================================
+# Community Engagement: Likes & Comments (spec 2026-06-25)
+# ONLY on detail page. Home shows counts + read-only previews.
+# ============================================================
+
+@listings_bp.route('/listing/<int:listing_id>/like', methods=['POST'])
+@login_required
+def toggle_like(listing_id):
+    listing = Listing.query.get_or_404(listing_id)
+
+    existing = Like.query.filter_by(user_id=current_user.id, listing_id=listing.id).first()
+
+    if existing:
+        # Unlike (no credit refund per spec)
+        db.session.delete(existing)
+        db.session.commit()
+        listing.update_counts()
+        flash('Like removed.', 'info')
+    else:
+        # New like: award 0.1 credits exactly once (unique constraint protects)
+        new_like = Like(user_id=current_user.id, listing_id=listing.id)
+        db.session.add(new_like)
+        db.session.commit()
+
+        # Award credit using existing CreditTransaction pattern (Decimal)
+        try:
+            reward = Decimal('0.1')
+            current_user.credits = (current_user.credits or Decimal('0')) + reward
+            tx = CreditTransaction(
+                user_id=current_user.id,
+                amount=reward,
+                transaction_type='like_reward',
+                reference=f'like_listing_{listing.id}'
+            )
+            db.session.add(tx)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            # Credit may already be updated in some paths; continue
+            pass
+
+        listing.update_counts()
+        flash('Thanks! You earned 0.1 credits for liking after reading the full listing.', 'success')
+
+    return redirect(url_for('listings.detail', listing_id=listing.id) + '#engagement')
+
+
+@listings_bp.route('/listing/<int:listing_id>/comment', methods=['POST'])
+@login_required
+def add_comment(listing_id):
+    listing = Listing.query.get_or_404(listing_id)
+
+    if not getattr(listing, 'allow_comments', True):
+        flash('Comments are disabled for this listing.', 'warning')
+        return redirect(url_for('listings.detail', listing_id=listing.id))
+
+    form = CommentForm()
+    if form.validate_on_submit():
+        text = (form.text.data or '').strip()
+        if text:
+            comment = Comment(
+                user_id=current_user.id,
+                listing_id=listing.id,
+                text=text
+            )
+            db.session.add(comment)
+            db.session.commit()
+            listing.update_counts()
+            flash('Comment posted.', 'success')
+        else:
+            flash('Comment cannot be empty.', 'danger')
+    else:
+        for field, errs in form.errors.items():
+            for err in errs:
+                flash(f'{err}', 'danger')
+
+    # Redirect back to detail, anchor to comments section
+    return redirect(url_for('listings.detail', listing_id=listing.id) + '#comments')
 
 
 @listings_bp.route('/category/<string:category_name>')

@@ -215,6 +215,12 @@ def apply_safe_db_updates(db):
     except Exception as ex:
         logger.warning(f"Non-fatal error creating user_ai_usage table: {ex}")
 
+    # Likes + Comments tables (Community engagement spec 2026-06-25)
+    try:
+        create_likes_comments_tables(db)
+    except Exception as ex:
+        logger.warning(f"Non-fatal error creating likes/comments tables: {ex}")
+
 
 def create_payment_tables(db):
     """Create payment_transactions table (idempotent) + ensure Stripe user columns.
@@ -438,4 +444,78 @@ def create_user_ai_usage_table(db):
             conn.commit()
         except Exception:
             pass
+
+
+def create_likes_comments_tables(db):
+    """Create likes and comments tables for community engagement (spec 2026-06-25).
+    Idempotent. Denormalized counters will be added to listings too.
+    """
+    from sqlalchemy import text
+
+    try:
+        engine = db.engine
+        inspector = inspect(engine)
+    except Exception as ex:
+        logger.warning(f"Could not obtain inspector for likes/comments tables: {ex}")
+        return
+
+    with engine.connect() as conn:
+        # likes table (unique per user+listing)
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS likes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                listing_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id),
+                FOREIGN KEY(listing_id) REFERENCES listings(id),
+                UNIQUE(user_id, listing_id)
+            )
+        """))
+        conn.commit()
+        logger.info("✅ Ensured 'likes' table exists.")
+
+        # comments table
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                listing_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id),
+                FOREIGN KEY(listing_id) REFERENCES listings(id)
+            )
+        """))
+        conn.commit()
+        logger.info("✅ Ensured 'comments' table exists.")
+
+        # Ensure denormalized counters on listings (safe add)
+        if not _column_exists(inspector, 'listings', 'likes_count'):
+            try:
+                conn.execute(text("ALTER TABLE listings ADD COLUMN likes_count INTEGER NOT NULL DEFAULT 0"))
+                conn.commit()
+                logger.info("✅ Added 'likes_count' column to listings.")
+            except Exception as e:
+                logger.warning(f"Could not add likes_count (may already exist or table partial): {e}")
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+        else:
+            logger.info("Column 'likes_count' already exists on listings — ok.")
+
+        if not _column_exists(inspector, 'listings', 'comments_count'):
+            try:
+                conn.execute(text("ALTER TABLE listings ADD COLUMN comments_count INTEGER NOT NULL DEFAULT 0"))
+                conn.commit()
+                logger.info("✅ Added 'comments_count' column to listings.")
+            except Exception as e:
+                logger.warning(f"Could not add comments_count: {e}")
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+        else:
+            logger.info("Column 'comments_count' already exists on listings — ok.")
 

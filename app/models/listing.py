@@ -46,6 +46,10 @@ class Listing(db.Model):
     photo_urls = db.Column(db.Text)  # comma-separated list of additional photo URLs (first is in photo_url)
     allow_comments = db.Column(db.Boolean, default=True, nullable=True)
     
+    # Community engagement denormalized counters (VolstruisGids spec 2026-06-25)
+    likes_count = db.Column(db.Integer, default=0, nullable=False)
+    comments_count = db.Column(db.Integer, default=0, nullable=False)
+    
     # Post Type
     post_type = db.Column(db.String(20), default='sale')   # sale, wanted, announcement, services, rental
     
@@ -58,6 +62,10 @@ class Listing(db.Model):
     
     # Fixed: relationship needed for business branding in feed
     user = db.relationship('User', backref='listings', lazy=True)
+    
+    # Social: likes & comments (spec: only on detail page; denorm counters)
+    likes = db.relationship('Like', back_populates='listing', lazy='dynamic', cascade='all, delete-orphan')
+    comments = db.relationship('Comment', back_populates='listing', lazy='dynamic', order_by='Comment.created_at.desc()', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Listing {self.title}>'
@@ -135,3 +143,30 @@ class Listing(db.Model):
     def is_active_listing(self):
         """True if this listing counts as an 'active' (non-expired) slot for free-tier rules."""
         return not self.is_expired
+
+    # ============================================================
+    # Community engagement (spec 2026-06-25)
+    # Denormalized counts to avoid COUNT(*) on every render.
+    # Call after any Like or Comment mutation.
+    # ============================================================
+    def update_counts(self):
+        """Recalculate and persist likes_count and comments_count."""
+        from app.models.like import Like
+        from app.models.comment import Comment
+        try:
+            self.likes_count = Like.query.filter_by(listing_id=self.id).count()
+            self.comments_count = Comment.query.filter_by(listing_id=self.id).count()
+            db.session.add(self)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            # Best effort; counts may lag on error
+            pass
+
+    def get_recent_comments(self, limit=3):
+        """Return up to N newest comments for card preview (read-only)."""
+        from app.models.comment import Comment
+        try:
+            return Comment.query.filter_by(listing_id=self.id).order_by(Comment.created_at.desc()).limit(limit).all()
+        except Exception:
+            return []

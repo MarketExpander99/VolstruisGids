@@ -602,6 +602,7 @@ document.addEventListener('click', function(e) {
                 data.listings.forEach(listing => {
                     const isBusinessType = listing.is_business_ad;
                     const isBoosted = listing.is_promoted;
+                    const bizLogo = (listing.profile_pic || listing.business_logo || '');
 
                     let cardExtraClasses = 'card h-100 shadow-sm border-0 post-type-' + (listing.post_type || listing.ad_type || 'sale');
                     if (isBusinessType) cardExtraClasses += ' business-listing';
@@ -615,6 +616,7 @@ document.addEventListener('click', function(e) {
                         const bizName = listing.business_name || usernameClean || 'Business';
                         posterHTML = `
                             <div class="seller-attribution mt-1 mb-2 d-flex align-items-center gap-2 flex-wrap">
+                                ${bizLogo ? `<img src="${bizLogo}" alt="Business" class="rounded-circle flex-shrink-0" width="20" height="20" style="object-fit:cover; border:1px solid #E8DFD3;">` : ''}
                                 <a href="${userIdForDM ? '/messages/new?to_user_id=' + userIdForDM : '#'}" 
                                    class="text-decoration-none fw-semibold small text-primary">
                                     ${bizName}
@@ -676,6 +678,7 @@ document.addEventListener('click', function(e) {
                                 ${isBoosted ? '<div class="promoted-banner">PROMOTED · Top Spot</div>' : ''}
                                 <div style="height:210px; position:relative; overflow:hidden; border-bottom: 1px solid #eee;">
                                     <img src="${listing.photo_url || '/static/img/default-listing.jpg'}" alt="${listing.title}" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); max-width:96%; max-height:96%; object-fit:contain; padding:8px; background-color: #f8f9fa;">
+                                    ${ (isBusinessType && bizLogo) ? `<img src="${bizLogo}" alt="Business logo" style="position:absolute; bottom:6px; left:6px; width:28px; height:28px; border-radius:50%; object-fit:cover; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.25); z-index:2; background:#fff;">` : '' }
                                 </div>
                                 <div class="card-body pb-2">
                                     ${typeBadge}
@@ -686,6 +689,19 @@ document.addEventListener('click', function(e) {
                                     <div class="small text-muted d-flex justify-content-between">
                                         <span>${listing.location}</span>
                                     </div>
+
+                                    <!-- Engagement (spec: counts + <details> previews on cards, read-only) -->
+                                    <div class="d-flex align-items-center gap-3 small text-muted mt-1 mb-1">
+                                        <span><i class="bi bi-heart-fill me-1" style="color:#8B4513;"></i>${listing.likes_count || 0}</span>
+                                        <span><i class="bi bi-chat-dots me-1"></i>${listing.comments_count || 0}</span>
+                                    </div>
+                                    ${ (listing.recent_comments && listing.recent_comments.length > 0) ? `
+                                    <details class="small mb-1">
+                                        <summary class="text-muted" style="cursor:pointer;font-size:0.75rem;">Comments preview</summary>
+                                        <div class="mt-1 ps-2" style="border-left:2px solid #E8DFD3;font-size:0.75rem;line-height:1.3;">
+                                            ${listing.recent_comments.map(c => `<div><strong>@${(c.username||'user').replace(/^@+/,'')}</strong>: ${(c.text||'').substring(0,70)}${(c.text||'').length>70?'…':''}</div>`).join('')}
+                                        </div>
+                                    </details>` : '' }
                                 </div>
                                 <div class="card-footer bg-transparent border-0 pt-0 pb-3">
                                     ${window.isLoggedIn ? `
@@ -698,7 +714,10 @@ document.addEventListener('click', function(e) {
                                         <span>Ask Grok</span>
                                     </button>` : ''}
                                     <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100 rounded-pill">
-                                        View Full Ad
+                                        Read Full &amp; Engage
+                                    </a>
+                                    <a href="${listing.detail_url}#add-comment" class="btn btn-sm btn-outline-secondary w-100 rounded-pill mt-1">
+                                        Add Comment
                                     </a>
 
                                     <!-- Share section (icon + buttons) - tracking enabled -->

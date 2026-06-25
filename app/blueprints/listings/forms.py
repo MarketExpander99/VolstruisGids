@@ -72,3 +72,9 @@ class ListingForm(FlaskForm):
         ('week', 'Week(s)'),
         ('month', 'Month(s)')
     ], default='day', validators=[Optional()])
+
+
+class CommentForm(FlaskForm):
+    """Simple comment form for detail page only (per engagement spec)."""
+    text = TextAreaField('Comment', validators=[DataRequired(), Length(min=1, max=2000)])
+    submit = SubmitField('Post Comment')

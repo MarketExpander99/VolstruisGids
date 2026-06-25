@@ -246,7 +246,18 @@ def api_listings():
         'last_reposted_at': l.last_reposted_at.isoformat() if l.last_reposted_at else None,
         'listing_type': l.listing_type,
         # === FIX: Always include profile_pic so owner pictures show on every listing ===
-        'profile_pic': l.user.profile_pic if l.user else None
+        'profile_pic': l.user.profile_pic if l.user else None,
+        # Community engagement counters + preview (spec 2026-06-25)
+        'likes_count': getattr(l, 'likes_count', 0) or 0,
+        'comments_count': getattr(l, 'comments_count', 0) or 0,
+        'recent_comments': [
+            {
+                'id': c.id,
+                'text': ((c.text or '')[:140] + ('...' if len(c.text or '') > 140 else '')),
+                'username': (c.user.username if getattr(c, 'user', None) else 'user'),
+            }
+            for c in (l.get_recent_comments(3) if hasattr(l, 'get_recent_comments') else [])
+        ]
     } for l in listings.items]
 
     # === STOREFRONT CONTEXT (for business-only storefront enforcement) ===

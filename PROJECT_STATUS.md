@@ -1937,3 +1937,35 @@ Added per-message avatars (gold-bordered, matching inbox style) on the left for 
 **Task COMPLETE** â€” new listings will be pushed to Google Indexing API on every save button.
 
 ## (end of 2026-06-25 Google Indexing entry)
+## 2026-06-25 — Community Engagement: Likes + Comments (Initial Release per spec)
+
+**Task**: Implement VolstruisGids Technical Development Specification (2026-06-25) for core social features:
+- Likes and comments ONLY accessible on the full detail page (forces reading first).
+- 0.1 credits awarded on new unique like (integrated with existing Decimal + CreditTransaction).
+- Home cards: like/comment counts + native `<details>` read-only preview (up to 3 latest).
+- "Read Full & Engage" + "Add Comment" buttons on cards link to detail + #add-comment.
+- Denormalized counters + `update_counts()` on Listing.
+- Unique constraint on (user, listing) likes.
+- Full comment list + form on detail (newest first).
+
+**Files touched** (minimal targeted):
+- app/models/like.py (new), app/models/comment.py (new)
+- app/models/__init__.py, app/__init__.py (registrations)
+- app/models/listing.py (likes_count, comments_count, relationships, update_counts + get_recent_comments)
+- app/utils/safe_db_updates.py (CREATE TABLE IF NOT EXISTS + column adds for likes/comments)
+- app/blueprints/listings/forms.py (CommentForm)
+- app/blueprints/listings/routes.py (toggle_like, add_comment routes + detail data wiring)
+- app/blueprints/main/routes.py (api_listings enrichment for counts + previews)
+- app/templates/main/_listing_cards.html (counts + details + updated CTAs)
+- app/templates/main/index.html (JS card renderer updates for feed)
+- app/templates/listings/detail.html (engagement bar + like button + comments + form + anchors)
+- PROJECT_STATUS.md (this entry)
+
+**Verification** (per rules):
+- venv python + create_app() SUCCESS, no startup errors.
+- safe_db_updates executed cleanly (tables + columns ensured).
+- python run.py launched (5s), served Flask app with zero traceback.
+- All existing credit flows untouched.
+- Follows read-full-before-engage principle.
+
+**Task COMPLETE** — engagement MVP implemented.

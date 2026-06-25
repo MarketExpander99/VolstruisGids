@@ -2,12 +2,18 @@
 {% set isBusiness = listing.is_business_ad %}
 {% set isPromoted = listing.is_promoted %}
 {% set pt = listing.post_type or 'sale' %}
+{% set biz_logo = listing.user.profile_pic if isBusiness and listing.user and listing.user.profile_pic else None %}
 <div class="col-md-6 col-lg-4 mb-4">
     <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
         {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
         {% set img_variant = ' photo' if listing.photo_url else ' no-photo' %}
-        <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" alt="{{ listing.title }}" 
-             style="height: 200px; width: 100%; background-color: #f8f9fa;">
+        <div style="position: relative; overflow: hidden; height: 200px;">
+            <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" alt="{{ listing.title }}" 
+                 style="height: 200px; width: 100%; background-color: #f8f9fa; display: block;">
+            {% if isBusiness and biz_logo %}
+            <img src="{{ biz_logo }}" alt="Business logo" style="position:absolute; bottom:6px; left:6px; width:28px; height:28px; border-radius:50%; object-fit:cover; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.25); background:#fff; z-index:2;">
+            {% endif %}
+        </div>
         
         <div class="card-body d-flex flex-column">
             <!-- v2.0 Post Type badges — now using the design system classes from custom.css -->
@@ -43,7 +49,10 @@
             <!-- Seller / Business Attribution (VOL-UI-POLISH-2026-06-20-SELLER-ATTRIB) -->
             <div class="seller-attribution mb-2">
                 {% if listing.is_business_ad and listing.user %}
-                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        {% if biz_logo %}
+                        <img src="{{ biz_logo }}" alt="Business" class="rounded-circle flex-shrink-0" width="20" height="20" style="object-fit:cover; border:1px solid #E8DFD3;">
+                        {% endif %}
                         <span class="fw-semibold">
                             {{ listing.user.business_name or listing.user.username }}
                         </span>
@@ -63,11 +72,37 @@
                 {% endif %}
             </div>
 
+            <!-- Engagement counts (spec 2026-06-25: visible on cards) -->
+            <div class="d-flex align-items-center gap-3 small text-muted mb-2">
+                <span><i class="bi bi-heart-fill me-1" style="color:#8B4513;"></i>{{ listing.likes_count or 0 }}</span>
+                <span><i class="bi bi-chat-dots me-1"></i>{{ listing.comments_count or 0 }}</span>
+            </div>
+
+            <!-- Expandable read-only comment previews (native details, zero JS, per spec) -->
+            {% set previews = listing.get_recent_comments(3) if hasattr(listing, 'get_recent_comments') else [] %}
+            {% if previews %}
+            <details class="mb-2 small">
+                <summary class="text-muted" style="cursor:pointer; font-size:0.8rem;">Comments preview ({{ previews|length }})</summary>
+                <div class="mt-1 ps-2 border-start" style="border-color:#E8DFD3;">
+                    {% for c in previews %}
+                    <div class="mb-1">
+                        <span class="fw-semibold">@{{ c.user.username if c.user else 'user' }}</span>:
+                        <span class="text-muted">{{ (c.text or '')[:80] }}{% if (c.text or '')|length > 80 %}…{% endif %}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
+
             <div class="mt-auto">
-                <!-- View button -->
+                <!-- Spec: Read full first before engaging. "Add Comment" goes to detail + anchor -->
                 <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
                    class="btn btn-outline-primary btn-sm me-2">
-                    <i class="bi bi-eye me-1"></i>View
+                    <i class="bi bi-eye me-1"></i>Read Full &amp; Engage
+                </a>
+                <a href="{{ url_for('listings.detail', listing_id=listing.id) }}#add-comment" 
+                   class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-chat me-1"></i>Add Comment
                 </a>
                 
                 <!-- FIXED: Ask Grok button using data attributes -->
