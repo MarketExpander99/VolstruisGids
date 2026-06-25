@@ -99,16 +99,10 @@ def register():
 
         db.session.commit()
 
-        total = user.credit_balance or base_credits
-        if is_launch_early:
-            if form.is_business.data:
-                flash(f'Registration successful! Welcome, early business supporter! You have received {total} credits (incl. +5 launch bonus).', 'success')
-            else:
-                flash(f'Registration successful! Welcome, early supporter! You have received {total} credits (incl. +5 launch bonus).', 'success')
-        else:
-            flash(f'Registration successful! You have received {base_credits} starting credits.', 'success')
+        # Pass email (if provided) or username for a friendlier success page
+        email_or_username = user.email or clean_username
+        return redirect(url_for('main.signup_success', email=email_or_username))
 
-        return redirect(url_for('auth.login'))
     return render_template('auth/register.html', form=form)
 
 @auth_bp.route('/logout')

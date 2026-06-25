@@ -721,3 +721,25 @@ def directory():
     return render_template('main/directory.html',
                            businesses=business_data,
                            q=q, town=town, category=category)
+
+
+# ============================================================
+# Success pages for Google Ads conversion tracking
+# ============================================================
+
+@main_bp.route('/signup-success')
+def signup_success():
+    """Shown after successful user registration.
+    Clean page with Login button. Used as Google Ads signup conversion.
+    """
+    email = request.args.get('email')
+    return render_template('auth/signup_success.html', email=email)
+
+
+@main_bp.route('/purchase-success')
+def purchase_success():
+    """Shown after successful Yoco (or Stripe) payment.
+    Clean thank-you page with Continue button to homepage.
+    Used as Google Ads purchase conversion.
+    """
+    return render_template('payments/purchase_success.html')

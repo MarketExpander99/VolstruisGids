@@ -777,21 +777,8 @@ def payment_success():
         except Exception as fb_err:
             logger.warning(f"payment_success recent txn fallback error: {fb_err}")
 
-    if granted > 0:
-        flash(f'✅ Payment successful! {granted} credits have been added to your account.', 'success')
-    else:
-        # Check if it was a pass purchase (via recent Payment)
-        was_pass = False
-        if checkout_id:
-            p = Payment.query.filter_by(yoco_checkout_id=checkout_id).first()
-            if p and not p.listing_id:
-                was_pass = True
-        if was_pass:
-            flash('✅ Payment successful! Your Unlimited Credit Pass is now active.', 'success')
-        else:
-            flash('Payment successful! Your credits/promotion will be activated shortly.', 'success')
-
-    return redirect(url_for('payments.buy_credits'))
+    # Redirect to dedicated clean thank-you page (for Google Ads conversion tracking)
+    return redirect(url_for('main.purchase_success'))
 
 
 @payments_bp.route('/payment-cancel')
@@ -1190,8 +1177,8 @@ def stripe_success():
         except Exception as e:
             logger.error(f"Stripe success retrieve error: {e}")
 
-    flash('✅ Payment successful! Credits (and subscription status if applicable) will be updated shortly.', 'success')
-    return redirect(url_for('payments.credits_billing'))
+    # Redirect to dedicated clean thank-you page (for Google Ads conversion tracking)
+    return redirect(url_for('main.purchase_success'))
 
 
 @payments_bp.route('/stripe-cancel')
