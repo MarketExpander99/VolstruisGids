@@ -84,5 +84,13 @@ class Config:
     UPLOAD_FOLDER = os.path.join('app', 'static', 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB total request limit
 
+    # === Google Indexing API (for fast listing indexing in Google Search) ===
+    # Path to the service account JSON key (downloaded from Google Cloud).
+    # Place the file at config/volstruisgids-indexing-key.json (or set env var).
+    # NEVER commit the key file. See docs in google_indexing.py
+    GOOGLE_INDEXING_KEY_FILE = _clean_env_value(
+        os.getenv('GOOGLE_INDEXING_KEY_FILE')
+    ) or 'config/volstruisgids-indexing-key.json'
+
 # After class definition, we can add debug when module loads, but better in create_app
 # The debug will be printed in create_app below.

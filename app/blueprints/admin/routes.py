@@ -23,6 +23,7 @@ from app.blueprints.admin.forms import (
 from app.utils.admin import (
     admin_required, is_admin, log_admin_action, generate_temp_password
 )
+from app.services.google_indexing import notify_listing_change
 
 
 @admin_bp.route('/')
@@ -232,10 +233,18 @@ def listing_edit(listing_id):
             try:
                 # Detach any messages referencing this listing (FK is nullable)
                 Message.query.filter_by(listing_id=listing.id).update({Message.listing_id: None})
+                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
                 log_admin_action('delete_listing', 'listing', listing.id,
                                  f"title={listing.title[:60]} user_id={listing.user_id}")
                 db.session.delete(listing)
                 db.session.commit()
+
+                # Google Indexing: remove from search
+                try:
+                    notify_listing_change(listing_url, "URL_DELETED")
+                except Exception as _e:
+                    print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
                 flash('Listing permanently deleted.', 'success')
                 return redirect(url_for('admin.listings'))
             except Exception as e:
@@ -247,6 +256,14 @@ def listing_edit(listing_id):
             listing.is_active = False
             db.session.commit()
             log_admin_action('deactivate_listing', 'listing', listing.id, '')
+
+            # Google Indexing: remove from search (soft delete)
+            try:
+                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+                notify_listing_change(listing_url, "URL_DELETED")
+            except Exception as _e:
+                print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
             flash('Listing deactivated (hidden from public).', 'success')
             return redirect(url_for('admin.listing_edit', listing_id=listing.id))
 
@@ -256,6 +273,14 @@ def listing_edit(listing_id):
             listing.description = form.description.data.strip()
             db.session.commit()
             log_admin_action('edit_listing', 'listing', listing.id, f"title={listing.title[:50]}")
+
+            # Google Indexing: updated content
+            try:
+                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+                notify_listing_change(listing_url, "URL_UPDATED")
+            except Exception as _e:
+                print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
             flash('Listing updated.', 'success')
             return redirect(url_for('admin.listing_edit', listing_id=listing.id))
 

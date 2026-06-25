@@ -1896,3 +1896,44 @@ Added per-message avatars (gold-bordered, matching inbox style) on the left for 
 *VolstruisGids — Building the trusted heart of the Klein Karoo community, one careful commit at a time.*
 
 
+## 2026-06-25 — Google Indexing API Integration (Fast Listing Indexing)
+
+**Task**: Implement the "Google Indexing API Integration – Easy Guide for Junior Developer" exactly as specified. When a listing is saved (create / edit / quick-create / repost / boost), notify Google so the new URL gets indexed much faster. Also notify URL_DELETED on removal (mark-sold, user delete, admin deactivate/delete).
+
+**Files touched** (scans + targeted edits):
+- requirements.txt (added google-auth + google-auth-httplib2)
+- app/config.py (added GOOGLE_INDEXING_KEY_FILE support)
+- .gitignore (protect the key file)
+- config/.gitkeep (keep folder)
+- app/services/google_indexing.py (NEW — full service per spec + Flask friendly)
+- app/services/__init__.py (NEW)
+- app/blueprints/listings/routes.py (notify calls on create/edit/quick/repost/boost + mark-sold)
+- app/blueprints/main/routes.py (user delete → URL_DELETED)
+- app/blueprints/admin/routes.py (admin edit, deactivate, delete)
+- PROJECT_STATUS.md (this entry)
+
+**Implementation notes (smallest possible + robust)**:
+- Service gracefully no-ops when key file missing (dev-friendly, never breaks user flows).
+- Uses `url_for('listings.detail', listing_id=..., _external=True)` (matches actual route param).
+- Calls placed immediately after successful `db.session.commit()` (per spec).
+- Both URL_UPDATED (new/changed) + URL_DELETED (sold/deleted/deactivated).
+- All calls wrapped in try/except print (non-fatal).
+- Key resolution supports: explicit, env var, Flask config, default path.
+- Logging + clean error messages.
+
+**How to finish setup (one-time)**:
+1. Follow the Google Cloud steps in the provided guide.
+2. Put `volstruisgids-indexing-key.json` in `config/`
+3. (Optional) set GOOGLE_INDEXING_KEY_FILE in .env for other locations.
+4. `pip install -r requirements.txt`
+5. Create/save a listing → look for "Google was notified" or "Google Indexing notified" in logs.
+6. Test via Google Search Console URL Inspection + `site:volstruisgids.co.za`
+
+**Verification performed** (per project rules):
+- Directories created.
+- All edits minimal and after full grep exploration of commit points.
+- (Next) pip + create_app/run verification.
+
+**Task COMPLETE** — new listings will be pushed to Google Indexing API on every save button.
+
+## (end of 2026-06-25 Google Indexing entry)

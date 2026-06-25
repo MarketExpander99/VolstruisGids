@@ -114,3 +114,8 @@ dmypy.json
 # Database
 *.db
 *.sqlite
+
+# Google Indexing API service account key (never commit!)
+config/volstruisgids-indexing-key.json
+config/*.json
+!config/.gitkeep

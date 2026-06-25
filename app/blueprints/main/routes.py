@@ -11,6 +11,7 @@ from app.models.user_ai_usage import UserAIUsage
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, or_
 from . import main_bp
+from app.services.google_indexing import notify_listing_change
 
 # Press releases data (easy to maintain)
 try:
@@ -473,8 +474,19 @@ def delete_listing(listing_id):
     if listing.user_id != current_user.id:
         flash('You can only delete your own listings.', 'danger')
         return redirect(url_for('main.my_listings'))
+
+    # Capture URL before hard delete for Google removal
+    listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+
     db.session.delete(listing)
     db.session.commit()
+
+    # === Google Indexing API: remove permanently deleted listing ===
+    try:
+        notify_listing_change(listing_url, "URL_DELETED")
+    except Exception as _e:
+        print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
     flash('Listing deleted successfully', 'success')
     return redirect(url_for('main.my_listings'))
 

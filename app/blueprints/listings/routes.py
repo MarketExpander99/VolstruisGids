@@ -18,6 +18,7 @@ import json as pyjson
 import re
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
+from app.services.google_indexing import notify_listing_change
 
 UPLOAD_FOLDER = 'app/static/uploads'  # fallback; prefer current_app.config['UPLOAD_FOLDER']
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -414,6 +415,13 @@ def create():
             db.session.commit()
             print(f"[LISTINGS CREATE] COMMIT SUCCESS id={listing.id}")
 
+            # === Google Indexing API: tell Google about the new listing URL ===
+            try:
+                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+                notify_listing_change(listing_url, "URL_UPDATED")
+            except Exception as _e:
+                print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
             action = request.form.get('action') or request.form.get('submit_action')
             if required_credits == 0:
                 if has_unlimited:
@@ -591,6 +599,14 @@ def edit_listing(listing_id):
         try:
             db.session.commit()
             flash('Listing updated successfully!', 'success')
+
+            # === Google Indexing API: notify on update ===
+            try:
+                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+                notify_listing_change(listing_url, "URL_UPDATED")
+            except Exception as _e:
+                print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
             return redirect(url_for('main.my_listings'))
         except Exception as e:
             db.session.rollback()
@@ -732,6 +748,14 @@ def quick_create():
         try:
             db.session.add(listing)
             db.session.commit()
+
+            # === Google Indexing API: notify on quick-create ===
+            try:
+                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+                notify_listing_change(listing_url, "URL_UPDATED")
+            except Exception as _e:
+                print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
             if has_unlimited:
                 flash('Listing saved with your Unlimited Pass (no credits used)! All photos free.', 'success')
             else:
@@ -757,6 +781,14 @@ def boost(listing_id):
         listing.is_promoted = True
         listing.last_reposted_at = datetime.utcnow()
         db.session.commit()
+
+        # === Google Indexing API: boosted listing is "updated" ===
+        try:
+            listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+            notify_listing_change(listing_url, "URL_UPDATED")
+        except Exception as _e:
+            print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
         flash('Listing boosted for 7 days! It now has a PROMOTED badge and extra visibility.', 'success')
     except Exception as e:
         db.session.rollback()
@@ -806,6 +838,13 @@ def repost_listing(listing_id):
         )
         db.session.add(tx)
         db.session.commit()
+
+        # === Google Indexing API: repost = fresh content, notify Google ===
+        try:
+            listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+            notify_listing_change(listing_url, "URL_UPDATED")
+        except Exception as _e:
+            print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
 
         flash("Listing reposted! It is now visible on the homepage again.", "success")
     except Exception as e:
@@ -956,6 +995,14 @@ def mark_sold(listing_id):
     try:
         listing.is_active = False
         db.session.commit()
+
+        # === Google Indexing API: remove from search results ===
+        try:
+            listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+            notify_listing_change(listing_url, "URL_DELETED")
+        except Exception as _e:
+            print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
         flash('Listing marked as sold. Your slot is now free.', 'success')
     except Exception as e:
         db.session.rollback()
