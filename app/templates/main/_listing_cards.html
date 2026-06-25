@@ -4,15 +4,12 @@
 {% set pt = listing.post_type or 'sale' %}
 {% set biz_logo = listing.user.profile_pic if isBusiness and listing.user and listing.user.profile_pic else None %}
 <div class="col-md-6 col-lg-4 mb-4">
-    <div class="card h-100 shadow-sm post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
+    <div class="card h-100 shadow-sm border-0 position-relative post-type-{{ pt }} {{ 'business-listing' if isBusiness else '' }} {{ 'boosted' if isPromoted else '' }}">
         {% set photo_src = listing.photo_url or '/static/img/default-listing.jpg' %}
-        {% set img_variant = ' photo' if listing.photo_url else ' no-photo' %}
-        <div style="position: relative; overflow: hidden; height: 200px;">
-            <img src="{{ photo_src }}" class="card-img-top{{ img_variant }}" alt="{{ listing.title }}" 
-                 style="height: 200px; width: 100%; background-color: #f8f9fa; display: block;">
-            {% if isBusiness and biz_logo %}
-            <img src="{{ biz_logo }}" alt="Business logo" style="position:absolute; bottom:6px; left:6px; width:28px; height:28px; border-radius:50%; object-fit:cover; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.25); background:#fff; z-index:2;">
-            {% endif %}
+        <!-- Image: 16:9 for consistency (layout polish per spec) - NO logo in image area -->
+        <div class="position-relative overflow-hidden" style="aspect-ratio: 16 / 9;">
+            <img src="{{ photo_src }}" class="card-img-top w-100" alt="{{ listing.title }}" 
+                 style="height: 100%; width: 100%; object-fit: cover; background-color: #f8f9fa; display: block;">
         </div>
         
         <div class="card-body d-flex flex-column">
@@ -40,23 +37,21 @@
                 {% endif %}
             </div>
 
-            <h5 class="card-title">{{ listing.title }}</h5>
-            <p class="text-success fw-bold">{{ listing.get_display_price() }}</p>
-            <p class="card-text text-muted small">
-                {{ listing.area }} · {{ listing.created_at.strftime('%d %b %Y') }}
-            </p>
+            <h5 class="card-title fw-semibold mb-2" style="font-size: 1.05rem; line-height: 1.3;">{{ listing.title }}</h5>
 
-            <!-- Seller / Business Attribution (VOL-UI-POLISH-2026-06-20-SELLER-ATTRIB) -->
+            <p class="text-success fw-bold mb-2">{{ listing.get_display_price() }}</p>
+
+            <!-- Meta grouped cleanly: Seller (single logo) + Location + Engagement -->
             <div class="seller-attribution mb-2">
                 {% if listing.is_business_ad and listing.user %}
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                         {% if biz_logo %}
-                        <img src="{{ biz_logo }}" alt="Business" class="rounded-circle flex-shrink-0" width="20" height="20" style="object-fit:cover; border:1px solid #E8DFD3;">
+                        <img src="{{ biz_logo }}" alt="{{ listing.user.business_name or 'Business' }}" class="rounded-circle flex-shrink-0" width="28" height="28" style="object-fit:cover; border:1px solid #E8DFD3;">
                         {% endif %}
-                        <span class="fw-semibold">
+                        <span class="fw-semibold small">
                             {{ listing.user.business_name or listing.user.username }}
                         </span>
-                        <span class="badge business-badge" style="font-size: 0.6rem; padding: 0.1em 0.4em; vertical-align: baseline;">BUSINESS</span>
+                        <span class="badge business-badge" style="font-size: 0.6rem; padding: 0.1em 0.4em;">BUSINESS</span>
                         <a href="{{ url_for('main.business_storefront', username=(listing.user.username or '').lstrip('@')) }}"
                            class="small text-decoration-none fw-medium"
                            style="color: #8B4513; white-space: nowrap;">
@@ -64,18 +59,26 @@
                         </a>
                     </div>
                 {% elif listing.user %}
-                    <span class="text-muted small">
+                    <div class="small text-muted mb-1">
                         Posted by <strong class="text-dark">@{{ listing.user.username }}</strong>
-                    </span>
+                    </div>
                 {% else %}
-                    <span class="text-muted small">Posted by Seller</span>
+                    <div class="small text-muted mb-1">Posted by Seller</div>
                 {% endif %}
-            </div>
 
-            <!-- Engagement counts (spec 2026-06-25: visible on cards) -->
-            <div class="d-flex align-items-center gap-3 small text-muted mb-2">
-                <span><i class="bi bi-heart-fill me-1" style="color:#8B4513;"></i>{{ listing.likes_count or 0 }}</span>
-                <span><i class="bi bi-chat-dots me-1"></i>{{ listing.comments_count or 0 }}</span>
+                <!-- Location -->
+                <div class="d-flex align-items-center text-muted small mb-1">
+                    <i class="bi bi-geo-alt me-1"></i>
+                    <span>{{ listing.area }}</span>
+                    <span class="mx-1">·</span>
+                    <span>{{ listing.created_at.strftime('%d %b %Y') }}</span>
+                </div>
+
+                <!-- Engagement Metrics -->
+                <div class="d-flex align-items-center gap-3 small text-muted">
+                    <span><i class="bi bi-heart-fill me-1" style="color:#8B4513;"></i>{{ listing.likes_count or 0 }}</span>
+                    <span><i class="bi bi-chat-dots me-1"></i>{{ listing.comments_count or 0 }}</span>
+                </div>
             </div>
 
             <!-- Expandable read-only comment previews (native details, zero JS, per spec) -->
@@ -94,46 +97,67 @@
             </details>
             {% endif %}
 
-            <div class="mt-auto">
-                <!-- Spec: Read full first before engaging. "Add Comment" goes to detail + anchor -->
-                <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
-                   class="btn btn-outline-primary btn-sm me-2">
-                    <i class="bi bi-eye me-1"></i>Read Full &amp; Engage
-                </a>
-                <a href="{{ url_for('listings.detail', listing_id=listing.id) }}#add-comment" 
-                   class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-chat me-1"></i>Add Comment
-                </a>
-                
-                <!-- FIXED: Ask Grok button using data attributes -->
+            <!-- v2: X-style horizontal bottom action bar (layout only, full functionality preserved) -->
+            <div class="mt-auto pt-2">
+                <!-- Grok kept above the bar (data attributes and behavior 100% unchanged) -->
                 <button type="button" 
-                        class="btn btn-outline-secondary btn-sm grok-ask-btn"
+                        class="btn btn-outline-secondary btn-sm w-100 mb-2 grok-ask-btn"
                         data-grok-listing-id="{{ listing.id }}"
                         data-grok-title="{{ listing.title | e }}"
                         data-grok-description="{{ (listing.description or '') | e }}"
                         data-grok-area="{{ listing.area | e }}">
                     <i class="bi bi-robot me-1"></i>Ask Grok
                 </button>
-                
+
                 {% if current_user.is_authenticated and listing.user_id == current_user.id %}
                 <form action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" 
-                      method="POST" class="d-inline"
+                      method="POST" class="d-inline mb-2"
                       onsubmit="return confirm('Delete this listing permanently?');">
-                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete</button>
+                    <button type="submit" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash me-1"></i>Delete</button>
                 </form>
                 {% endif %}
 
+                <!-- X-style action bar -->
+                <div class="d-flex align-items-center justify-content-between border-top pt-3">
+                    <!-- Left: Icon actions (X/Twitter style) -->
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Comment icon + count -->
+                        <a href="{{ url_for('listings.detail', listing_id=listing.id) }}#add-comment"
+                           class="text-muted text-decoration-none d-flex align-items-center gap-1"
+                           title="Add Comment">
+                            <i class="bi bi-chat fs-5"></i>
+                            <span class="small fw-medium">{{ listing.comments_count or 0 }}</span>
+                        </a>
+
+                        <!-- Share icon (shows the share options) -->
+                        <button type="button"
+                                class="btn btn-link p-0 m-0 text-muted d-flex align-items-center"
+                                onclick="(function(b){ var card=b.closest('.card'); var cont=card.querySelector('.share-container'); if(cont){ cont.style.display='block'; var btns=cont.querySelector('.share-buttons-container'); if(btns) btns.style.display='flex'; } })(this); return false;"
+                                title="Share this Listing"
+                                aria-label="Share">
+                            <i class="bi bi-share fs-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Right: Primary Read Full CTA -->
+                    <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" 
+                       class="btn btn-outline-primary btn-sm px-3 py-1 fw-semibold d-flex align-items-center gap-1 text-nowrap rounded-pill">
+                        View Full Ad
+                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    </a>
+                </div>
+
+                <!-- Full share UI preserved exactly (hidden by default, toggled by the icon above) -->
                 {% set detail_abs = url_for('listings.detail', listing_id=listing.id, _external=True) %}
                 {% set share_text = 'Check out this listing on Volstruis Gids: ' ~ listing.title %}
                 {% set wa_url = 'https://wa.me/?text=' ~ ((share_text + ' ' + detail_abs) | urlencode) %}
                 {% set fb_url = 'https://www.facebook.com/sharer/sharer.php?u=' ~ (detail_abs | urlencode) %}
                 {% set x_url = 'https://twitter.com/intent/tweet?text=' ~ (share_text | urlencode) ~ '&url=' ~ (detail_abs | urlencode) %}
 
-                <!-- Share section (icon + buttons) - server tracking for 0.5 credit rewards -->
-                <div class="share-container" style="margin: 10px 0 0 0; padding: 0;">
+                <div class="share-container" style="margin: 6px 0 0 0; padding: 0; display:none;">
                     <div class="d-flex align-items-center justify-content-center mb-1 share-header w-100" onclick="toggleShareButtons(this)">
                         <i class="bi bi-share fs-6 text-muted me-2"></i>
-                        <span class="fw-semibold small text-muted">Share this Listing</span>
+                        <span class="fw-semibold small text-muted">Share options</span>
                     </div>
                     <div class="share-buttons-container flex-column gap-1" style="display:none; padding: 0; align-items: center;">
                         <button type="button"
@@ -143,7 +167,7 @@
                                 onclick="shareWithReward(this)"
                                 title="Share on WhatsApp">
                             <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
-                            <span>Share on WhatsApp</span>
+                            <span>WhatsApp</span>
                         </button>
                         <button type="button"
                                 class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
@@ -153,7 +177,7 @@
                                 style="background-color: #1877F2; color: #fff; border: none;"
                                 title="Share on Facebook">
                             <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
-                            <span>Share on Facebook</span>
+                            <span>Facebook</span>
                         </button>
                         <button type="button"
                                 class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
@@ -163,7 +187,7 @@
                                 style="background-color: #000000; color: #fff; border: none;"
                                 title="Share on X">
                             <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
-                            <span>Share on X</span>
+                            <span>X</span>
                         </button>
                     </div>
                 </div>

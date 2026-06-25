@@ -7,6 +7,8 @@ from app import db
 from app.models.user import User
 from app.models.credit_transaction import CreditTransaction
 from app.models.listing import Listing
+from app.models.like import Like
+from app.models.comment import Comment
 from .forms import ProfileForm
 import requests
 from werkzeug.utils import secure_filename
@@ -121,6 +123,12 @@ def profile():
     listings = Listing.query.filter_by(user_id=current_user.id)\
         .order_by(Listing.created_at.desc()).all()
 
+    # My interactions data (for refined activity list)
+    liked_records = Like.query.filter_by(user_id=current_user.id).order_by(Like.created_at.desc()).limit(8).all()
+    liked_interactions = [rec for rec in liked_records if rec.listing]
+
+    user_comments = Comment.query.filter_by(user_id=current_user.id).order_by(Comment.created_at.desc()).limit(8).all()
+
     is_business = current_user.is_business_account
     account_type_label = 'Business' if is_business else 'Personal'
     credit_balance = current_user.credit_balance or Decimal('0')
@@ -131,5 +139,7 @@ def profile():
         form=form,
         credit_balance=credit_balance,
         is_business=is_business,
-        account_type_label=account_type_label
+        account_type_label=account_type_label,
+        liked_interactions=liked_interactions,
+        user_comments=user_comments
     )

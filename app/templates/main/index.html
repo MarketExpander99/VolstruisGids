@@ -604,7 +604,7 @@ document.addEventListener('click', function(e) {
                     const isBoosted = listing.is_promoted;
                     const bizLogo = (listing.profile_pic || listing.business_logo || '');
 
-                    let cardExtraClasses = 'card h-100 shadow-sm border-0 post-type-' + (listing.post_type || listing.ad_type || 'sale');
+                    let cardExtraClasses = 'card h-100 shadow-sm border-0 position-relative post-type-' + (listing.post_type || listing.ad_type || 'sale');
                     if (isBusinessType) cardExtraClasses += ' business-listing';
 
                     // Reinstated clickable DM links
@@ -615,8 +615,8 @@ document.addEventListener('click', function(e) {
                     if (isBusinessType) {
                         const bizName = listing.business_name || usernameClean || 'Business';
                         posterHTML = `
-                            <div class="seller-attribution mt-1 mb-2 d-flex align-items-center gap-2 flex-wrap">
-                                ${bizLogo ? `<img src="${bizLogo}" alt="Business" class="rounded-circle flex-shrink-0" width="20" height="20" style="object-fit:cover; border:1px solid #E8DFD3;">` : ''}
+                            <div class="seller-attribution mt-1 mb-1 d-flex align-items-center gap-2 flex-wrap">
+                                ${bizLogo ? `<img src="${bizLogo}" alt="Business" class="rounded-circle flex-shrink-0" width="28" height="28" style="object-fit:cover; border:1px solid #E8DFD3;">` : ''}
                                 <a href="${userIdForDM ? '/messages/new?to_user_id=' + userIdForDM : '#'}" 
                                    class="text-decoration-none fw-semibold small text-primary">
                                     ${bizName}
@@ -676,25 +676,31 @@ document.addEventListener('click', function(e) {
                         <div class="col-md-6 col-lg-4 mb-3">
                             <div class="${cardExtraClasses}">
                                 ${isBoosted ? '<div class="promoted-banner">PROMOTED · Top Spot</div>' : ''}
-                                <div style="height:210px; position:relative; overflow:hidden; border-bottom: 1px solid #eee;">
-                                    <img src="${listing.photo_url || '/static/img/default-listing.jpg'}" alt="${listing.title}" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); max-width:96%; max-height:96%; object-fit:contain; padding:8px; background-color: #f8f9fa;">
-                                    ${ (isBusinessType && bizLogo) ? `<img src="${bizLogo}" alt="Business logo" style="position:absolute; bottom:6px; left:6px; width:28px; height:28px; border-radius:50%; object-fit:cover; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.25); z-index:2; background:#fff;">` : '' }
+                                <!-- 16:9 image, no logo badge in photo area (removes duplication per spec) -->
+                                <div style="aspect-ratio: 16 / 9; position:relative; overflow:hidden; border-bottom: 1px solid #eee;">
+                                    <img src="${listing.photo_url || '/static/img/default-listing.jpg'}" alt="${listing.title}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; background-color: #f8f9fa;">
                                 </div>
                                 <div class="card-body pb-2">
                                     ${typeBadge}
-                                    <h6 class="card-title mb-1 fw-semibold" style="line-height:1.3;">${listing.title}</h6>
-                                    <div class="small text-muted mb-2" style="line-height:1.35;">${listing.description ? listing.description.substring(0,95) + (listing.description.length > 95 ? '...' : '') : ''}</div>
-                                    ${priceHTML}
-                                    ${posterHTML}
-                                    <div class="small text-muted d-flex justify-content-between">
-                                        <span>${listing.location}</span>
+                                    <h6 class="card-title mb-1 fw-semibold" style="line-height:1.3; font-size:1.02rem;">${listing.title}</h6>
+
+                                    <!-- Truncated description (3-line clamp for clean hierarchy) -->
+                                    <div class="small text-muted mb-2" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.35;">
+                                        ${listing.description ? listing.description.substring(0,95) + (listing.description.length > 95 ? '...' : '') : ''}
                                     </div>
 
-                                    <!-- Engagement (spec: counts + <details> previews on cards, read-only) -->
-                                    <div class="d-flex align-items-center gap-3 small text-muted mt-1 mb-1">
+                                    ${priceHTML}
+
+                                    <!-- Grouped meta: seller (with single logo) + location + engagement -->
+                                    ${posterHTML}
+                                    <div class="d-flex align-items-center text-muted small mb-1">
+                                        <i class="bi bi-geo-alt me-1"></i><span>${listing.location}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3 small text-muted mb-1">
                                         <span><i class="bi bi-heart-fill me-1" style="color:#8B4513;"></i>${listing.likes_count || 0}</span>
                                         <span><i class="bi bi-chat-dots me-1"></i>${listing.comments_count || 0}</span>
                                     </div>
+
                                     ${ (listing.recent_comments && listing.recent_comments.length > 0) ? `
                                     <details class="small mb-1">
                                         <summary class="text-muted" style="cursor:pointer;font-size:0.75rem;">Comments preview</summary>
@@ -703,9 +709,12 @@ document.addEventListener('click', function(e) {
                                         </div>
                                     </details>` : '' }
                                 </div>
-                                <div class="card-footer bg-transparent border-0 pt-0 pb-3">
+
+                                <!-- v2 X-style horizontal bottom action bar (layout polish only) -->
+                                <div class="card-footer bg-transparent border-0 pt-2 pb-3">
                                     ${window.isLoggedIn ? `
-                                    <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-pill grok-ask-btn"
+                                    <button type="button" 
+                                            class="btn btn-outline-secondary btn-sm w-100 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-pill grok-ask-btn"
                                             data-grok-listing-id="${listing.id}"
                                             data-grok-title="${(listing.title || '').replace(/"/g, '&quot;')}"
                                             data-grok-description="${(listing.description || '').replace(/"/g, '&quot;').substring(0,180)}"
@@ -713,18 +722,42 @@ document.addEventListener('click', function(e) {
                                         <img src="${GROK_LOGO_URL}" alt="Grok" height="15" style="vertical-align: middle;">
                                         <span>Ask Grok</span>
                                     </button>` : ''}
-                                    <a href="${listing.detail_url}" class="btn btn-sm btn-outline-primary w-100 rounded-pill">
-                                        Read Full &amp; Engage
-                                    </a>
-                                    <a href="${listing.detail_url}#add-comment" class="btn btn-sm btn-outline-secondary w-100 rounded-pill mt-1">
-                                        Add Comment
-                                    </a>
 
-                                    <!-- Share section (icon + buttons) - tracking enabled -->
-                                    <div class="share-container" style="margin: 10px 0 0 0; padding: 0;">
+                                    <!-- X-style action bar: icons left, primary CTA right -->
+                                    <div class="d-flex align-items-center justify-content-between border-top pt-3">
+                                        <!-- Left: compact icon actions (X/Twitter style) -->
+                                        <div class="d-flex align-items-center gap-3">
+                                            <!-- Comment -->
+                                            <a href="${listing.detail_url}#add-comment" 
+                                               class="text-muted text-decoration-none d-flex align-items-center gap-1"
+                                               title="Add Comment">
+                                                <i class="bi bi-chat fs-5"></i>
+                                                <span class="small fw-medium">${listing.comments_count || 0}</span>
+                                            </a>
+
+                                            <!-- Share icon (toggles the share options below the bar) -->
+                                            <button type="button"
+                                                    class="btn btn-link p-0 m-0 text-muted d-flex align-items-center"
+                                                    onclick="(function(btn){ var card=btn.closest('.card'); var cont=card.querySelector('.share-container'); if(cont){ cont.style.display = (cont.style.display==='none' || cont.style.display==='' ) ? 'block' : 'none'; var hdr=cont.querySelector('.share-header'); if(hdr && cont.style.display==='block') toggleShareButtons(hdr); } })(this); return false;"
+                                                    title="Share this Listing"
+                                                    aria-label="Share">
+                                                <i class="bi bi-share fs-5"></i>
+                                            </button>
+                                        </div>
+
+                                        <!-- Right: Primary "Read Full" CTA -->
+                                        <a href="${listing.detail_url}" 
+                                           class="btn btn-outline-primary btn-sm px-3 py-1 fw-semibold d-flex align-items-center gap-1 text-nowrap rounded-pill">
+                                            Read Full
+                                            <i class="bi bi-arrow-right-short fs-5"></i>
+                                        </a>
+                                    </div>
+
+                                    <!-- Existing share buttons container (kept for functionality, hidden until toggled) -->
+                                    <div class="share-container" style="margin: 6px 0 0 0; padding: 0; display: none;">
                                         <div class="d-flex align-items-center justify-content-center mb-1 share-header w-100" onclick="toggleShareButtons(this)">
                                             <i class="bi bi-share fs-6 text-muted me-2"></i>
-                                            <span class="fw-semibold small text-muted">Share this Listing</span>
+                                            <span class="fw-semibold small text-muted">Share</span>
                                         </div>
                                         <div class="share-buttons-container flex-column gap-1" style="display:none; padding: 0; align-items: center;">
                                             <button type="button"
@@ -734,7 +767,7 @@ document.addEventListener('click', function(e) {
                                                     onclick="shareWithReward(this)"
                                                     title="Share on WhatsApp">
                                                 <i class="bi bi-whatsapp" style="font-size:0.9rem;"></i>
-                                                <span>Share on WhatsApp</span>
+                                                <span>WhatsApp</span>
                                             </button>
                                             <button type="button"
                                                     class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
@@ -744,7 +777,7 @@ document.addEventListener('click', function(e) {
                                                     style="background-color: #1877F2; color: #fff; border: none;"
                                                     title="Share on Facebook">
                                                 <i class="bi bi-facebook" style="font-size:0.9rem;"></i>
-                                                <span>Share on Facebook</span>
+                                                <span>Facebook</span>
                                             </button>
                                             <button type="button"
                                                     class="btn btn-sm d-flex align-items-center gap-2 px-2 py-1 rounded-pill share-btn"
@@ -754,7 +787,7 @@ document.addEventListener('click', function(e) {
                                                     style="background-color: #000000; color: #fff; border: none;"
                                                     title="Share on X">
                                                 <i class="bi bi-twitter-x" style="font-size:0.9rem;"></i>
-                                                <span>Share on X</span>
+                                                <span>X</span>
                                             </button>
                                         </div>
                                     </div>
