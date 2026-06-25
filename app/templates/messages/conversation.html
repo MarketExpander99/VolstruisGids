@@ -83,7 +83,7 @@
 
         <!-- Input -->
         <div class="chat-input p-3" style="background: #fff; border-top: 1px solid #E8D9C2; flex-shrink: 0;">
-            <form method="POST" action="{{ url_for('messages.send_message') }}" class="d-flex flex-column flex-md-row gap-2 align-items-stretch">
+            <form id="chat-form" method="POST" action="{{ url_for('messages.send_message') }}" class="d-flex flex-column flex-md-row gap-2 align-items-stretch">
                 {{ form.hidden_tag() }}
                 <div class="flex-grow-1">
                     {{ form.text(class="form-control", placeholder="Type your reply...", rows=2, style="border-radius: 14px;") }}
@@ -145,7 +145,106 @@
 <script>
     (function() {
         const thread = document.getElementById('message-thread');
-        if (thread) thread.scrollTop = thread.scrollHeight;
+        const form = document.getElementById('chat-form');
+        const textarea = form ? form.querySelector('textarea, [name="text"]') : null;
+
+        function scrollToBottom() {
+            if (thread) {
+                thread.scrollTop = thread.scrollHeight;
+            }
+        }
+
+        function appendSentMessage(text, time) {
+            if (!thread) return;
+            const row = document.createElement('div');
+            row.className = 'message-row d-flex mb-1 sent';
+            row.innerHTML = `
+                <div class="message-bubble sent d-flex flex-column">
+                    <div class="sender-label you">You</div>
+                    <div class="message-text"></div>
+                    <div class="msg-meta mt-auto">${time || ''}<i class="bi bi-check2-all ms-1"></i></div>
+                </div>
+            `;
+            row.querySelector('.message-text').textContent = text;
+            thread.appendChild(row);
+            scrollToBottom();
+        }
+
+        // Initial scroll
+        scrollToBottom();
+
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                if (!textarea || !textarea.value.trim()) return;
+
+                const btn = form.querySelector('button[type="submit"]');
+                const origHTML = btn ? btn.innerHTML : '';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = 'Sending...';
+                }
+
+                const formData = new FormData(form);
+
+                try {
+                    const res = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    });
+
+                    const data = await res.json().catch(() => ({}));
+
+                    if (res.ok && data && data.success) {
+                        const t = (data.message && data.message.timestamp) || new Date().toTimeString().slice(0,5);
+                        appendSentMessage((data.message && data.message.text) || textarea.value.trim(), t);
+                        textarea.value = '';
+                    } else {
+                        const err = (data && (data.error || (data.errors && JSON.stringify(data.errors)))) || 'Failed to send.';
+                        // show inline error (no toast)
+                        const errEl = document.createElement('div');
+                        errEl.className = 'text-danger small mt-1';
+                        errEl.textContent = err;
+                        const inputWrap = form.querySelector('.flex-grow-1');
+                        if (inputWrap) {
+                            inputWrap.appendChild(errEl);
+                            setTimeout(() => errEl.remove(), 3000);
+                        } else {
+                            alert(err);
+                        }
+                    }
+                } catch (err) {
+                    const errEl = document.createElement('div');
+                    errEl.className = 'text-danger small mt-1';
+                    errEl.textContent = 'Network error. Please try again.';
+                    const inputWrap = form.querySelector('.flex-grow-1');
+                    if (inputWrap) {
+                        inputWrap.appendChild(errEl);
+                        setTimeout(() => errEl.remove(), 3000);
+                    } else {
+                        alert('Network error. Please try again.');
+                    }
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = origHTML;
+                    }
+                }
+            });
+
+            // Optional: allow Enter to send (Ctrl+Enter for newline already ok on textarea)
+            if (textarea) {
+                textarea.addEventListener('keydown', function(ev) {
+                    if (ev.key === 'Enter' && !ev.shiftKey) {
+                        ev.preventDefault();
+                        form.dispatchEvent(new Event('submit', { cancelable: true }));
+                    }
+                });
+            }
+        }
     })();
 </script>
 {% endblock %}

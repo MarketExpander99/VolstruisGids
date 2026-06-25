@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, flash, request, abort
+from flask import render_template, redirect, url_for, flash, request, abort, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.models.message import Message
@@ -177,9 +177,20 @@ def send_message():
             db.session.add(new_message)
             db.session.commit()
 
-            flash('✅ Message sent successfully!', 'success')
+            # AJAX support for DM screen (no full reload, no "message sent" toast)
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
+            if is_ajax:
+                return jsonify({
+                    'success': True,
+                    'message': {
+                        'id': new_message.id,
+                        'text': new_message.text,
+                        'timestamp': new_message.timestamp.strftime('%H:%M') if new_message.timestamp else '',
+                        'is_mine': True
+                    }
+                })
 
-            # Redirect to the conversation view
+            # Redirect to the conversation view (non-AJAX, e.g. modal from detail page)
             target_listing_id = listing_id or 0
             return redirect(url_for(
                 'messages.conversation',
@@ -188,14 +199,27 @@ def send_message():
             ))
 
         except (ValueError, TypeError) as e:
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
+            if is_ajax:
+                return jsonify({'success': False, 'error': 'Invalid message data.'}), 400
             flash('Invalid message data. Please try again.', 'danger')
             return redirect(request.referrer or url_for('messages.inbox'))
         except Exception as e:
             db.session.rollback()
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
+            if is_ajax:
+                return jsonify({'success': False, 'error': str(e) or 'Error sending message.'}), 500
             flash(f'Error sending message: {str(e)}', 'danger')
             return redirect(request.referrer or url_for('messages.inbox'))
 
     # Form validation failed
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
+    if is_ajax:
+        errors = {}
+        for field, errs in form.errors.items():
+            errors[field] = errs
+        return jsonify({'success': False, 'error': 'Validation failed', 'errors': errors}), 400
+
     for field, errors in form.errors.items():
         for error in errors:
             flash(f'{field}: {error}', 'danger')

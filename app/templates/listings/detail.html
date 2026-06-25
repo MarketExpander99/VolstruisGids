@@ -27,22 +27,7 @@
 
 {% block content %}
 {% set default_photo = '/static/img/default-listing.jpg' %}
-
-{# Build complete ordered photo list (main + additional) for gallery #}
-{% set all_photos = [] %}
-{% if listing.photo_url %}
-    {% set all_photos = all_photos + [listing.photo_url] %}
-{% endif %}
-{% if listing.photo_urls %}
-    {% for p in listing.photo_urls.split(',') %}
-        {% if p.strip() %}
-            {% set all_photos = all_photos + [p.strip()] %}
-        {% endif %}
-    {% endfor %}
-{% endif %}
-{% if not all_photos %}
-    {% set all_photos = [default_photo] %}
-{% endif %}
+{% set all_photos = all_photos or [default_photo] %}
 
 {% set is_business = listing.is_business_ad %}
 {% set is_promoted = listing.is_promoted %}
@@ -546,6 +531,48 @@
         const first = document.querySelector('.gallery-thumb');
         if (first) first.style.borderColor = '#E6B800';
     });
+
+    // AJAX for DM modal (from detail page) - send without redirect + no "message sent" toast
+    (function() {
+        const dmForm = document.querySelector('#dmModal form');
+        if (!dmForm) return;
+        dmForm.addEventListener('submit', async function handler(e) {
+            e.preventDefault();
+            const btn = dmForm.querySelector('button[type="submit"]');
+            const orig = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = 'Sending...'; }
+            const fd = new FormData(dmForm);
+            let didAjax = false;
+            try {
+                const res = await fetch(dmForm.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: fd
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data && data.success) {
+                    didAjax = true;
+                    // Close modal silently (no toast per request)
+                    const modalEl = document.getElementById('dmModal');
+                    if (modalEl) {
+                        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                        modal.hide();
+                    }
+                    dmForm.reset();
+                }
+            } catch (err) {
+                // network: fall through to native
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+            }
+            if (!didAjax) {
+                // Error path: native POST (will redirect + show error flash if any)
+                dmForm.removeEventListener('submit', handler);
+                // Use a one-time native submit
+                setTimeout(() => dmForm.submit(), 0);
+            }
+        });
+    })();
 </script>
 
 <style>

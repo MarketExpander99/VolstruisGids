@@ -1227,6 +1227,19 @@ def detail(listing_id):
     elif og_image_url:
         structured_data["image"] = [og_image_url]
 
+    # Build complete ordered list of photos for gallery (primary + additional).
+    # Fixes the multi-photo display bug on detail page (previous Jinja accumulation didn't work).
+    all_photos = []
+    if getattr(listing, 'photo_url', None):
+        all_photos.append(listing.photo_url)
+    if getattr(listing, 'photo_urls', None):
+        for p in listing.photo_urls.split(','):
+            p = (p or '').strip()
+            if p and p not in all_photos:
+                all_photos.append(p)
+    if not all_photos:
+        all_photos = [url_for('static', filename='img/default-listing.jpg')]
+
     return render_template('listings/detail.html',
                            listing=listing,
                            message_form=message_form,
@@ -1237,7 +1250,8 @@ def detail(listing_id):
                            meta_description=meta_description,
                            meta_keywords=meta_keywords,          # NEW
                            structured_data=structured_data,
-                           og_image_url=og_image_url)
+                           og_image_url=og_image_url,
+                           all_photos=all_photos)
 
 
 # ============================================================
