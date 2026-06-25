@@ -137,7 +137,17 @@ class GoogleIndexingService:
                 logger.info(f"Google Indexing notified ({action}): {url}")
                 return True
             else:
-                logger.error(f"Google Indexing error {resp.status_code}: {resp.text}")
+                # The SERVICE_DISABLED 403 is common during initial setup — log as warning with activation hint
+                err_text = resp.text or ''
+                if resp.status_code == 403 and ('SERVICE_DISABLED' in err_text or 'indexing.googleapis.com' in err_text):
+                    logger.warning(
+                        f"Google Indexing API not enabled (403) for this project. "
+                        f"Enable 'Web Search Indexing API' at: "
+                        f"https://console.developers.google.com/apis/api/indexing.googleapis.com/overview?project=158559648603 "
+                        f"(or your project). Skipped for URL: {url}"
+                    )
+                else:
+                    logger.error(f"Google Indexing error {resp.status_code}: {err_text}")
                 return False
 
         except Exception as e:

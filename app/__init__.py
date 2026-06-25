@@ -151,4 +151,8 @@ def create_app(config_class=Config):
             return f"R {value}"
     app.template_filter('currency')(currency)
 
+    # Expose select Python builtins to Jinja templates (e.g. hasattr for defensive checks on models)
+    # Fixes "UndefinedError: 'hasattr' is undefined" on pages using _listing_cards.html (business storefront, category, etc.)
+    app.jinja_env.globals['hasattr'] = hasattr
+
     return app

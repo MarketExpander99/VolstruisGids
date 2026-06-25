@@ -82,7 +82,7 @@
             </div>
 
             <!-- Expandable read-only comment previews (native details, zero JS, per spec) -->
-            {% set previews = listing.get_recent_comments(3) if hasattr(listing, 'get_recent_comments') else [] %}
+            {% set previews = listing.get_recent_comments(3) if listing and listing.get_recent_comments else [] %}
             {% if previews %}
             <details class="mb-2 small">
                 <summary class="text-muted" style="cursor:pointer; font-size:0.8rem;">Comments preview ({{ previews|length }})</summary>
