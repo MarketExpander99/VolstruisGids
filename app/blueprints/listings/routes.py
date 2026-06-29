@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app, abort
 from flask_login import login_required, current_user
 from app import db
 from app.models.listing import Listing
@@ -260,6 +260,11 @@ def create():
         contact_email = form.contact_email.data if 'email' in selected else None
         contact_methods = ','.join(selected) if selected else 'dm,email,phone'
 
+        # === Photo handling (Phase 1: selectable main/featured) ===
+        # Client JS reorders selectedFiles so chosen main/featured is ALWAYS first.
+        # First file after re-order = photo_url (hero on cards + detail).
+        # Remaining = photo_urls (comma sep). Order of rest preserved for gallery.
+        # No DB changes. If no JS, first file in browser upload order wins (unchanged legacy behaviour).
         photo_url = None
         photo_urls_list = []
         upload_dir = current_app.config.get('UPLOAD_FOLDER', UPLOAD_FOLDER)
@@ -323,14 +328,14 @@ def create():
 
         # ============================================================
         # v1.1 Credit System — Free Tier Logic (one free active 7-day listing)
+        # Now uses authoritative expires_at (hardened 7-day expiration).
         # Photos are COMPLETELY FREE (unlimited within max). No extra_photo_credits.
         # ============================================================
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
-        freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+        now = datetime.utcnow()
         active_count = db.session.query(Listing.id).filter(
             Listing.user_id == current_user.id,
             Listing.is_active == True,
-            freshness >= seven_days_ago
+            Listing.expires_at > now
         ).count()
 
         if not is_business:
@@ -386,6 +391,7 @@ def create():
             )
             db.session.add(txn)
 
+        now = datetime.utcnow()
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
@@ -408,7 +414,9 @@ def create():
             is_active=True,
             listing_type=listing_type,
             rental_duration=rental_duration,
-            rental_duration_unit=rental_duration_unit
+            rental_duration_unit=rental_duration_unit,
+            created_at=now,
+            expires_at=now + timedelta(days=7)
         )
 
         try:
@@ -523,12 +531,17 @@ def edit_listing(listing_id):
         contact_email = form.contact_email.data if 'email' in selected else None
         contact_methods = ','.join(selected) if selected else 'dm,email,phone'
 
+        # === Phase 2: Incremental photo edit (kept_existing + add more, no forced full replace) ===
+        # - kept_existing (from JS hidden): comma list of remaining existing URLs, desired main first
+        # - New uploads (form.photo) are appended after kept photos
+        # - If replace_all_photos=1 or no kept, fall back to previous full-replace behaviour
         photo_url = listing.photo_url
         photo_urls = listing.photo_urls
+
         upload_dir = current_app.config.get('UPLOAD_FOLDER', UPLOAD_FOLDER)
+        new_added = []
         if form.photo.data:
             files = form.photo.data if isinstance(form.photo.data, (list, tuple)) else [form.photo.data]
-            new_photos = []
             for f in files:
                 if f and getattr(f, 'filename', None) and allowed_file(f.filename):
                     filename = secure_filename(f.filename)
@@ -536,10 +549,29 @@ def edit_listing(listing_id):
                     filepath = os.path.join(upload_dir, filename)
                     f.save(filepath)
                     resize_image_to_square(filepath)
-                    new_photos.append(f'/static/uploads/{filename}')
-            if new_photos:
-                photo_url = new_photos[0]
-                photo_urls = ','.join(new_photos[1:]) if len(new_photos) > 1 else None
+                    new_added.append(f'/static/uploads/{filename}')
+
+        kept_str = (request.form.get('kept_existing') or '').strip()
+        replace_all = request.form.get('replace_all_photos') == '1'
+
+        if replace_all or not kept_str:
+            # Legacy / explicit full replace behaviour
+            if new_added:
+                photo_url = new_added[0]
+                photo_urls = ','.join(new_added[1:]) if len(new_added) > 1 else None
+            # if no new_added and replace_all, photos will be cleared (intentional)
+            else:
+                photo_url = None
+                photo_urls = None
+        else:
+            kept_existing = [u.strip() for u in kept_str.split(',') if u.strip()]
+            final_photos = kept_existing + new_added
+            if final_photos:
+                photo_url = final_photos[0]
+                photo_urls = ','.join(final_photos[1:]) if len(final_photos) > 1 else None
+            else:
+                photo_url = None
+                photo_urls = None
 
         price_type = form.price_type.data or 'fixed'
 
@@ -640,6 +672,9 @@ def quick_create():
         contact_email = form.contact_email.data if 'email' in selected else None
         contact_methods = ','.join(selected) if selected else 'dm,email,phone'
 
+        # === Photo handling (Phase 1: selectable main/featured) ===
+        # Client JS reorders so main/featured is first file. Backend takes [0] -> photo_url.
+        # Rest appended to photo_urls. Preserves user-chosen order. No schema change.
         photo_url = None
         photo_urls_list = []
         upload_dir = current_app.config.get('UPLOAD_FOLDER', UPLOAD_FOLDER)
@@ -722,6 +757,7 @@ def quick_create():
         )
         db.session.add(txn)
 
+        now = datetime.utcnow()
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
@@ -744,7 +780,9 @@ def quick_create():
             is_active=True,
             listing_type='super',
             rental_duration=rental_duration,
-            rental_duration_unit=rental_duration_unit
+            rental_duration_unit=rental_duration_unit,
+            created_at=now,
+            expires_at=now + timedelta(days=7)
         )
 
         try:
@@ -781,7 +819,9 @@ def boost(listing_id):
 
     try:
         listing.is_promoted = True
-        listing.last_reposted_at = datetime.utcnow()
+        now = datetime.utcnow()
+        listing.last_reposted_at = now
+        listing.expires_at = now + timedelta(days=7)  # refresh lifetime on boost too
         db.session.commit()
 
         # === Google Indexing API: boosted listing is "updated" ===
@@ -829,6 +869,7 @@ def repost_listing(listing_id):
         now = datetime.utcnow()
         listing.last_reposted_at = now
         listing.refreshed_at = now   # v1.2 spec: update refreshed_at on repost
+        listing.expires_at = now + timedelta(days=7)  # Harden: refresh the 7-day lifetime
         # Repost refreshes visibility but does not force promoted badge (boost does)
         # listing.is_promoted remains as-is
 
@@ -1017,6 +1058,13 @@ def mark_sold(listing_id):
 def detail(listing_id):
     # Load with user eagerly for seller info in SEO + templates
     listing = Listing.query.options(joinedload(Listing.user)).get_or_404(listing_id)
+
+    # Enforce 7-day expiration + is_active for non-owners (spec requirement).
+    # Owners may view their own (expired or sold) in order to repost/edit/delete.
+    is_owner = current_user.is_authenticated and current_user.id == listing.user_id
+    if not is_owner:
+        if not listing.is_active or listing.is_expired:
+            abort(404)
 
     # Increment views safely (using the correct model attribute)
     current_views = getattr(listing, 'views', 0) or 0
@@ -1337,16 +1385,10 @@ def add_comment(listing_id):
 @listings_bp.route('/category/<string:category_name>')
 def by_category(category_name):
     category = Category.query.filter_by(name=category_name).first_or_404()
-    # Apply 7-day freshness filter (public category listings)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    freshness = db.func.coalesce(Listing.last_reposted_at, Listing.created_at)
-    listings = (Listing.query
+    # Public category view uses the single source of truth (active_query)
+    listings = (Listing.active_query()
         .options(joinedload(Listing.user))
-        .filter(
-            Listing.category_id == category.id,
-            Listing.is_active == True,
-            freshness >= seven_days_ago
-        )
+        .filter(Listing.category_id == category.id)
         .order_by(Listing.created_at.desc())
         .all())
     return render_template('listings/category.html', category=category, listings=listings)

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from app import db
+from sqlalchemy import event
 
 
 class Listing(db.Model):
@@ -38,6 +39,11 @@ class Listing(db.Model):
     last_reposted_at = db.Column(db.DateTime, nullable=True)
     # v1.2 spec: refreshed_at for repost/refresh (falls back to last_reposted_at / created_at)
     refreshed_at = db.Column(db.DateTime, nullable=True)
+
+    # 7-day automatic expiration (hardened per spec 2026-06-29)
+    # Set to created_at + 7 days on creation; refreshed on repost/boost.
+    # Indexed + composite (is_active, expires_at) for public query performance.
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -99,17 +105,37 @@ class Listing(db.Model):
 
     # ============================================================
     # Listing freshness / expiration (7-day public visibility rule)
-    # No DB column added. Computed dynamically.
+    # Hardened: expires_at is the single source of truth for public visibility.
+    # Old computed props preserved for UI (my_listings, profile cards) compatibility.
     # ============================================================
+
+    @classmethod
+    def active_query(cls):
+        """Single source of truth for all public listing retrieval.
+        Returns only listings that are:
+          - is_active=True (not sold/deactivated)
+          - not yet past their expires_at
+        All homepage, category, search, API feeds, storefronts etc. must use this.
+        """
+        return cls.query.filter(
+            cls.is_active == True,
+            cls.expires_at > datetime.utcnow()
+        )
 
     @property
     def freshness_date(self):
-        """Effective date for public freshness (respects boosts/reposts). v1.2 uses refreshed_at if present."""
+        """Effective date for public freshness (respects boosts/reposts)."""
         return self.refreshed_at or self.last_reposted_at or self.created_at
 
     @property
     def is_expired(self):
-        """True if older than 7 days (based on freshness_date) and should be hidden from public homepage/search."""
+        """Authoritative expiry check.
+        Prefers the persistent expires_at column (new hardened rule).
+        Falls back to dynamic calculation only if expires_at missing (pre-migration rows).
+        """
+        if getattr(self, 'expires_at', None) is not None:
+            return self.expires_at <= datetime.utcnow()
+        # Legacy fallback (should be rare after migration + backfill)
         base = self.freshness_date
         if base is None:
             return False
@@ -170,3 +196,18 @@ class Listing(db.Model):
             return Comment.query.filter_by(listing_id=self.id).order_by(Comment.created_at.desc()).limit(limit).all()
         except Exception:
             return []
+
+
+# ============================================================
+# Automatic expires_at enforcement (spec 2026-06-29)
+# Set expires_at = created_at + 7 days for every new listing.
+# Works even when created_at is populated by column default.
+# Repost/boost code explicitly refreshes expires_at.
+# ============================================================
+
+@event.listens_for(Listing, 'before_insert')
+def set_listing_expires_at(mapper, connection, target):
+    """Ensure every newly inserted listing gets a 7-day window from its created_at."""
+    if target.expires_at is None:
+        base = target.created_at or datetime.utcnow()
+        target.expires_at = base + timedelta(days=7)

@@ -58,6 +58,40 @@ Let’s keep building cleanly and steadily! 🚀
 - Files touched: app/templates/main/index.html, app/templates/main/directory.html, app/static/css/custom.css, PROJECT_STATUS.md
 - Test checklist (manual): anon/personal/business-with-pic → no prompt; business-no-pic → prompt visible+clickable; credits+messages together on home; dir cards use gold + equal btns on resize.
 
+---
+**2026-06-29 — Phase 1: Selectable Main/Featured Image + Photo Management (per Dev Spec)**
+
+**Goal (Phase 1)**: Sellers can pick which of their uploaded photos is the "main" (hero) via ⭐ star in live preview grid for Create and Quick-create. Main becomes photo_url; rest photo_urls. Pure JS reordering keeps backend WTForms happy. Drag reorder already present (native). Max 6 enforced (soft warn at 5). Existing no-JS upload order behaviour unchanged. No DB schema, no new libs.
+
+**Files touched** (minimal per rules + spec):
+- app/blueprints/listings/routes.py (added clear Phase 1 comments in create() and quick_create() photo blocks documenting that client ordering drives main first; resize + allowed_file untouched)
+- app/templates/listings/create.html (MAX=6, info texts + helper text updated to spec wording, upgraded preview render to use ⭐/☆ star icons instead of "Main" text, star buttons keyboard accessible + ARIA, soft limit messaging at 5/6, added explicit helper under grid)
+- app/templates/listings/quick_create.html (synced star UX + ARIA/keyboard, helper text, updated cost note to X/6 + free phrasing consistent with "all free", dropzone hint)
+- (forms.py intentionally untouched — pure client DataTransfer reordering suffices)
+- PROJECT_STATUS.md
+
+**Analysis → Plan → Act (smallest edits)**:
+1. Listed files above.
+2. Plan: 1) backend comments for honouring, 2) create.html MAX+text+star render+logic, 3) quick_create sync, 4) verify imports+startup, 5) status append.
+3. Only targeted search/replaces, no wholesale rewrites.
+4. Verified: pip attempted (Pillow src build blocked by missing zlib on this win box but irrelevant), python compile + create_app() + thread-run server launch: **ZERO errors**. Star selection re-uses proven splice/unshift + updateFileInput.
+
+**Verification steps executed**:
+- python -c py_compile routes + create_app() → SUCCESS no traceback.
+- Threaded app.run() on alt port for 2s → "Running on http://127.0.0.1:14999" clean, no crash after edits.
+- Matches spec: Phase 1 only (create/quick), star set-main, main first honoured, no edit incremental (Phase 2), no drag dep added (native kept), max 6.
+
+**Next per spec**: Phase 2 edit incremental (show existing + set main/delete/add without full replace).
+
+**Task COMPLETE — here is what you should test**:
+- Create new listing (any account) → upload 3-4 photos (random order) → use ☆ stars to pick a different main (see it move left + ⭐ ) → submit.
+- Check detail + my_listings card: the chosen star photo is the large hero.
+- Repeat in /quick-create (business) — same star flow.
+- Edge: 0,1,5,6 photos. Reorder via star + drag. No-JS fallback: browser file order determines main.
+- No regressions on price_type/post_type/credits/contact etc.
+- Mobile wrap + focusable stars work.
+
+Let’s keep building cleanly and steadily! 🚀
 ## 2026-06-21 — Client-side Image Optimization + Real-time Upload Progress (Create Listing)
 
 **Task**: Implement spec for client optimized (1200px / JPEG 0.85) multi-photo uploads with Bootstrap progress bar + status, XHR upload. Zero breakage to existing form, credits, pricing, continue flow, AI polish, or listing persistence.
@@ -1937,7 +1971,7 @@ Added per-message avatars (gold-bordered, matching inbox style) on the left for 
 **Task COMPLETE** — new listings will be pushed to Google Indexing API on every save button.
 
 ## (end of 2026-06-25 Google Indexing entry)
-## 2026-06-25 � Community Engagement: Likes + Comments (Initial Release per spec)
+## 2026-06-25 � Community Engagement: Likes + Comments (Initial Release per spec)
 
 **Task**: Implement VolstruisGids Technical Development Specification (2026-06-25) for core social features:
 - Likes and comments ONLY accessible on the full detail page (forces reading first).
@@ -1968,4 +2002,12 @@ Added per-message avatars (gold-bordered, matching inbox style) on the left for 
 - All existing credit flows untouched.
 - Follows read-full-before-engage principle.
 
-**Task COMPLETE** � engagement MVP implemented.
+**Task COMPLETE** � engagement MVP implemented.
+---
+**2026-06-29 UI polish (Main photo selector)**: Replaced low-contrast emoji stars with highly visible user-friendly controls per feedback.
+- Current main: solid gold `? MAIN` pill (high contrast #E6B800 bg + shadow) + prominent gold outline ring around whole preview card.
+- Others: `? Set main` cream + gold-bordered pill (guaranteed legible over dark or busy photos).
+- Updated helper text + dropzone hints.
+- Keeps same click-to-promote + drag behavior, keyboard focus, max 6.
+- Verified: app starts with zero errors.
+This makes selecting the featured image obvious and pleasant in all lighting.

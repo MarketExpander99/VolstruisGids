@@ -37,8 +37,8 @@ def sitemap():
         except Exception:
             pass  # in case route not registered yet
 
-    # All active listings
-    listings = Listing.query.filter_by(is_active=True).order_by(Listing.created_at.desc()).all()
+    # All currently public (non-expired + active) listings only
+    listings = Listing.active_query().order_by(Listing.created_at.desc()).all()
 
     for listing in listings:
         pages.append({

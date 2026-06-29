@@ -47,13 +47,13 @@
                         <!-- LEVEL 10 SPECTACULAR PHOTO UPLOAD & PREVIEW -->
                         <div class="mb-4">
                             <label class="form-label fw-bold d-flex align-items-center gap-2">
-                                <span>Photos (up to 10)</span>
+                                <span>Photos (up to 6)</span>
                                 <span class="badge bg-success text-white small">All photos completely free</span>
                             </label>
                             
                             <div class="photo-upload-info small text-muted mb-3">
                                 Client-side optimized (max 1200px wide, JPEG ~85% quality) for fast uploads on rural connections. 
-                                Drag &amp; drop multiple photos or click below. All photos are free (max 10). Your first photo becomes the main image.
+                                Drag &amp; drop multiple photos or click below. All photos are free (max 6). Your main image appears largest on the listing page and in search results. Use the gold MAIN pill or "Set main" buttons to choose it.
                             </div>
 
                             <!-- Premium Drag & Drop Zone -->
@@ -63,41 +63,58 @@
                                 <div class="py-2">
                                     <i class="bi bi-images display-5 text-warning mb-2 d-block" style="opacity: 0.85;"></i>
                                     <p class="mb-1 fw-semibold" style="color: #2C3E50;">Drop your photos here</p>
-                                    <p class="small text-muted mb-2">or click to browse (JPEG, PNG • max 10 total)</p>
-                                    <small class="text-muted">Client optimized to max 1200px • server makes 800px square preview for display.</small>
+                                    <p class="small text-muted mb-2">or click to browse (JPEG, PNG • max 6 total)</p>
+                                    <small class="text-muted">Client optimized to max 1200px • server makes 800px square preview. Gold MAIN pill = featured image.</small>
                                 </div>
                             </div>
 
                             <!-- Hidden original file input (required for form submit + accessibility) -->
                             {{ form.photo(class="form-control d-none", id="photo", multiple=True) }}
                             
+                            <!-- Phase 2: Track kept existing photos order (main first) for incremental edit -->
+                            <input type="hidden" name="kept_existing" id="kept_existing" value="">
+
                             {% for error in form.photo.errors %}
                                 <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
 
-                            <!-- Current photos on EDIT (beautiful strip) -->
+                            <!-- EDIT MODE: Interactive current photos (Phase 2 incremental management) -->
                             {% if editing is defined and editing and listing is defined and listing and listing.photo_url %}
-                            <div class="mb-3 p-3 rounded-3" style="background-color: #F8F4EB; border: 1px solid #EDE4D6;">
-                                <small class="fw-semibold text-muted d-block mb-2">Current photos on this listing (uploading new will replace them)</small>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <div class="position-relative" style="width: 86px;">
-                                        <img src="{{ listing.photo_url }}" 
-                                             class="rounded-3 border shadow-sm" 
-                                             style="width:86px; height:86px; object-fit:cover; border-color:#E6B800;">
-                                        <span class="badge bg-success position-absolute bottom-0 start-0 m-1" style="font-size:0.6rem;">Main</span>
-                                    </div>
-                                    {% if listing.photo_urls %}
-                                        {% for purl in listing.photo_urls.split(',') if purl.strip() %}
-                                        <div style="width: 86px;">
-                                            <img src="{{ purl.strip() }}" 
-                                                 class="rounded-3 border shadow-sm" 
-                                                 style="width:86px; height:86px; object-fit:cover;">
-                                        </div>
-                                        {% endfor %}
-                                    {% endif %}
+                            <div id="existing-photos-section" class="mb-3 p-3 rounded-3" style="background-color: #F8F4EB; border: 1px solid #EDE4D6;">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <small class="fw-semibold text-muted">Current photos — manage set</small>
+                                    <span id="existing-remaining" class="badge bg-light text-dark small" style="font-weight:500;"></span>
                                 </div>
-                                <small class="text-muted d-block mt-2">Tip: Upload new photos to refresh the entire set.</small>
+                                <div id="existing-photos-grid" class="d-flex flex-wrap gap-2"></div>
+                                <small class="text-muted d-block mt-2">
+                                    Click <strong>★ Set main</strong> to choose the featured image. 
+                                    Use the × button to remove photos. New uploads below will be added.
+                                </small>
+
+                                <div class="form-check mt-1 mb-1">
+                                    <input class="form-check-input" type="checkbox" id="replace_all_checkbox" name="replace_all_photos">
+                                    <label class="form-check-label small text-muted" for="replace_all_checkbox">
+                                        Replace all current photos instead (start fresh)
+                                    </label>
+                                </div>
                             </div>
+
+                            <!-- Label for additions when editing -->
+                            <div class="small fw-semibold text-muted mb-1 mt-2">Add more photos (optional)</div>
+                            {% endif %}
+
+                            {% if editing is defined and editing and listing is defined and listing and listing.photo_url %}
+                            <script>
+                              // Initial existing photos for edit mode (main first)
+                              window.INITIAL_EXISTING_PHOTOS = [
+                                {% if listing.photo_url %}"{{ listing.photo_url }}",{% endif %}
+                                {% if listing.photo_urls %}
+                                  {% for purl in listing.photo_urls.split(',') if purl.strip() %}
+                                  "{{ purl.strip() }}",
+                                  {% endfor %}
+                                {% endif %}
+                              ].filter(function(u){ return u && u.length > 0; });
+                            </script>
                             {% endif %}
 
                             <!-- LIVE PREVIEW GRID (spectacular, reorderable, credit-aware) -->
@@ -105,6 +122,7 @@
 
                             <!-- Live photo cost & limit note -->
                             <div id="photo-cost-note" class="small mt-2 text-muted d-none"></div>
+                            <div class="small text-muted mt-1">Gold <strong>MAIN</strong> pill = featured photo. Click <strong>★ Set main</strong> on any other to promote it.</div>
 
                             <!-- Real-time upload progress (client-optimized + XHR for rural UX) -->
                             <div id="upload-progress" class="mt-3 d-none">
@@ -454,7 +472,89 @@
     const costNote = document.getElementById('photo-cost-note');
     let selectedFiles = [];
 
-    const MAX_PHOTOS = 10;
+    const MAX_PHOTOS = 6;
+
+    // ========== PHASE 2: Existing photos management (edit only) ==========
+    let existingPhotos = [];  // [{url: string}] — main is always at index 0
+
+    function initExistingForEdit() {
+      const grid = document.getElementById('existing-photos-grid');
+      if (!grid || !window.INITIAL_EXISTING_PHOTOS || window.INITIAL_EXISTING_PHOTOS.length === 0) return;
+
+      existingPhotos = window.INITIAL_EXISTING_PHOTOS.map(function(url) { return { url: url }; });
+      renderExistingPhotos();
+      updateKeptExisting();
+    }
+
+    function renderExistingPhotos() {
+      const grid = document.getElementById('existing-photos-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      existingPhotos.forEach(function(item, index) {
+        const url = item.url;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'position-relative';
+        wrapper.style.width = '92px';
+
+        const isMain = (index === 0);
+
+        wrapper.innerHTML = `
+          <div class="border rounded-3 overflow-hidden shadow-sm" style="background:#f8f4eb; ${isMain ? 'outline: 1.5px solid #E6B800; outline-offset: 1px;' : ''}">
+            <img src="${url}" style="width:92px; height:92px; object-fit:cover;" alt="Existing photo">
+          </div>
+          ${isMain 
+            ? `<div class="main-badge-compact position-absolute" style="top:6px; left:6px; padding:1px 5px;" aria-label="Current main / featured photo">★ MAIN</div>`
+            : `<button type="button" class="photo-set-main-btn make-main-btn position-absolute" style="bottom:6px; left:6px;" aria-label="Set as main photo" title="Set as main / featured">★</button>`}
+          <button type="button" class="photo-remove-btn remove-existing position-absolute" style="top:6px; right:6px;" aria-label="Remove photo from set" title="Remove photo">×</button>
+        `;
+
+        // Make main button (only on non-mains)
+        const makeBtn = wrapper.querySelector('.make-main-btn');
+        if (makeBtn) {
+          makeBtn.onclick = function(e) {
+            e.stopImmediatePropagation();
+            const moved = existingPhotos.splice(index, 1)[0];
+            existingPhotos.unshift(moved);
+            renderExistingPhotos();
+            updateKeptExisting();
+          };
+        }
+
+        // Remove this existing photo
+        const remBtn = wrapper.querySelector('.remove-existing');
+        if (remBtn) {
+          remBtn.onclick = function(e) {
+            e.stopImmediatePropagation();
+            existingPhotos.splice(index, 1);
+            renderExistingPhotos();
+            updateKeptExisting();
+            updateExistingCount();
+          };
+        }
+
+        grid.appendChild(wrapper);
+      });
+
+      updateExistingCount();
+    }
+
+    function updateKeptExisting() {
+      const hidden = document.getElementById('kept_existing');
+      if (hidden) {
+        hidden.value = existingPhotos.map(function(p){ return p.url; }).join(',');
+      }
+    }
+
+    function updateExistingCount() {
+      const el = document.getElementById('existing-remaining');
+      if (!el) return;
+      const newCount = (typeof selectedFiles !== 'undefined' && selectedFiles) ? selectedFiles.length : 0;
+      const kept = existingPhotos.length;
+      const total = kept + newCount;
+      el.textContent = kept + ' current' + (newCount > 0 ? ' + ' + newCount + ' new' : '') + ' • ' + total + '/6';
+      el.style.color = (total > MAX_PHOTOS) ? '#b00' : '';
+    }
 
     function updatePhotoCostNote() {
         if (!costNote) return;
@@ -463,9 +563,9 @@
             costNote.classList.add('d-none');
             return;
         }
-        let msg = `${count} photo(s) selected. All photos are completely free.`;
-        if (count >= MAX_PHOTOS) {
-            msg += ` <span class="text-warning fw-semibold">Maximum reached.</span>`;
+        let msg = `${count}/6 photos selected. All photos are completely free.`;
+        if (count >= 5) {
+            msg += ` <span class="text-warning fw-semibold">${count === 6 ? 'Maximum 6 reached.' : 'Soft limit: 5 reached (max 6).'}</span>`;
         }
         costNote.innerHTML = msg;
         costNote.classList.remove('d-none');
@@ -490,40 +590,59 @@
                 wrapper.style.width = '148px';
                 wrapper.draggable = true;
                 wrapper.dataset.index = index;
+                if (index === 0) {
+                    // Subtle cue — main badge is now the primary distinguisher (image-first)
+                    wrapper.style.outline = '1px solid #E6B800';
+                    wrapper.style.outlineOffset = '1px';
+                    wrapper.style.borderRadius = '10px';
+                }
 
                 wrapper.innerHTML = `
                     <div class="border rounded-4 overflow-hidden shadow-sm" style="background: #f8f4eb; border-color: #EDE4D6;">
                         <img src="${ev.target.result}" style="width: 148px; height: 148px; object-fit: cover;" alt="Photo preview">
                     </div>
-                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-0 shadow" 
-                            style="width: 26px; height: 26px; line-height: 22px; font-size: 15px;" title="Remove">×</button>
+                    <button type="button" class="photo-remove-btn btn position-absolute" 
+                            style="top:7px; right:7px;" aria-label="Remove photo from set" title="Remove photo">×</button>
                     ${index === 0 ? 
-                        '<div class="position-absolute bottom-0 start-0 m-1"><span class="badge bg-success shadow-sm" style="font-size:0.7rem;">MAIN</span></div>' : 
-                        '<button type="button" class="btn btn-sm btn-outline-secondary position-absolute bottom-0 start-0 m-1 px-2 py-0" style="font-size:0.65rem; line-height:1.1;" title="Make main photo">Main</button>'}
+                        `<div class="main-badge-compact position-absolute" style="top:7px; left:7px;" aria-label="Current main / featured photo">★ MAIN</div>` : 
+                        `<button type="button" class="photo-set-main-btn star-btn btn position-absolute" style="bottom:7px; left:7px;" aria-label="Set as main photo" title="Set as main / featured">★</button>`}
                     <div class="position-absolute top-0 start-0 m-1">
                         <span class="badge bg-dark bg-opacity-75" style="font-size:0.65rem;">${index + 1}</span>
                     </div>
                 `;
 
                 // Remove
-                const removeBtn = wrapper.querySelector('button.btn-danger');
-                removeBtn.onclick = (e) => {
-                    e.stopImmediatePropagation();
-                    selectedFiles.splice(index, 1);
-                    updateFileInput();
-                    renderPreviews();
-                };
+                const removeBtn = wrapper.querySelector('button[title="Remove photo"]');
+                if (removeBtn) {
+                    removeBtn.onclick = (e) => {
+                        e.stopImmediatePropagation();
+                        selectedFiles.splice(index, 1);
+                        updateFileInput();
+                        renderPreviews();
+                        updateExistingCount();
+                    };
+                }
 
-                // Make main (move to front)
-                const makeMainBtn = wrapper.querySelector('button.btn-outline-secondary');
-                if (makeMainBtn) {
-                    makeMainBtn.onclick = (e) => {
+                // Set as main via star (move to front). Only non-main stars trigger reorder.
+                const starBtn = wrapper.querySelector('.star-btn');
+                if (starBtn) {
+                    starBtn.onclick = (e) => {
                         e.stopImmediatePropagation();
                         const [moved] = selectedFiles.splice(index, 1);
                         selectedFiles.unshift(moved);
                         updateFileInput();
                         renderPreviews();
+                        updateExistingCount();
                     };
+                    // Keyboard support (focusable star)
+                    starBtn.setAttribute('tabindex', '0');
+                    starBtn.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            starBtn.onclick({stopImmediatePropagation:()=>{}, preventDefault:()=>{}});
+                            // re-render handles focus loss gracefully
+                        }
+                    });
                 }
 
                 // Drag to reorder support
@@ -544,6 +663,7 @@
                     selectedFiles.splice(toIndex, 0, moved);
                     updateFileInput();
                     renderPreviews();
+                    updateExistingCount();
                 });
 
                 grid.appendChild(wrapper);
@@ -622,15 +742,18 @@
     if (photoInput && previewContainer) {
         photoInput.addEventListener('change', async function(e) {
             const newFiles = Array.from(e.target.files || []);
-            const combinedRaw = [...selectedFiles, ...newFiles];
-            const limited = combinedRaw.slice(0, MAX_PHOTOS);
-            if (combinedRaw.length > MAX_PHOTOS) {
-                alert(`Maximum ${MAX_PHOTOS} photos allowed. Extra files were ignored.`);
+            const existingCount = (typeof existingPhotos !== 'undefined' && existingPhotos) ? existingPhotos.length : 0;
+            const allowedNew = Math.max(0, MAX_PHOTOS - existingCount - selectedFiles.length);
+            const toAdd = newFiles.slice(0, allowedNew);
+            if (newFiles.length > allowedNew) {
+                alert('Cannot add more — would exceed max 6 photos total.');
             }
+            const combinedRaw = [...selectedFiles, ...toAdd];
             // Optimize for smaller faster uploads
-            selectedFiles = await optimizeFiles(limited);
+            selectedFiles = await optimizeFiles(combinedRaw);
             updateFileInput();
             renderPreviews();
+            updateExistingCount();
         });
     }
 
@@ -665,15 +788,46 @@
                 alert('Please drop image files only (JPEG or PNG).');
                 return;
             }
-            const combinedRaw = [...selectedFiles, ...imageFiles];
-            const limited = combinedRaw.slice(0, MAX_PHOTOS);
-            if (combinedRaw.length > MAX_PHOTOS) {
-                alert(`Maximum ${MAX_PHOTOS} photos. Extra images were not added.`);
+            const existingCount = (typeof existingPhotos !== 'undefined' && existingPhotos) ? existingPhotos.length : 0;
+            const allowedNew = Math.max(0, MAX_PHOTOS - existingCount - selectedFiles.length);
+            const toAdd = imageFiles.slice(0, allowedNew);
+            if (imageFiles.length > allowedNew) {
+                alert('Cannot add more — would exceed max 6 photos total.');
             }
-            selectedFiles = await optimizeFiles(limited);
+            const combinedRaw = [...selectedFiles, ...toAdd];
+            selectedFiles = await optimizeFiles(combinedRaw);
             updateFileInput();
             renderPreviews();
+            updateExistingCount();
         });
+    }
+
+    // Initialize existing photos UI for edit mode (Phase 2)
+    initExistingForEdit();
+
+    // Replace all checkbox (edit mode) — if checked we ignore existing kept
+    const replaceChk = document.getElementById('replace_all_checkbox');
+    if (replaceChk) {
+      replaceChk.addEventListener('change', function() {
+        const existingSection = document.getElementById('existing-photos-section');
+        if (existingSection) {
+          existingSection.style.opacity = replaceChk.checked ? '0.35' : '1';
+        }
+        const kept = document.getElementById('kept_existing');
+        if (kept && replaceChk.checked) {
+          kept.value = '';
+        }
+        if (replaceChk.checked) {
+          existingPhotos = [];
+          const g = document.getElementById('existing-photos-grid');
+          if (g) g.innerHTML = '<small class="text-muted p-2">All current photos will be replaced by new uploads.</small>';
+        } else if (window.INITIAL_EXISTING_PHOTOS) {
+          // restore
+          existingPhotos = window.INITIAL_EXISTING_PHOTOS.map(function(u){return {url:u};});
+          renderExistingPhotos();
+          updateKeptExisting();
+        }
+      });
     }
 
     // Price formatting helper (###,###.00) — always uses dot for decimal so backend can parse

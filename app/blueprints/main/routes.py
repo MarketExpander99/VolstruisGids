@@ -177,13 +177,8 @@ def api_listings():
         page = 1
     per_page = 12
 
-    # Base freshness filter (7 days) — ALWAYS first for public homepage (per spec)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
-    listings_query = Listing.query.options(joinedload(Listing.user)).filter(
-        Listing.is_active == True,
-        freshness >= seven_days_ago
-    )
+    # Single source of truth: active_query() enforces 7-day expires_at + is_active.
+    listings_query = Listing.active_query().options(joinedload(Listing.user))
 
     if query:
         # Robust case-insensitive partial match on title OR description (per bugfix spec)
@@ -213,9 +208,9 @@ def api_listings():
             pass
 
     # === BOOST / REPROMOTE LOGIC ===
-    # Promoted listings first, then most recent last_reposted_at (falls back to created_at)
-    # This makes a fresh boost bubble the listing back to the top of the grid for ~7 days visibility.
-    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+    # Promoted listings first, then most recent freshness (refreshed_at / last_reposted_at / created_at)
+    # Ordering only; visibility filter is handled exclusively by active_query().
+    freshness = func.coalesce(Listing.refreshed_at, Listing.last_reposted_at, Listing.created_at)
     listings = listings_query.order_by(
         Listing.is_promoted.desc(),
         freshness.desc()
@@ -294,13 +289,13 @@ def api_categories():
     town = request.args.get('town', '').strip()
     user_id = request.args.get('user_id')
 
-    # Apply same 7-day freshness base filter for accurate category counts on public
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
+    # Accurate category counts — use same filter as active_query() for consistency (expires_at + is_active).
+    # Direct conditions here for efficient GROUP BY aggregation.
+    now = datetime.utcnow()
     cat_query = db.session.query(
         Category.name, func.count(Listing.id).label('count')
     ).join(Listing, Listing.category_id == Category.id
-    ).filter(Listing.is_active == True, freshness >= seven_days_ago)
+    ).filter(Listing.is_active == True, Listing.expires_at > now)
 
     if query:
         # Robust case-insensitive partial match on title OR description (per bugfix spec)
@@ -379,14 +374,8 @@ def api_businesses():
 
     results = []
     for b in businesses:
-        # Count active listings (use same 7-day freshness as homepage for "active")
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
-        freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
-        active_count = Listing.query.filter(
-            Listing.user_id == b.id,
-            Listing.is_active == True,
-            freshness >= seven_days_ago
-        ).count()
+        # Count active listings using the central active_query() rule
+        active_count = Listing.active_query().filter(Listing.user_id == b.id).count()
 
         # Prefer business_phone for WhatsApp, fall back to personal phone
         wa_phone = getattr(b, 'business_phone', None) or getattr(b, 'phone', None)
@@ -655,20 +644,15 @@ def business_storefront(username):
         flash("This profile belongs to a personal seller. Businesses have dedicated storefronts.", "info")
         return redirect(url_for('main.index'))
 
-    # Public storefront: only non-expired (fresh within 7 days) + is_active=True listings.
-    # This ensures "View Store" never shows stale/expired ads (matches homepage, directory counts, etc.).
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    # Use full freshness (refreshed_at preferred for reposts per v1.2) to match is_expired semantics
-    freshness = func.coalesce(Listing.refreshed_at, Listing.last_reposted_at, Listing.created_at)
-
-    active_listings = (Listing.query
+    # Public storefront: only currently active (expires_at + is_active) listings.
+    # Central active_query() ensures consistent 7-day expiry for non-owners.
+    active_listings = (Listing.active_query()
         .options(joinedload(Listing.user))
-        .filter(
-            Listing.user_id == user.id,
-            Listing.is_active == True,
-            freshness >= seven_days_ago,
+        .filter(Listing.user_id == user.id)
+        .order_by(
+            Listing.is_promoted.desc(),
+            func.coalesce(Listing.refreshed_at, Listing.last_reposted_at, Listing.created_at).desc()
         )
-        .order_by(Listing.is_promoted.desc(), freshness.desc())
         .all())
 
     return render_template('main/business_storefront.html',
@@ -713,17 +697,10 @@ def directory():
 
     businesses = businesses_query.all()
 
-    # Pre-compute active counts (small N)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    freshness = func.coalesce(Listing.last_reposted_at, Listing.created_at)
-
+    # Pre-compute active counts using central active_query rule (small N)
     business_data = []
     for b in businesses:
-        active_count = Listing.query.filter(
-            Listing.user_id == b.id,
-            Listing.is_active == True,
-            freshness >= seven_days_ago
-        ).count()
+        active_count = Listing.active_query().filter(Listing.user_id == b.id).count()
         business_data.append({
             'user': b,
             'active_listings': active_count

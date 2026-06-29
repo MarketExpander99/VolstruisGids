@@ -332,6 +332,7 @@ def _activate_listing_promotion(listing_id, amount=0):
         if listing:
             listing.is_promoted = True
             listing.last_reposted_at = now
+            listing.expires_at = now + timedelta(days=7)  # refresh 7-day public window on promotion
         promotion = Promotion.query.filter_by(listing_id=listing_id).first()
         if not promotion:
             promotion = Promotion(
