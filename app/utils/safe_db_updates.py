@@ -9,6 +9,7 @@ Adds (if missing):
 - users.last_share_reward_date, users.shares_rewarded_today (for daily share cap)
 - listings.last_reposted_at
 - listings.refreshed_at (per v1.2 spec for repost freshness)
+- listings.expires_at (hardened 7-day expiration rule per 2026-06-29 spec)
 - Also supports legacy 'credits' column name for spec alignment
 
 Safe to run repeatedly. Uses SQLAlchemy inspector.
@@ -154,6 +155,42 @@ def apply_safe_db_updates(db):
                 logger.info("✅ Added 'refreshed_at' column to 'listings' table.")
             except Exception as e:
                 logger.error(f"Failed to add refreshed_at column: {e}")
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
+        # expires_at on listings (hardened 7-day expiration rule - spec 2026-06-29)
+        if _column_exists(inspector, 'listings', 'expires_at'):
+            logger.info("Column 'expires_at' already exists on 'listings' — skipping.")
+        else:
+            try:
+                conn.execute(text("ALTER TABLE listings ADD COLUMN expires_at DATETIME NULL"))
+                conn.commit()
+                logger.info("✅ Added 'expires_at' column to 'listings' table (nullable for safe migration).")
+
+                # Backfill existing rows so the app doesn't break on old data
+                try:
+                    conn.execute(text("""
+                        UPDATE listings 
+                        SET expires_at = datetime(created_at, '+7 days')
+                        WHERE expires_at IS NULL AND created_at IS NOT NULL
+                    """))
+                    conn.execute(text("""
+                        UPDATE listings 
+                        SET expires_at = datetime('now', '+7 days')
+                        WHERE expires_at IS NULL
+                    """))
+                    conn.commit()
+                    logger.info("✅ Backfilled expires_at on existing listings (created_at + 7 days fallback).")
+                except Exception as bf_err:
+                    logger.warning(f"Backfill of expires_at encountered non-fatal issue: {bf_err}")
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.error(f"Failed to add expires_at column: {e}")
                 try:
                     conn.rollback()
                 except Exception:
