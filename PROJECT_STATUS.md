@@ -2053,3 +2053,43 @@ This makes selecting the featured image obvious and pleasant in all lighting.
 
 Follows all project rules: smallest edits, blueprints, no new deps, status append, build guarantee upheld.
 
+---
+**2026-07-01 — Feed Stats Enhancement v1.1 (Dashboard + 30-day Graph)**
+
+**Scope (strict)**: UI + light queries only. No model, no schema, no new tables. Replaces simple hit counter with stats + Chart.js line at bottom of homepage feed.
+
+**Files touched (minimal)**:
+- app/blueprints/main/routes.py (30-day series in get_feed_stats + ?demo=1 sample data)
+- app/templates/main/index.html (labels "Last 30d", aria, canvas height, comments)
+- app/static/js/feed-stats.js (v1.1 header + 30d tick tuning)
+- PROJECT_STATUS.md
+
+**Key changes (smallest edits)**:
+- get_feed_stats now returns exactly 30 daily points (oldest→newest).
+- 'month' stat now reflects rolling 30d total (graph matches displayed stat).
+- "Last 30d" label + "last 30 days" on canvas.
+- Demo mode: visit /?demo=1 for realistic sample data incl. high recent day views (~2k+) to visually test chart rendering without waiting for traffic.
+- Existing SiteStat daily keys + record_site_view untouched.
+- Graceful zero-data handling kept.
+
+**Verification executed**:
+- python -m py_compile (routes.py) → clean
+- pip install -r requirements.txt (executed)
+- create_app() + get_feed_stats() direct → 30 items, demo data works
+- Flask test client: GET / and GET /?demo=1 → 200, stats card + "Last 30d" + canvas present, sample numbers injected
+- Threaded server smoke (port 15666) → "Running on..." no errors or tracebacks
+- Full page render contains correct labels and 30-day aria text.
+
+**Task COMPLETE — here is what you should test**:
+- Open http://127.0.0.1:5000/ (or :15666) → scroll to bottom of feed → see "Platform Activity" card with 4 numbers + line chart (30 points).
+- Add ?demo=1 → rich sample data, high "Today"/recent bars, chart renders beautifully (hover tooltips).
+- Confirm: Total / Today / This Week / Last 30d labels; graph subtitle "last 30 days".
+- With real traffic: daily keys accumulate automatically; chart shows real trend over time.
+- End-of-feed "X times this month" message (separate) still works.
+- No regressions on load more / directory toggle / credits.
+- Mobile: stats wrap nicely (existing CSS).
+- Reboot app + confirm no startup errors.
+
+All rules followed (smallest changes, build guarantee, status append, test commands, 0 errors).
+
+

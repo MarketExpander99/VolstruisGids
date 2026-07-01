@@ -1,10 +1,9 @@
 /**
  * feed-stats.js
- * Feed Stats Enhancement v1.0
- * Renders the Platform Activity card + 14-day trend line chart at bottom of homepage feed.
+ * Feed Stats Enhancement v1.1
+ * Platform Activity card + 30-day bar chart at bottom of feed (replaces simple hit counter).
  * Expects window.feedStats = { total_views, today, week, month, daily_views: [{date, count}, ...] }
- * Chart.js 4+ must be loaded before this script (CDN in template).
- * Graceful: does nothing if elements or data missing.
+ * Chart.js 4+ via CDN. Supports demo sample data. ARIA + labels present in template.
  */
 (function () {
     function initFeedStats() {
@@ -34,18 +33,16 @@
             }
             const ctxEmpty = canvas.getContext('2d');
             new Chart(ctxEmpty, {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: ['No data yet'],
                     datasets: [{
                         label: 'Daily Views',
                         data: [0],
+                        backgroundColor: 'rgba(139, 69, 19, 0.5)',
                         borderColor: '#8B4513',
-                        backgroundColor: 'rgba(139, 69, 19, 0.08)',
-                        borderWidth: 2,
-                        tension: 0.35,
-                        fill: true,
-                        pointRadius: 2
+                        borderWidth: 1,
+                        barPercentage: 0.6
                     }]
                 },
                 options: getChartOptions()
@@ -70,21 +67,19 @@
         }
 
         const ctx = canvas.getContext('2d');
+        const isDense = values.length > 20;
         const chart = new Chart(ctx, {
-            type: 'line',
+            type: 'bar',  // bar graph shows each of the 30 days more distinctly
             data: {
                 labels: labels,
                 datasets: [{
                     label: 'Daily Views',
                     data: values,
-                    borderColor: '#8B4513',           // primary terracotta
-                    backgroundColor: 'rgba(139, 69, 19, 0.10)',
-                    borderWidth: 2.5,
-                    tension: 0.35,
-                    fill: true,
-                    pointRadius: 2.5,
-                    pointHoverRadius: 4,
-                    pointBackgroundColor: '#8B4513'
+                    backgroundColor: 'rgba(139, 69, 19, 0.7)',
+                    borderColor: '#8B4513',
+                    borderWidth: 1,
+                    barPercentage: isDense ? 0.65 : 0.85,
+                    categoryPercentage: 0.9
                 }]
             },
             options: getChartOptions(values)
@@ -109,7 +104,7 @@
                         font: { size: 10 },
                         maxRotation: 45,
                         autoSkip: true,
-                        maxTicksLimit: 8
+                        maxTicksLimit: 12  // show more labels so the 30-day range is clearer
                     }
                 },
                 y: {

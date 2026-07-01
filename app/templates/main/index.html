@@ -204,12 +204,7 @@
         </div>
     </div>
 
-    <!-- ============================================================
-         FEED STATS ENHANCEMENT (v1.0)
-         Replaces simple hit counter with dashboard: Total / Today / Week / Month + 14-day trend line.
-         Bootstrap-styled card, Chart.js, ARIA labels, placed at bottom of feed.
-         Data from server (via SiteStat + daily keys). No model changes.
-         ============================================================ -->
+    <!-- FEED STATS ENHANCEMENT v1.1: replaces basic hit counter. 30-day bar chart (full calendar range) + Total/Today/Week/Last 30d stats -->
     <div class="stats-card mt-4 p-4 border rounded-3 shadow-sm bg-white" aria-labelledby="stats-title">
         <h6 id="stats-title" class="text-center fw-bold mb-3" style="color:#2C3E50; letter-spacing:0.3px;">Platform Activity</h6>
         <div class="row text-center mb-3 g-2">
@@ -226,16 +221,16 @@
                 <div id="stat-week" class="fw-bold fs-5" aria-label="Views this week">{{ feed_stats.week | default(0) | int }}</div>
             </div>
             <div class="col-3">
-                <div class="small text-muted">This Month</div>
-                <div id="stat-month" class="fw-bold fs-5" aria-label="Views this month">{{ feed_stats.month | default(0) | int }}</div>
+                <div class="small text-muted">Last 30d</div>
+                <div id="stat-month" class="fw-bold fs-5" aria-label="Views last 30 days">{{ feed_stats.month | default(0) | int }}</div>
             </div>
         </div>
 
         <div class="mt-2">
-            <canvas id="viewsTrendChart" height="90" aria-label="Daily views trend over the last 14 days" role="img"></canvas>
+            <canvas id="viewsTrendChart" height="150" aria-label="Daily views trend over the last 30 days" role="img"></canvas>
         </div>
         <div class="text-center mt-1">
-            <small class="text-muted">Daily views (last 14 days)</small>
+            <small class="text-muted">Daily views (last 30 days)</small>
         </div>
     </div>
 
@@ -284,7 +279,7 @@
 window.isLoggedIn = JSON.parse('{{ current_user.is_authenticated | tojson }}');
 const GROK_LOGO_URL = '{{ url_for("static", filename="img/GrokLogo.png") }}';
 window.monthlyViews = {{ monthly_views | default(0) | int }};  // current month views for "Your ad could have been viewed X times this month!"
-window.feedStats = {{ feed_stats | tojson | default('{}') }};  // total/today/week/month + daily_views[] for chart + stats card
+window.feedStats = {{ feed_stats | tojson | default('{}') }};  // total/today/week/last30 + 30-day daily_views[] for chart
 let currentGrokListing = null;
 function openGrokChat(listingId, title, description, area) {
     currentGrokListing = { id: listingId, title: title, description: description, area: area };
