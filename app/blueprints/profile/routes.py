@@ -107,6 +107,15 @@ def profile():
                         upgraded_now = True
                         flash('🎉 Account upgraded to Business! You now have the business badge and can post as a company.', 'success')
 
+            # Business website + flexible social links (only relevant for business but harmless on personal)
+            current_user.website = (form.website.data or '').strip() or None
+            social = {}
+            for plat in ('facebook', 'instagram', 'twitter'):
+                val = (getattr(form, plat).data or '').strip()
+                if val:
+                    social[plat] = val
+            current_user.social_links = social if social else None
+
             db.session.commit()
             if not upgraded_now:
                 flash('✅ Profile updated successfully!', 'success')
@@ -114,6 +123,13 @@ def profile():
 
     else:
         form = ProfileForm(obj=current_user)
+        # Populate business website + social JSON fields (not auto-filled by obj=)
+        if getattr(current_user, 'website', None):
+            form.website.data = current_user.website
+        sl = getattr(current_user, 'social_links', None) or {}
+        for plat in ('facebook', 'instagram', 'twitter'):
+            if sl.get(plat) and not getattr(form, plat).data:
+                getattr(form, plat).data = sl.get(plat)
 
     # Note: Credits are only granted on confirmed success from payment_success or webhook,
     # not automatically on profile load (prevents add on cancel/abandon).

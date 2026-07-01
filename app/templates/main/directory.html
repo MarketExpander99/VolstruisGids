@@ -109,6 +109,23 @@
                                         {{ b.bio }}
                                     </div>
                                 {% endif %}
+
+                                {# Business Profile links (website + social icons) per spec #}
+                                {% if b.website or b.social_links %}
+                                <div class="mt-1 small">
+                                    {% if b.website %}
+                                    <a href="{{ b.website }}" target="_blank" rel="noopener" class="text-decoration-none me-2" title="Website">
+                                        <i class="bi bi-globe"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if b.social_links %}
+                                        {% for p, link in (b.social_links or {}).items() %}
+                                            {% set icon = 'bi-facebook' if p=='facebook' else ('bi-instagram' if p=='instagram' else ('bi-twitter-x' if p in ('twitter','x') else 'bi-link')) %}
+                                            <a href="{{ link }}" target="_blank" rel="noopener" class="text-decoration-none me-1" title="{{ p }}"><i class="bi {{ icon }}"></i></a>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
 

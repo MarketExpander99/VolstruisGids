@@ -26,6 +26,8 @@ class User(UserMixin, db.Model):
     business_phone = db.Column(db.String(30), nullable=True)
     business_verified = db.Column(db.Boolean, default=False)
     upgraded_at = db.Column(db.DateTime, nullable=True)
+    website = db.Column(db.String(255), nullable=True)
+    social_links = db.Column(db.JSON, nullable=True)  # {"facebook": "url", "instagram": "...", ...} Business only
     profile_pic = db.Column(db.String(200), nullable=True)
     bio = db.Column(db.Text, nullable=True)
     location = db.Column(db.String(100), nullable=True)

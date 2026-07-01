@@ -130,6 +130,26 @@ def apply_safe_db_updates(db):
                     except Exception:
                         pass
 
+        # Business Profile Enhancement: website + social_links (Business accounts only)
+        # website: basic URL, social_links: flexible JSON e.g. {"facebook": "..."}
+        for col_name, col_type in [
+            ('website', 'VARCHAR(255)'),
+            ('social_links', 'TEXT'),  # JSON stored as TEXT on SQLite; SQLAlchemy JSON type handles (de)ser
+        ]:
+            if _column_exists(inspector, 'users', col_name):
+                logger.info(f"Column '{col_name}' already exists on 'users' — skipping.")
+            else:
+                try:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type} NULL"))
+                    conn.commit()
+                    logger.info(f"✅ Added '{col_name}' column to 'users' table (business profile links).")
+                except Exception as e:
+                    logger.error(f"Failed to add {col_name} column: {e}")
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+
         # last_reposted_at on listings
         if _column_exists(inspector, 'listings', 'last_reposted_at'):
             logger.info("Column 'last_reposted_at' already exists on 'listings' — skipping.")

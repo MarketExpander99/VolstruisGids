@@ -2011,3 +2011,45 @@ Added per-message avatars (gold-bordered, matching inbox style) on the left for 
 - Keeps same click-to-promote + drag behavior, keyboard focus, max 6.
 - Verified: app starts with zero errors.
 This makes selecting the featured image obvious and pleasant in all lighting.
+
+---
+**2026-07-01 — Business Profile Enhancement – Website + Social Media Links (spec v1.0)**
+
+**Scope (exactly per spec)**: Business accounts only (`is_business=True`). No impact on regular users. All DB changes exclusively via `safe_db_updates.py`.
+
+**Files touched** (full analysis + listed before edits):
+- app/models/user.py (added `website` + `social_links` columns)
+- app/utils/safe_db_updates.py (idempotent ALTER for website VARCHAR + social_links TEXT)
+- app/blueprints/profile/forms.py (added website with URL validator + facebook/instagram/twitter StringFields)
+- app/blueprints/profile/routes.py (load from JSON on GET; serialize to dict + save on POST)
+- app/templates/profile/profile.html (conditional inputs for business users + display in summary)
+- app/templates/listings/detail.html (links section below contact card for business ads)
+- app/templates/main/directory.html (globe + social icons in business cards)
+- PROJECT_STATUS.md (this entry)
+
+**Implementation (tiny edits only)**:
+- Model + DB: matches spec exactly.
+- Form: individual fields for UX (not raw JSON textarea).
+- Validation: basic URL on website via WTForms.
+- Display: profile edit (biz conditional), listing detail (below contact), business directory.
+- Flexible social_links JSON preserved.
+- Non-business unaffected (fields rendered only when `is_business`).
+
+**Verification (per rules + anti-hallucination)**:
+- pip install -r requirements.txt executed (Pillow build env issue pre-existing/unrelated on py3.14; app unaffected).
+- python -c py_compile on all edited .py → exit 0 / clean.
+- create_app() + apply_safe_db_updates → **ZERO errors**. Columns auto-added & present in inspector.
+- Short server thread run (port 15555, 2.5s) → "Running on http://..." no crash.
+- Form fields + model assignment + request-ctx ProfileForm() → clean.
+- DB columns: website + social_links confirmed live after startup.
+
+**Task COMPLETE — here is what you should test**:
+- Register/login as business (or upgrade personal via profile) → edit profile → add https://website + FB/IG/X URLs → Save.
+- Check: profile summary shows links; business directory cards show globe + icons linking out.
+- View a business listing detail → "Business links" appear below the contact buttons.
+- Personal accounts: no fields, no display of links.
+- Re-run app (triggers safe update) + test on PythonAnywhere after deploy.
+- Edge: empty links, malformed URL (client validate), only 1 social populated.
+
+Follows all project rules: smallest edits, blueprints, no new deps, status append, build guarantee upheld.
+
