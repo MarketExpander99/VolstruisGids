@@ -110,14 +110,18 @@ def ensure_daily_free_credits(user):
 # "Your ad could have been viewed X times this month!"
 # ============================================================
 def record_site_view():
-    """Increment lifetime total + current month counter.
+    """Increment lifetime total + current month counter + daily counter.
     Returns the *current month's* view count after increment.
+    Daily keys enable the feed stats dashboard (no schema change).
     """
     try:
         now = datetime.utcnow()
+        today = now.date()
         month_key = f"views_{now.year:04d}-{now.month:02d}"
+        daily_key = f"daily_views_{today.isoformat()}"
         SiteStat.increment('total_views', 1)
         monthly = SiteStat.increment(month_key, 1)
+        SiteStat.increment(daily_key, 1)
         return monthly
     except Exception:
         return 0
@@ -141,10 +145,63 @@ def get_total_site_views():
         return 0
 
 
+def get_feed_stats():
+    """Aggregate feed/platform activity stats for the dashboard card + trend graph.
+    Uses only existing SiteStat (no new models or schema).
+    Daily breakdown is populated going forward via enhanced record_site_view.
+    Returns dict safe for JSON / template.
+    """
+    try:
+        today = datetime.utcnow().date()
+        total = SiteStat.get_value('total_views', 0)
+
+        # Today
+        today_key = f"daily_views_{today.isoformat()}"
+        today_count = SiteStat.get_value(today_key, 0)
+
+        # This week (rolling last 7 calendar days incl. today) + daily series for chart (14 days)
+        week_count = 0
+        daily_views = []
+        for i in range(13, -1, -1):  # oldest first for chronological chart
+            d = today - timedelta(days=i)
+            key = f"daily_views_{d.isoformat()}"
+            count = SiteStat.get_value(key, 0)
+            daily_views.append({
+                'date': d.isoformat(),
+                'count': count
+            })
+            if i < 7:
+                week_count += count
+
+        # This month (current calendar month)
+        month_key = f"views_{today.year:04d}-{today.month:02d}"
+        month_count = SiteStat.get_value(month_key, 0)
+
+        return {
+            'total_views': total,
+            'today': today_count,
+            'week': week_count,
+            'month': month_count,
+            'daily_views': daily_views
+        }
+    except Exception:
+        # Graceful fallback so page never breaks
+        return {
+            'total_views': 0,
+            'today': 0,
+            'week': 0,
+            'month': 0,
+            'daily_views': []
+        }
+
+
 @main_bp.route('/')
 def index():
-    # Record a visit (increments this month's counter + lifetime)
+    # Record a visit (increments total + month + daily for stats)
     monthly_views = record_site_view()
+
+    # Feed stats for enhanced bottom dashboard (total, today, week, month + 14d series)
+    feed_stats = get_feed_stats()
 
     # Credits for homepage top section (spec: pass explicit value; None for anonymous)
     user_credits = None
@@ -160,7 +217,7 @@ def index():
             except (TypeError, ValueError):
                 user_credits = 0.0
 
-    return render_template('main/index.html', monthly_views=monthly_views, user_credits=user_credits)
+    return render_template('main/index.html', monthly_views=monthly_views, user_credits=user_credits, feed_stats=feed_stats)
 
 
 @main_bp.route('/api/listings')
@@ -277,7 +334,8 @@ def api_listings():
         'has_more': listings.has_next,
         'next_page': page + 1 if listings.has_next else None,
         'storefront_owner': storefront_owner,
-        'monthly_views': get_current_month_views()
+        'monthly_views': get_current_month_views(),
+        'feed_stats': get_feed_stats()  # available for future dynamic stat refresh (non-breaking)
     })
 
 

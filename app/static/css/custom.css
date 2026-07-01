@@ -1335,3 +1335,41 @@ footer, #main-footer {
 .photo-preview-grid {
   gap: 8px !important;
 }
+
+/* ============================================================
+   FEED STATS DASHBOARD (Feed Stats Enhancement v1.0)
+   Clean card at bottom of homepage feed replacing basic counter.
+   Matches warm Karoo palette + Bootstrap.
+   ============================================================ */
+.stats-card {
+    background: var(--surface);
+    border-color: var(--border) !important;
+    max-width: 820px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.stats-card h6 {
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+.stats-card .fs-5 {
+    font-size: 1.15rem !important;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+.stats-card canvas {
+    max-height: 120px;
+    width: 100% !important;
+}
+
+/* Subtle separators between stat columns on narrow screens */
+@media (max-width: 575.98px) {
+    .stats-card .row > div:not(:last-child) {
+        border-right: 1px solid var(--border);
+    }
+    .stats-card .row > div:nth-child(2),
+    .stats-card .row > div:nth-child(4) {
+        border-right: none;
+    }
+}

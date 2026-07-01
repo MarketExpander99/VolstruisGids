@@ -204,6 +204,41 @@
         </div>
     </div>
 
+    <!-- ============================================================
+         FEED STATS ENHANCEMENT (v1.0)
+         Replaces simple hit counter with dashboard: Total / Today / Week / Month + 14-day trend line.
+         Bootstrap-styled card, Chart.js, ARIA labels, placed at bottom of feed.
+         Data from server (via SiteStat + daily keys). No model changes.
+         ============================================================ -->
+    <div class="stats-card mt-4 p-4 border rounded-3 shadow-sm bg-white" aria-labelledby="stats-title">
+        <h6 id="stats-title" class="text-center fw-bold mb-3" style="color:#2C3E50; letter-spacing:0.3px;">Platform Activity</h6>
+        <div class="row text-center mb-3 g-2">
+            <div class="col-3">
+                <div class="small text-muted">Total</div>
+                <div id="stat-total" class="fw-bold fs-5" aria-label="Total views all time">{{ feed_stats.total_views | default(0) | int }}</div>
+            </div>
+            <div class="col-3">
+                <div class="small text-muted">Today</div>
+                <div id="stat-today" class="fw-bold fs-5" aria-label="Views today">{{ feed_stats.today | default(0) | int }}</div>
+            </div>
+            <div class="col-3">
+                <div class="small text-muted">This Week</div>
+                <div id="stat-week" class="fw-bold fs-5" aria-label="Views this week">{{ feed_stats.week | default(0) | int }}</div>
+            </div>
+            <div class="col-3">
+                <div class="small text-muted">This Month</div>
+                <div id="stat-month" class="fw-bold fs-5" aria-label="Views this month">{{ feed_stats.month | default(0) | int }}</div>
+            </div>
+        </div>
+
+        <div class="mt-2">
+            <canvas id="viewsTrendChart" height="90" aria-label="Daily views trend over the last 14 days" role="img"></canvas>
+        </div>
+        <div class="text-center mt-1">
+            <small class="text-muted">Daily views (last 14 days)</small>
+        </div>
+    </div>
+
     <div class="text-center text-muted small mt-4 pb-3">
         <p>VolstruisGids · All listings posted by your neighbours in the Klein Karoo </p>
         <p>
@@ -249,6 +284,7 @@
 window.isLoggedIn = JSON.parse('{{ current_user.is_authenticated | tojson }}');
 const GROK_LOGO_URL = '{{ url_for("static", filename="img/GrokLogo.png") }}';
 window.monthlyViews = {{ monthly_views | default(0) | int }};  // current month views for "Your ad could have been viewed X times this month!"
+window.feedStats = {{ feed_stats | tojson | default('{}') }};  // total/today/week/month + daily_views[] for chart + stats card
 let currentGrokListing = null;
 function openGrokChat(listingId, title, description, area) {
     currentGrokListing = { id: listingId, title: title, description: description, area: area };
@@ -1158,4 +1194,8 @@ document.addEventListener('click', function(e) {
         loadPopularCategories();
     };
 </script>
+
+<!-- Chart.js (CDN, lightweight) + Feed Stats dashboard initializer (new) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/feed-stats.js') }}"></script>
 {% endblock %}
