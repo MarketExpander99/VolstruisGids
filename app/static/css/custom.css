@@ -1007,6 +1007,43 @@ footer, #main-footer {
 .share-buttons-container .btn,
 .share-buttons-container a.btn {
   justify-content: center !important;
+}
+
+/* ============================================
+   USERNAME HANDLE @ PREFIX (Auth UX polish)
+   Visual @ prefix for login/register (and admin) inputs.
+   Clean separation, warm brand colors, focus states.
+   ============================================ */
+.input-group .input-group-text {
+    background-color: var(--surface);
+    border-color: var(--border);
+    color: var(--text-secondary);
+    border-right: none;
+    font-weight: 600;
+    padding-left: 0.85rem;
+    padding-right: 0.55rem;
+}
+
+.input-group .form-control {
+    border-left: none;
+}
+
+.input-group:focus-within .input-group-text,
+.input-group:focus-within .form-control {
+    border-color: var(--primary);
+}
+
+.input-group:focus-within .form-control {
+    box-shadow: 0 0 0 0.2rem rgba(139, 69, 19, 0.15);
+    background-color: #fff;
+}
+
+/* When inside input-group-lg (auth pages), keep consistent */
+.input-group-lg .input-group-text {
+    font-size: 1.1rem;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+}
   align-items: center !important;
   text-align: center;
   font-size: 0.72rem;

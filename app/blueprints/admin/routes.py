@@ -94,9 +94,9 @@ def user_edit(user_id):
     pw_form = PasswordResetForm()
     credit_form = CreditAdjustForm()
 
-    # Prefill current username for change form display
+    # Prefill current username for change form display (strip legacy leading @ for clean @-prefix UX)
     if request.method == 'GET':
-        username_form.new_username.data = user.username
+        username_form.new_username.data = (user.username or '').lstrip('@')
 
     temp_password_display = None  # Only populated on successful reset
 

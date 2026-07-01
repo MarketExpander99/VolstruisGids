@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, DecimalField, TextAreaField, SubmitField, HiddenField
-from wtforms.validators import DataRequired, Length, Optional, NumberRange
+from wtforms.validators import DataRequired, Length, Optional, NumberRange, Regexp
 
 
 class UserSearchForm(FlaskForm):
@@ -9,8 +9,16 @@ class UserSearchForm(FlaskForm):
 
 
 class UsernameChangeForm(FlaskForm):
-    new_username = StringField('New Username', validators=[DataRequired(), Length(min=3, max=80)])
+    new_username = StringField('New Username', validators=[
+        DataRequired(),
+        Length(min=3, max=30),
+        Regexp(r'^@?[a-zA-Z0-9_-]+$', message="Username can only contain letters, numbers, underscores and hyphens (leading @ is allowed but will be ignored).")
+    ])
     submit = SubmitField('Change Username')
+
+    def validate_new_username(self, field):
+        if field.data:
+            field.data = field.data.strip().lstrip('@')
 
 
 class PasswordResetForm(FlaskForm):

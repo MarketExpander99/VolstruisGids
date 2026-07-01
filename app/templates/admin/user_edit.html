@@ -16,7 +16,10 @@
                     {{ username_form.hidden_tag() }}
                     <div class="mb-3">
                         {{ username_form.new_username.label(class="form-label") }}
-                        {{ username_form.new_username(class="form-control") }}
+                        <div class="input-group">
+                            <span class="input-group-text">@</span>
+                            {{ username_form.new_username(class="form-control") }}
+                        </div>
                         {% for err in username_form.new_username.errors %}
                             <div class="text-danger small">{{ err }}</div>
                         {% endfor %}
