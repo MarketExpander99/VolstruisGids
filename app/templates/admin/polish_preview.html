@@ -35,7 +35,7 @@
                 </div>
             </div>
             <div class="card-footer small text-muted">
-                Owner: {{ listing.user.username if listing.user else listing.user_id }}
+                Owner: {{ listing.user.username if listing.user else listing.user_id }}{% if listing.user and listing.user.business_name %} <span class="text-muted">({{ listing.user.business_name }})</span>{% endif %}
             </div>
         </div>
     </div>

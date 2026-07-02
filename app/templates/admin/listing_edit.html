@@ -11,6 +11,7 @@
     <div class="card-body">
         <div class="small text-muted mb-2">
             Owner: <strong>{{ listing.user.username if listing.user else listing.user_id }}</strong>
+            {% if listing.user and listing.user.business_name %}<span class="text-muted small">({{ listing.user.business_name }})</span>{% endif %}
             • Towns: {{ listing.get_town_display() if listing.get_town_display is defined else (listing.area or listing.location) }}
             • Type: {{ listing.post_type }}
         </div>

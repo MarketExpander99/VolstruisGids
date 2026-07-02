@@ -150,6 +150,21 @@ def apply_safe_db_updates(db):
                     except Exception:
                         pass
 
+        # Per-user PSA / banner dismissals (so banners visible per-account, fixes cross-user visibility after browser close / different login)
+        if _column_exists(inspector, 'users', 'dismissed_psa_banners'):
+            logger.info("Column 'dismissed_psa_banners' already exists on 'users' — skipping.")
+        else:
+            try:
+                conn.execute(text("ALTER TABLE users ADD COLUMN dismissed_psa_banners TEXT NULL"))
+                conn.commit()
+                logger.info("✅ Added 'dismissed_psa_banners' column to 'users' table (per-user PSA dismissals for VGS-004).")
+            except Exception as e:
+                logger.error(f"Failed to add dismissed_psa_banners column: {e}")
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
         # last_reposted_at on listings
         if _column_exists(inspector, 'listings', 'last_reposted_at'):
             logger.info("Column 'last_reposted_at' already exists on 'listings' — skipping.")

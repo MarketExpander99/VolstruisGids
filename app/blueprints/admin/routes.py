@@ -177,7 +177,8 @@ def user_edit(user_id):
             if user.is_business_account:
                 user.is_business = False
                 user.account_type = 'personal'
-                # Do not clear business_name etc, in case they want to re-enable later
+                user.business_verified = False  # demoted accounts should not stay verified
+                # Keep business_name / other fields so admin re-promote or user re-upgrade is easy
                 action_desc = 'demoted to personal'
             else:
                 user.is_business = True

@@ -28,6 +28,8 @@ class User(UserMixin, db.Model):
     upgraded_at = db.Column(db.DateTime, nullable=True)
     website = db.Column(db.String(255), nullable=True)
     social_links = db.Column(db.JSON, nullable=True)  # {"facebook": "url", "instagram": "...", ...} Business only
+    # Per-user dismissed PSA banner IDs (VGS-004) — so regular users see active banners independently of browser localStorage / admin testing
+    dismissed_psa_banners = db.Column(db.JSON, nullable=True)
     profile_pic = db.Column(db.String(200), nullable=True)
     bio = db.Column(db.Text, nullable=True)
     location = db.Column(db.String(100), nullable=True)
@@ -78,12 +80,27 @@ class User(UserMixin, db.Model):
     @property
     def is_business_account(self):
         """Canonical way to check if user is a business account.
-        Uses flags + presence of business_name (for legacy/partial upgrades)."""
-        return bool(
-            getattr(self, 'is_business', False)
-            or getattr(self, 'account_type', None) == 'business'
-            or bool(getattr(self, 'business_name', None))
-        )
+
+        - Explicit account_type='personal' (admin demote) always forces personal,
+          even if legacy business_name etc. are still populated.
+        - Explicit business flags take precedence.
+        - Legacy fallback: business_name present on records that were never explicitly typed.
+        This makes admin "demote business to personal" actually remove the user from
+        Business Directory / business badges / storefronts.
+        """
+        acct = getattr(self, 'account_type', None)
+        is_biz = bool(getattr(self, 'is_business', False))
+
+        # Admin demote takes precedence: treat as personal even with leftover business fields
+        if acct == 'personal':
+            return False
+
+        # Explicit business
+        if is_biz or acct == 'business':
+            return True
+
+        # Legacy / partial upgrade (pre-flag era or self-serve before demote support)
+        return bool(getattr(self, 'business_name', None))
 
     @property
     def storefront_enabled(self):

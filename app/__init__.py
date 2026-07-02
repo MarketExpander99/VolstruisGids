@@ -168,11 +168,13 @@ def create_app(config_class=Config):
     # Active PSA / News banners for frontend display (VGS-004)
     # Queried once per request, ordered by priority (desc) then newest.
     # Only active + not expired banners.
+    # Per-user dismissal respected for authenticated non-admins (fixes "visible in admin but not for other users" after browser close/login).
     @app.context_processor
     def inject_active_psa_banners():
         try:
             from datetime import datetime as dt
             from app.models.psa_banner import PSABanner
+            from app.utils.admin import is_admin
             now = dt.utcnow()
             banners = (
                 PSABanner.query
@@ -184,6 +186,21 @@ def create_app(config_class=Config):
                 .limit(5)  # safety cap
                 .all()
             )
+            # Exclude banners dismissed by this (non-admin) user; admins always see all current active ones.
+            if current_user.is_authenticated:
+                try:
+                    if not is_admin(current_user):
+                        dismissed = current_user.dismissed_psa_banners or []
+                        if isinstance(dismissed, str):
+                            import json
+                            try:
+                                dismissed = json.loads(dismissed) or []
+                            except Exception:
+                                dismissed = []
+                        dismissed = {int(x) for x in (dismissed or []) if x is not None}
+                        banners = [b for b in banners if getattr(b, 'id', None) not in dismissed]
+                except Exception:
+                    pass  # never let bad dismiss data hide banners
             return {'active_psa_banners': banners}
         except Exception:
             # Table may not exist yet on first boot, or other transient issue

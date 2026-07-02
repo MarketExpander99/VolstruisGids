@@ -493,9 +493,16 @@ def api_businesses():
 
     query = User.query.filter(
         db.or_(
-            User.is_business == True,
-            User.account_type == 'business',
-            User.business_name.isnot(None)  # catch legacy / profile-upgraded accounts
+            # Explicit business flags (respect admin demotes where account_type='personal')
+            db.and_(
+                db.or_(User.is_business == True, User.account_type == 'business'),
+                db.or_(User.account_type != 'personal', User.account_type.is_(None))
+            ),
+            # Legacy: business_name present but not explicitly demoted to personal
+            db.and_(
+                User.business_name.isnot(None),
+                db.or_(User.account_type.is_(None), User.account_type != 'personal')
+            )
         )
     )
 
@@ -556,6 +563,36 @@ def api_businesses():
         'businesses': results,
         'total': len(results)
     })
+
+
+# PSA Banner per-user dismiss (server authoritative for logged-in users)
+# This ensures a banner dismissed by one user is still visible when another user logs in (same or different browser)
+@main_bp.route('/api/dismiss-psa/<int:banner_id>', methods=['POST'])
+@login_required
+def dismiss_psa_banner(banner_id):
+    """Record dismissal for the current authenticated user.
+    Client always hides immediately; this makes it persist across logins/sessions/devices for that account.
+    """
+    try:
+        user = current_user
+        dismissed = user.dismissed_psa_banners or []
+        if isinstance(dismissed, str):
+            import json
+            try:
+                dismissed = json.loads(dismissed) or []
+            except Exception:
+                dismissed = []
+        if not isinstance(dismissed, list):
+            dismissed = []
+        if banner_id not in dismissed:
+            dismissed = list(dismissed)  # ensure list
+            dismissed.append(int(banner_id))
+            user.dismissed_psa_banners = dismissed
+            db.session.commit()
+        return jsonify({'success': True, 'dismissed': banner_id})
+    except Exception as e:
+        current_app.logger.warning(f"PSA dismiss record failed for user {getattr(current_user, 'id', '?')}: {e}")
+        return jsonify({'success': False, 'error': 'dismiss failed'}), 500
 
 
 @main_bp.route('/my-listings')
@@ -828,9 +865,16 @@ def directory():
     # Load a reasonable set server-side for non-JS fallback
     businesses_query = User.query.filter(
         db.or_(
-            User.is_business == True,
-            User.account_type == 'business',
-            User.business_name.isnot(None)  # catch legacy / profile-upgraded accounts
+            # Explicit business flags (respect admin demotes where account_type='personal')
+            db.and_(
+                db.or_(User.is_business == True, User.account_type == 'business'),
+                db.or_(User.account_type != 'personal', User.account_type.is_(None))
+            ),
+            # Legacy: business_name present but not explicitly demoted to personal
+            db.and_(
+                User.business_name.isnot(None),
+                db.or_(User.account_type.is_(None), User.account_type != 'personal')
+            )
         )
     ).order_by(
         User.business_verified.desc(),

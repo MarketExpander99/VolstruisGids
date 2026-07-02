@@ -471,7 +471,7 @@
             const bannerEl = closeBtn.closest('.psa-banner');
             if (!bannerEl) return;
 
-            // Remember dismissal
+            // Remember dismissal client-side (for anonymous users + instant UX)
             try {
                 const key = 'dismissed_psa_banners';
                 let dismissed = JSON.parse(localStorage.getItem(key) || '[]');
@@ -482,6 +482,15 @@
             } catch (e) {
                 // localStorage unavailable — just hide for this page view
             }
+
+            // Record on server for logged-in users. This is the key fix: different accounts now see banners independently.
+            // (Admins bypass per-user filtering and always see current active banners.)
+            try {
+                fetch('/api/dismiss-psa/' + bannerId, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                }).catch(function(){ /* anon or network fail: rely on localStorage */ });
+            } catch (e) {}
 
             // Animate out
             bannerEl.style.transition = 'opacity .25s ease, max-height .25s ease';

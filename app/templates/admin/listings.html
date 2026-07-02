@@ -41,7 +41,10 @@
             <tr>
                 <td>{{ l.id }}</td>
                 <td style="max-width: 260px;">{{ l.title[:65] }}{% if l.title|length > 65 %}...{% endif %}</td>
-                <td class="small">{{ l.user.username if l.user else l.user_id }}</td>
+                <td class="small">
+                    {{ l.user.username if l.user else l.user_id }}
+                    {% if l.user and l.user.business_name %}<span class="text-muted">({{ l.user.business_name }})</span>{% endif %}
+                </td>
                 <td class="small">{{ l.get_town_display() if l.get_town_display is defined else (l.area or l.location) }}</td>
                 <td>
                     {% if l.is_active %}
