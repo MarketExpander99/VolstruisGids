@@ -274,7 +274,7 @@
                                 </div>
                                 {% endif %}
                                 <div class="d-flex align-items-center gap-2 small text-muted mb-1">
-                                    <span><i class="bi bi-geo-alt"></i> {{ listing.location }}</span>
+                                    <span><i class="bi bi-geo-alt"></i> {{ listing.get_town_display() if listing.get_town_display is defined else listing.location }}</span>
                                     <span>·</span>
                                     <span><i class="bi bi-heart-fill" style="color:#8B4513;"></i> {{ listing.likes_count or 0 }}</span>
                                     <span><i class="bi bi-chat-dots"></i> {{ listing.comments_count or 0 }}</span>
@@ -322,7 +322,7 @@
                                             {{ l.title }}
                                         </a>
                                         <div class="text-muted mt-1">
-                                            {{ l.location }}
+                                            {{ l.get_town_display() if l.get_town_display is defined else l.location }}
                                             {% if l.price %}
                                             <span class="text-success">· {{ l.get_display_price() }}</span>
                                             {% endif %}

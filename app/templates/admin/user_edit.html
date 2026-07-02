@@ -136,6 +136,49 @@
     </div>
 </div>
 
+<!-- User's Listings (for admin visibility per spec) -->
+<div class="card shadow-sm mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>User's Recent Listings</strong>
+        <span class="small text-muted">{{ user_listings|length }} shown (most recent)</span>
+    </div>
+    <div class="card-body p-0">
+        {% if user_listings %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:60px;">ID</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in user_listings %}
+                    <tr>
+                        <td>{{ l.id }}</td>
+                        <td class="small">{{ l.title[:55] }}{% if l.title|length > 55 %}...{% endif %}</td>
+                        <td>
+                            {% if l.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Suspended</span>{% endif %}
+                        </td>
+                        <td class="small text-muted">{{ l.created_at.strftime('%Y-%m-%d') if l.created_at else '' }}</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('admin.listing_edit', listing_id=l.id) }}" class="btn btn-sm btn-outline-primary">Manage</a>
+                            <a href="{{ url_for('admin.polish_listing', listing_id=l.id) }}" class="btn btn-sm btn-grok">Polish</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-3 text-muted small">No listings for this user.</div>
+        {% endif %}
+    </div>
+</div>
+
 <div class="mt-4">
     <a href="{{ url_for('admin.users', q=user.username) }}" class="btn btn-outline-secondary btn-sm">Back to search</a>
 </div>

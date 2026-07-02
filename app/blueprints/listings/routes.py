@@ -21,6 +21,7 @@ import re
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from app.services.google_indexing import notify_listing_change
+from app.services.grok_polish import perform_grok_polish as _shared_grok_polish
 
 UPLOAD_FOLDER = 'app/static/uploads'  # fallback; prefer current_app.config['UPLOAD_FOLDER']
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -44,6 +45,19 @@ def resize_image_to_square(image_path, size=800, bg_color=(250, 244, 235)):
     except Exception as e:
         print(f"Image resize error: {e}")
         return False
+
+
+# Local wrapper for backward compat inside module (delegates to shared service)
+def _perform_grok_polish(title, description, post_type='', category_name='', town='', price='', price_type='fixed'):
+    return _shared_grok_polish(
+        title=title,
+        description=description,
+        post_type=post_type,
+        category_name=category_name,
+        town=town,
+        price=price,
+        price_type=price_type
+    )
 
 
 @listings_bp.route('/improve-with-ai', methods=['POST'])
@@ -85,150 +99,32 @@ def improve_with_ai():
     db.session.commit()
 
     try:
-        grok_api_key = current_app.config.get('GROK_API_KEY')
-        grok_api_url = current_app.config.get('GROK_API_URL', 'https://api.x.ai/v1/chat/completions')
-        grok_model = current_app.config.get('GROK_MODEL', 'grok-3')
-
-        if not grok_api_key:
-            return jsonify({'error': 'AI service not configured. Add GROK_API_KEY to .env'}), 500
-
         category_name = ""
         if category_id:
             cat = Category.query.get(category_id)
             if cat:
                 category_name = cat.name
 
-        # === NEW SPEC PROMPT: Title + Description only. Separate researched price insight. ===
-        prompt = f"""You are "VolstruisGids Klein Karoo Market Expert" — a trusted, no-nonsense advisor who has helped hundreds of local sellers in Oudtshoorn, Ladismith, Calitzdorp, De Rust, and the surrounding Western Cape farms get fair prices and quick sales on VolstruisGids.
-
-You deeply understand:
-- Local buyer behaviour (cash buyers, farm collections, tourism trade, agricultural community needs)
-- Seasonal demand (hunting season, school holidays, harvest time, winter vs summer)
-- What actually sells fast vs what lingers in the Klein Karoo classifieds market
-- Realistic price ranges for used goods in this region (not Johannesburg or Cape Town prices)
-
-TASK: Polish a draft classifieds listing.
-
-INPUTS YOU WILL RECEIVE:
-- category
-- draft_title (may be rough)
-- draft_description (may be short or unstructured)
-- draft_price (user's current number or range — treat as reference only)
-- price_type ("fixed", "range", or null)
-- town_or_area (e.g. "Ladismith", "Oudtshoorn", "Klein Karoo")
-- condition (if mentioned: new, like-new, good, fair, needs work)
-
-STRICT RULES:
-1. TITLE (polished_title)
-   - Make it clear, specific, and searchable.
-   - Max ~70 characters.
-   - Include key attributes buyers search for (brand, size, material, condition signal).
-   - Honest and professional — no clickbait.
-
-2. DESCRIPTION (polished_description)
-   - Rewrite into scannable, friendly paragraphs or short bullets.
-   - Lead with the strongest selling point.
-   - Mention condition, age, reason for selling, and practical local details (collection, delivery radius, cash/EFT, farm access).
-   - End with a warm, low-pressure CTA.
-   - 80–160 words ideal. Natural South African English.
-
-3. PRICE RECOMMENDATION (completely separate from title/desc polish)
-   - Base your recommendation on:
-     * Real market value for this category + condition in the Klein Karoo right now
-     * Local supply/demand signals you know
-     * Practical factors (pickup convenience, tourism route proximity, farm vs town)
-   - **NEVER** suggest a price simply by taking "X% less than what the user typed". That is lazy and forbidden.
-   - Provide a single recommended price (or tight range if price_type=range).
-   - Write a short, credible "why" explanation (2–4 sentences) that references local context.
-   - Add a confidence level: High / Medium / Low + one-line note.
-   - If the draft has very little information, still give a solid category benchmark and note that more details would sharpen the recommendation.
-
-4. GOOGLE SEO OPTIMIZATION (important for VolstruisGids)
-   - Naturally weave in the town/area so the final listing performs well in our dynamic meta title, description, and keywords on the detail page.
-   - Use clear, searchable phrasing in the title (brand/model/year/condition + location signal is ideal).
-   - In the description, mention key buyer search terms naturally (never stuff keywords).
-   - The goal is higher visibility in local Klein Karoo / Western Cape searches on Google while staying honest and buyer-friendly.
-   - This helps the seller's ad get found faster.
-
-5. OUTPUT FORMAT — ONLY valid JSON, nothing else:
-{{
-  "polished_title": "string",
-  "polished_description": "string (use \\n for line breaks)",
-  "price_recommendation": {{
-    "recommended_price": number,
-    "range_low": number or null,
-    "range_high": number or null,
-    "currency": "ZAR",
-    "why": "string (local market reasoning)",
-    "confidence": "High" | "Medium" | "Low",
-    "local_context": "string (optional extra Klein Karoo flavour)"
-  }}
-}}
-
-Key context for this request:
-- Post type: {post_type}
-- Category: {category_name}
-- Town / Area: {town}
-- Draft Title: {title}
-- Draft Description: {description}
-- Draft price input: {price if price else 'not provided'}
-- Price type: {price_type}
-"""
-
-        headers = {
-            "Authorization": f"Bearer {grok_api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": grok_model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.6,
-            "max_tokens": 1100
-        }
-
-        resp = requests.post(grok_api_url, headers=headers, json=payload, timeout=30)
-        resp.raise_for_status()
-        content = resp.json()['choices'][0]['message']['content']
-
-        cleaned = content.strip().replace('```json', '').replace('```', '').strip()
-        try:
-            improved = pyjson.loads(cleaned)
-        except Exception:
-            match = re.search(r'\{[\s\S]*\}', cleaned)
-            if match:
-                improved = pyjson.loads(match.group(0))
-            else:
-                raise
-
-        # Extract polished text (fall back to original if missing)
-        polished_title = improved.get('polished_title') or title
-        polished_description = improved.get('polished_description') or description
-
-        # Price recommendation is SEPARATE and optional
-        raw_reco = improved.get('price_recommendation') or {}
-        price_reco = None
-        if isinstance(raw_reco, dict) and (raw_reco.get('recommended_price') is not None or raw_reco.get('range_low') is not None):
-            price_reco = {
-                'recommended_price': raw_reco.get('recommended_price'),
-                'range_low': raw_reco.get('range_low'),
-                'range_high': raw_reco.get('range_high'),
-                'currency': raw_reco.get('currency') or 'ZAR',
-                'why': raw_reco.get('why') or '',
-                'confidence': raw_reco.get('confidence') or 'Medium',
-                'local_context': raw_reco.get('local_context') or ''
-            }
+        result = _perform_grok_polish(
+            title=title,
+            description=description,
+            post_type=post_type,
+            category_name=category_name,
+            town=town,
+            price=price,
+            price_type=price_type
+        )
 
         return jsonify({
             'success': True,
-            'polished_title': polished_title,
-            'polished_description': polished_description,
-            'price_recommendation': price_reco,
-            # Always free now
+            'polished_title': result['polished_title'],
+            'polished_description': result['polished_description'],
+            'price_recommendation': result.get('price_recommendation'),
             'is_free': True,
             'credits_used': 0,
             'remaining_credits': float(current_user.credit_balance or 0),
             'uses_today': 0,
-            'remaining_free': 'unlimited'  # Polish is fully free
+            'remaining_free': 'unlimited'
         })
 
     except Exception as e:
@@ -392,6 +288,16 @@ def create():
             db.session.add(txn)
 
         now = datetime.utcnow()
+
+        # VGS-002: multi-town
+        selected_towns = [t for t in (form.town.data or []) if t and str(t).strip()]
+        legacy_loc = selected_towns[0] if selected_towns else ''
+        if Listing.KLEIN_KAROO in selected_towns and len(selected_towns) == 1:
+            legacy_loc = Listing.KLEIN_KAROO
+        elif selected_towns:
+            real = [t for t in selected_towns if t != Listing.KLEIN_KAROO]
+            legacy_loc = real[0] if real else selected_towns[0]
+
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
@@ -399,7 +305,7 @@ def create():
             price_type=price_type,
             min_price=min_price,
             max_price=max_price,
-            location=form.town.data,
+            location=legacy_loc or 'Klein Karoo',
             area="Western Cape",
             contact_phone=contact_phone,
             contact_email=contact_email,
@@ -416,7 +322,8 @@ def create():
             rental_duration=rental_duration,
             rental_duration_unit=rental_duration_unit,
             created_at=now,
-            expires_at=now + timedelta(days=7)
+            expires_at=now + timedelta(days=7),
+            towns=selected_towns or None
         )
 
         try:
@@ -449,7 +356,7 @@ def create():
                 continue_form.post_type.data = form.post_type.data
                 continue_form.price_type.data = form.price_type.data
                 continue_form.category.data = form.category.data
-                continue_form.town.data = form.town.data
+                continue_form.town.data = form.town.data or []
                 continue_form.contact_methods.data = selected
                 continue_form.contact_phone.data = contact_phone
                 continue_form.contact_email.data = contact_email
@@ -502,7 +409,7 @@ def edit_listing(listing_id):
     form.category.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
 
     if request.method == 'GET':
-        form.town.data = listing.location
+        form.town.data = listing.town_list  # VGS-002 list for multi-select
         form.category.data = listing.category_id
         form.post_type.data = listing.post_type
         form.price_type.data = listing.price_type or 'fixed'
@@ -617,7 +524,11 @@ def edit_listing(listing_id):
         listing.price_type = price_type
         listing.min_price = min_price
         listing.max_price = max_price
-        listing.location = form.town.data
+        # VGS-002 multi town
+        selected_towns = [t for t in (form.town.data or []) if t and str(t).strip()]
+        listing.towns = selected_towns or None
+        real_towns = [t for t in selected_towns if t != Listing.KLEIN_KAROO] if selected_towns else []
+        listing.location = real_towns[0] if real_towns else (selected_towns[0] if selected_towns else listing.location)
         listing.area = "Western Cape"
         listing.contact_phone = contact_phone
         listing.contact_email = contact_email
@@ -758,6 +669,14 @@ def quick_create():
         db.session.add(txn)
 
         now = datetime.utcnow()
+
+        # VGS-002: multi-town
+        selected_towns = [t for t in (form.town.data or []) if t and str(t).strip()]
+        legacy_loc = selected_towns[0] if selected_towns else 'Klein Karoo'
+        if selected_towns:
+            real = [t for t in selected_towns if t != Listing.KLEIN_KAROO]
+            legacy_loc = real[0] if real else selected_towns[0]
+
         listing = Listing(
             title=form.title.data,
             description=form.description.data,
@@ -765,7 +684,7 @@ def quick_create():
             price_type=price_type,
             min_price=min_price,
             max_price=max_price,
-            location=form.town.data,
+            location=legacy_loc,
             area="Western Cape",
             contact_phone=contact_phone,
             contact_email=contact_email,
@@ -782,7 +701,8 @@ def quick_create():
             rental_duration=rental_duration,
             rental_duration_unit=rental_duration_unit,
             created_at=now,
-            expires_at=now + timedelta(days=7)
+            expires_at=now + timedelta(days=7),
+            towns=selected_towns or None
         )
 
         try:
@@ -1096,7 +1016,18 @@ def detail(listing_id):
         user_has_liked = Like.query.filter_by(user_id=current_user.id, listing_id=listing.id).first() is not None
 
     # SEO Enhancement (spec v1.0): server-rendered title, meta, OG-ready, full Product+Offer JSON-LD
-    page_title = f"{listing.title} in {listing.location}, Klein Karoo | VolstruisGids"
+    # VGS-002: respect multiple towns / Klein Karoo region
+    _towns = listing.town_list
+    if _towns:
+        if len(_towns) == 1:
+            loc = _towns[0]
+        elif Listing.KLEIN_KAROO in _towns:
+            loc = 'Klein Karoo'
+        else:
+            loc = ', '.join(_towns[:2]) + (' & more' if len(_towns) > 2 else '')
+    else:
+        loc = 'Klein Karoo'
+    page_title = f"{listing.title} in {loc}, Klein Karoo | VolstruisGids"
 
     # Meta description (refined): respect user's description, keep it natural.
     # Always include town + Klein Karoo. Target ~155 chars max.
@@ -1109,21 +1040,21 @@ def detail(listing_id):
             short = chunk.rsplit('. ', 1)[0] + '.'
         else:
             short = chunk.rsplit(' ', 1)[0].rstrip('.,;: ')
-        meta_description = f"{short} Available in {listing.location}, Klein Karoo on VolstruisGids."
+        meta_description = f"{short} Available in {loc}, Klein Karoo on VolstruisGids."
     else:
         price_part = ""
         if listing.price and listing.price > 0:
             price_part = f" for R{int(listing.price):,}"
         elif listing.price_type == 'range' and listing.min_price and listing.max_price:
             price_part = f" (R{int(listing.min_price):,}–R{int(listing.max_price):,})"
-        meta_description = f"Buy {listing.title}{price_part} in {listing.location}, Klein Karoo. Safe local classifieds on VolstruisGids. Contact the seller."
+        meta_description = f"Buy {listing.title}{price_part} in {loc}, Klein Karoo. Safe local classifieds on VolstruisGids. Contact the seller."
 
     if len(meta_description) > 158:
         meta_description = meta_description[:155].rsplit(' ', 1)[0] + "..."
 
     # === Dynamic keywords meta (SEO polish for per-listing relevance) ===
-    # Builds a targeted, deduplicated list: title + location + post_type + core site terms
-    kw_parts = [listing.title, listing.location]
+    # Builds a targeted, deduplicated list: title + location(s) + post_type + core site terms
+    kw_parts = [listing.title] + _towns
     if listing.post_type:
         kw_parts.append(listing.post_type)
     kw_parts.extend(['Klein Karoo', 'VolstruisGids', 'local classifieds'])

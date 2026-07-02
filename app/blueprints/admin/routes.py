@@ -1,7 +1,8 @@
 """
-Admin Panel routes (v1 MVP)
-Protected exclusively via @admin_required (env-based usernames).
-No model changes. Uses file audit log + existing CreditTransaction.
+Admin Panel routes (VGS-003)
+Protected exclusively via @admin_required (env-based ADMIN_USERNAMES whitelist on normal logged-in users).
+Core: users, listings (suspend/activate), credit adjust, Polish-with-Grok (before/after + auto reindex).
+No model changes. File audit log + CreditTransaction for history.
 """
 
 from flask import render_template, redirect, url_for, flash, request, current_app
@@ -15,6 +16,7 @@ from app.models.user import User
 from app.models.listing import Listing
 from app.models.message import Message
 from app.models.credit_transaction import CreditTransaction
+from app.models.category import Category
 from app.blueprints.admin import admin_bp
 from app.blueprints.admin.forms import (
     UserSearchForm, UsernameChangeForm, PasswordResetForm,
@@ -24,6 +26,7 @@ from app.utils.admin import (
     admin_required, is_admin, log_admin_action, generate_temp_password
 )
 from app.services.google_indexing import notify_listing_change
+from app.services.grok_polish import perform_grok_polish
 
 
 @admin_bp.route('/')
@@ -187,6 +190,14 @@ def user_edit(user_id):
     # Fresh credit balance for display
     current_credits = user.credits
 
+    # Recent listings for the user details view (spec: View user details (listings, credits))
+    user_listings = (
+        Listing.query.filter_by(user_id=user.id)
+        .order_by(Listing.created_at.desc())
+        .limit(8)
+        .all()
+    )
+
     return render_template(
         'admin/user_edit.html',
         user=user,
@@ -194,15 +205,18 @@ def user_edit(user_id):
         pw_form=pw_form,
         credit_form=credit_form,
         current_credits=current_credits,
-        temp_password_display=temp_password_display
+        temp_password_display=temp_password_display,
+        user_listings=user_listings
     )
 
 
 @admin_bp.route('/listings', methods=['GET'])
 @admin_required
 def listings():
-    """Basic listing management overview + search."""
+    """Listing management: search + status filter (active/suspended/all)."""
     q = request.args.get('q', '').strip()
+    status = request.args.get('status', 'active').strip().lower()  # default to active per common ops
+
     query = Listing.query
     if q:
         like = f'%{q}%'
@@ -212,8 +226,132 @@ def listings():
                 Listing.description.ilike(like)
             )
         )
+
+    if status == 'active':
+        query = query.filter(Listing.is_active == True)
+    elif status == 'suspended':
+        query = query.filter(Listing.is_active == False)
+    # 'all' or anything else: no filter
+
     listings = query.order_by(Listing.created_at.desc()).limit(80).all()
-    return render_template('admin/listings.html', listings=listings, q=q)
+    return render_template('admin/listings.html', listings=listings, q=q, status=status)
+
+
+@admin_bp.route('/listing/<int:listing_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_listing(listing_id):
+    """Quick activate/suspend from listings table."""
+    listing = Listing.query.get_or_404(listing_id)
+    action = request.form.get('action', '')
+    was_active = bool(listing.is_active)
+
+    if action == 'suspend':
+        listing.is_active = False
+        db.session.commit()
+        log_admin_action('suspend_listing', 'listing', listing.id, f"title={listing.title[:50]}")
+        try:
+            listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+            notify_listing_change(listing_url, "URL_DELETED")
+        except Exception:
+            pass
+        flash('Listing suspended (hidden from public).', 'warning')
+    elif action == 'activate':
+        listing.is_active = True
+        db.session.commit()
+        log_admin_action('activate_listing', 'listing', listing.id, f"title={listing.title[:50]}")
+        try:
+            listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+            notify_listing_change(listing_url, "URL_UPDATED")
+        except Exception:
+            pass
+        flash('Listing activated.', 'success')
+    else:
+        flash('Unknown toggle action.', 'danger')
+
+    # Preserve current filter/search if possible
+    return redirect(request.referrer or url_for('admin.listings'))
+
+
+@admin_bp.route('/listing/<int:listing_id>/polish', methods=['GET', 'POST'])
+@admin_required
+def polish_listing(listing_id):
+    """
+    Polish with Grok flow for admin (per VGS-003 spec).
+    - GET: Call Grok, render before/after preview + confirmation form.
+    - POST (confirm): Apply polished title+desc, save, log, trigger re-index.
+    Reuses existing Grok polish logic. Admin action is free / bypasses user rate limits.
+    """
+    listing = Listing.query.get_or_404(listing_id)
+
+    if request.method == 'POST' and request.form.get('apply_polish') == '1':
+        # Apply from the confirmed values (submitted from preview to avoid surprise re-calls)
+        new_title = (request.form.get('polished_title') or listing.title).strip()
+        new_desc = (request.form.get('polished_description') or listing.description).strip()
+
+        if not new_title or not new_desc:
+            flash('Cannot apply empty polished content.', 'danger')
+            return redirect(url_for('admin.polish_listing', listing_id=listing.id))
+
+        old_title = listing.title
+        old_desc = listing.description
+
+        listing.title = new_title
+        listing.description = new_desc
+        db.session.commit()
+
+        log_admin_action(
+            'polish_with_grok',
+            'listing',
+            listing.id,
+            f"title_before={old_title[:60]} title_after={new_title[:60]}"
+        )
+
+        # Same re-index flow as normal edit
+        try:
+            listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+            notify_listing_change(listing_url, "URL_UPDATED")
+        except Exception as _e:
+            print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
+        flash('Listing polished with Grok, saved, and re-index triggered.', 'success')
+        return redirect(url_for('admin.listing_edit', listing_id=listing.id))
+
+    # GET: fetch fresh polish preview
+    try:
+        # Gather light context
+        cat_name = ''
+        if listing.category_id:
+            cat = Category.query.get(listing.category_id)
+            if cat:
+                cat_name = cat.name
+
+        town = listing.get_town_display() if hasattr(listing, 'get_town_display') else (listing.area or listing.location or '')
+
+        result = perform_grok_polish(
+            title=listing.title or '',
+            description=listing.description or '',
+            post_type=listing.post_type or 'sale',
+            category_name=cat_name,
+            town=town,
+            price=str(listing.price) if listing.price is not None else '',
+            price_type=listing.price_type or 'fixed'
+        )
+
+        polished_title = result.get('polished_title') or listing.title
+        polished_description = result.get('polished_description') or listing.description
+
+    except Exception as e:
+        flash(f'Grok polish failed: {e}', 'danger')
+        return redirect(url_for('admin.listing_edit', listing_id=listing.id))
+
+    return render_template(
+        'admin/polish_preview.html',
+        listing=listing,
+        before_title=listing.title,
+        before_description=listing.description,
+        polished_title=polished_title,
+        polished_description=polished_description
+    )
 
 
 @admin_bp.route('/listing/<int:listing_id>', methods=['GET', 'POST'])
@@ -251,11 +389,11 @@ def listing_edit(listing_id):
                 db.session.rollback()
                 flash(f'Delete failed: {e}', 'danger')
 
-        # Deactivate (soft)
-        if request.form.get('deactivate') == '1':
+        # Suspend (soft hide, aka deactivate)
+        if request.form.get('suspend') == '1' or request.form.get('deactivate') == '1':
             listing.is_active = False
             db.session.commit()
-            log_admin_action('deactivate_listing', 'listing', listing.id, '')
+            log_admin_action('suspend_listing', 'listing', listing.id, '')
 
             # Google Indexing: remove from search (soft delete)
             try:
@@ -264,7 +402,22 @@ def listing_edit(listing_id):
             except Exception as _e:
                 print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
 
-            flash('Listing deactivated (hidden from public).', 'success')
+            flash('Listing suspended (hidden from public).', 'warning')
+            return redirect(url_for('admin.listing_edit', listing_id=listing.id))
+
+        # Activate
+        if request.form.get('activate') == '1':
+            listing.is_active = True
+            db.session.commit()
+            log_admin_action('activate_listing', 'listing', listing.id, '')
+
+            try:
+                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+                notify_listing_change(listing_url, "URL_UPDATED")
+            except Exception as _e:
+                print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
+
+            flash('Listing activated and visible to public.', 'success')
             return redirect(url_for('admin.listing_edit', listing_id=listing.id))
 
         # Save edits

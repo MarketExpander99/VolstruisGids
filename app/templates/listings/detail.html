@@ -43,7 +43,7 @@
             </a>
             <div class="d-none d-md-flex align-items-center text-muted small">
                 <i class="bi bi-geo-alt-fill me-1"></i>
-                <span>Klein Karoo · {{ listing.location }}</span>
+                <span>Klein Karoo · {{ listing.get_town_display() }}</span>
             </div>
         </div>
 
@@ -57,7 +57,7 @@
                          src="{{ all_photos[0] }}"
                          class="w-100 listing-detail-hero-img"
                          style="max-height: 620px; object-fit: contain; display: block; background-color: #F8F4EB;"
-                         alt="{{ listing.title }} for sale in {{ listing.location }}, Klein Karoo - VolstruisGids">
+                         alt="{{ listing.title }} for sale in {{ listing.get_town_display() }}, Klein Karoo - VolstruisGids">
 
                     <!-- v2.0 Clear Post Type Treatment at the top (matching feed design) -->
                     <div class="position-absolute top-0 start-0 m-3">
@@ -110,7 +110,7 @@
                             <img src="{{ purl }}"
                                  class="gallery-thumb rounded-3 shadow-sm flex-shrink-0 {{ 'active' if idx == 0 else '' }}"
                                  style="width: 92px; height: 92px; object-fit: cover; cursor: pointer;"
-                                 alt="{{ listing.title }} for sale in {{ listing.location }}, Klein Karoo - VolstruisGids"
+                                 alt="{{ listing.title }} for sale in {{ listing.get_town_display() }}, Klein Karoo - VolstruisGids"
                                  onclick="setMainPhoto('{{ purl }}', this)"
                                  data-photo-src="{{ purl }}">
                         {% endfor %}
@@ -190,7 +190,7 @@
 
                 <!-- Meta -->
                 <p class="text-muted mb-4">
-                    <i class="bi bi-geo-alt-fill me-1"></i> {{ listing.location }}<br>
+                    <i class="bi bi-geo-alt-fill me-1"></i> {{ listing.get_town_display() }}<br>
                     <small>
                         Posted {{ listing.created_at.strftime('%d %b %Y at %H:%M') if listing.created_at else 'recently' }} 
                         · {{ listing.views or 0 }} views
@@ -471,7 +471,7 @@
                     <div class="carousel-inner">
                         {% for idx in range(all_photos|length) %}
                         <div class="carousel-item {% if idx == 0 %}active{% endif %}">
-                            <img src="{{ all_photos[idx] }}" class="d-block w-100" style="max-height: 80vh; object-fit: contain; background: #111;" alt="{{ listing.title }} for sale in {{ listing.location }}, Klein Karoo - VolstruisGids">
+                            <img src="{{ all_photos[idx] }}" class="d-block w-100" style="max-height: 80vh; object-fit: contain; background: #111;" alt="{{ listing.title }} for sale in {{ listing.get_town_display() }}, Klein Karoo - VolstruisGids">
                         </div>
                         {% endfor %}
                     </div>

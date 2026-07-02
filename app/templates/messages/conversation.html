@@ -20,7 +20,7 @@
                     <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="fw-semibold text-decoration-none">
                         {{ listing.title }}
                     </a>
-                    {% if listing.location %}<span class="text-muted"> • {{ listing.location }}</span>{% endif %}
+                    {% if listing.location %}<span class="text-muted"> • {{ listing.get_town_display() if listing.get_town_display is defined else listing.location }}</span>{% endif %}
                 </div>
             {% endif %}
         </div>

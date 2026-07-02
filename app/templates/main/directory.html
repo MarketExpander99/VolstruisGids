@@ -36,7 +36,7 @@
                     <label class="form-label small fw-semibold text-muted">Town</label>
                     <select name="town" class="form-select">
                         <option value="">All Towns</option>
-                        {% for t in ['Calitzdorp','De Rust','Ladismith','Oudtshoorn','Van Wyksdorp','Zoar','George','Mossel Bay','Cape Town'] %}
+                        {% for t in ['Calitzdorp','Cape Town','De Rust','Dysselsdorp','George','Groenfontein','Ladismith','Mossel Bay','Oudtshoorn','Van Wyksdorp','Zoar'] %}
                         <option value="{{ t }}" {% if town == t %}selected{% endif %}>{{ t }}</option>
                         {% endfor %}
                     </select>
@@ -110,18 +110,18 @@
                                     </div>
                                 {% endif %}
 
-                                {# Business Profile links (website + social icons) per spec #}
+                                {# Business Profile links (website + social) displayed on directory cards #}
                                 {% if b.website or b.social_links %}
-                                <div class="mt-1 small">
+                                <div class="mt-1" style="font-size:0.72rem; line-height:1.15;">
                                     {% if b.website %}
-                                    <a href="{{ b.website }}" target="_blank" rel="noopener" class="text-decoration-none me-2" title="Website">
-                                        <i class="bi bi-globe"></i>
+                                    <a href="{{ b.website }}" target="_blank" rel="noopener" class="text-decoration-none d-inline-flex align-items-center gap-1 me-2" style="color:#8B4513;">
+                                        <i class="bi bi-globe"></i> <span>Website</span>
                                     </a>
                                     {% endif %}
                                     {% if b.social_links %}
                                         {% for p, link in (b.social_links or {}).items() %}
-                                            {% set icon = 'bi-facebook' if p=='facebook' else ('bi-instagram' if p=='instagram' else ('bi-twitter-x' if p in ('twitter','x') else 'bi-link')) %}
-                                            <a href="{{ link }}" target="_blank" rel="noopener" class="text-decoration-none me-1" title="{{ p }}"><i class="bi {{ icon }}"></i></a>
+                                            {% set icon = 'bi-facebook' if p=='facebook' else ('bi-instagram' if p=='instagram' else ('bi-twitter-x' if p in ('twitter','x') else 'bi-link-45deg')) %}
+                                            <a href="{{ link }}" target="_blank" rel="noopener" class="text-decoration-none me-1" title="{{ p|title }}"><i class="bi {{ icon }}"></i></a>
                                         {% endfor %}
                                     {% endif %}
                                 </div>

@@ -6,6 +6,9 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
+# Import canonical towns for multi-select (VGS-002). Do NOT duplicate lists.
+from app.models.listing import Listing
+
 
 class ListingForm(FlaskForm):
     post_type = RadioField('Post Type', validators=[DataRequired()], choices=[
@@ -30,20 +33,16 @@ class ListingForm(FlaskForm):
     description = TextAreaField('Description', validators=[DataRequired(), Length(max=2000)])
 
     category = SelectField('Category', coerce=int, validators=[DataRequired()])
-    town = SelectField('Town', validators=[DataRequired()], choices=[
-        ('', 'Select a town...'),
-        ('Calitzdorp', 'Calitzdorp'),
-        ('Cape Town', 'Cape Town'),
-        ('De Rust', 'De Rust'),
-        ('Dysselsdorp', 'Dysselsdorp'),
-        ('George', 'George'),
-        ('Groenfontein', 'Groenfontein'),
-        ('Ladismith', 'Ladismith'),
-        ('Mossel Bay', 'Mossel Bay'),
-        ('Oudtshoorn', 'Oudtshoorn'),
-        ('Van Wyksdorp', 'Van Wyksdorp'),
-        ('Zoar', 'Zoar')
-    ])
+
+    # VGS-002: Multi-town select. Uses exact list from prior single-town + homepage.
+    # Klein Karoo option = full region coverage (special handling in filters/display).
+    _town_choices = [(t, t) for t in Listing.TOWNS]
+    _town_choices.append((Listing.KLEIN_KAROO, 'Klein Karoo (entire region)'))
+    town = SelectMultipleField(
+        'Towns / Areas (select all that apply)',
+        choices=_town_choices,
+        validators=[DataRequired(message="Please select at least one town or region.")]
+    )
 
     # Multi-select contact methods
     contact_methods = SelectMultipleField(

@@ -216,6 +216,40 @@ def apply_safe_db_updates(db):
                 except Exception:
                     pass
 
+        # towns (JSON/TEXT) for multi-town listings (VGS-002)
+        if _column_exists(inspector, 'listings', 'towns'):
+            logger.info("Column 'towns' already exists on 'listings' — skipping.")
+        else:
+            try:
+                conn.execute(text("ALTER TABLE listings ADD COLUMN towns TEXT"))
+                conn.commit()
+                logger.info("✅ Added 'towns' column to 'listings' table (multi-town support).")
+
+                # Backfill legacy single-town listings so they become multi-town compatible immediately.
+                # Use simple JSON array string for SQLite compatibility.
+                try:
+                    conn.execute(text("""
+                        UPDATE listings
+                        SET towns = '["' || replace(replace(location, '"', '\\"'), '''', '\\''') || '"]'
+                        WHERE (towns IS NULL OR towns = '' OR towns = '[]')
+                          AND location IS NOT NULL
+                          AND location != ''
+                    """))
+                    conn.commit()
+                    logger.info("✅ Backfilled 'towns' from legacy 'location' for existing listings.")
+                except Exception as bf_err:
+                    logger.warning(f"Backfill of towns encountered non-fatal issue: {bf_err}")
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.error(f"Failed to add towns column: {e}")
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
         # status on credit_transactions (required for Yoco _fulfill_credit_purchase idempotency in prod)
         if _column_exists(inspector, 'credit_transactions', 'status'):
             logger.info("Column 'status' already exists on 'credit_transactions' — skipping.")

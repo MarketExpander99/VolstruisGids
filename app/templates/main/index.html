@@ -725,7 +725,7 @@ document.addEventListener('click', function(e) {
                                     <!-- Grouped meta: seller (with single logo) + location + engagement -->
                                     ${posterHTML}
                                     <div class="d-flex align-items-center text-muted small mb-1">
-                                        <i class="bi bi-geo-alt me-1"></i><span>${listing.location}</span>
+                                        <i class="bi bi-geo-alt me-1"></i><span>${(listing.towns && listing.towns.length ? listing.towns.join(', ') : (listing.location || ''))}</span>
                                     </div>
                                     <div class="d-flex align-items-center gap-3 small text-muted mb-1">
                                         <span><i class="bi bi-heart-fill me-1" style="color:#8B4513;"></i>${listing.likes_count || 0}</span>
@@ -749,7 +749,7 @@ document.addEventListener('click', function(e) {
                                             data-grok-listing-id="${listing.id}"
                                             data-grok-title="${(listing.title || '').replace(/"/g, '&quot;')}"
                                             data-grok-description="${(listing.description || '').replace(/"/g, '&quot;').substring(0,180)}"
-                                            data-grok-area="${listing.location || ''}">
+                                            data-grok-area="${(listing.towns && listing.towns.length ? listing.towns.join(' / ') : (listing.location || ''))}">
                                         <img src="${GROK_LOGO_URL}" alt="Grok" height="15" style="vertical-align: middle;">
                                         <span>Ask Grok</span>
                                     </button>` : ''}
@@ -1113,6 +1113,7 @@ document.addEventListener('click', function(e) {
                                 ${b.business_type ? `<div class="small text-muted">${b.business_type}</div>` : ''}
                                 ${b.location ? `<div class="small mt-1"><i class="bi bi-geo-alt me-1"></i>${b.location}</div>` : ''}
                                 ${b.bio ? `<div class="small text-muted mt-1" style="max-height:2.6em;overflow:hidden;">${b.bio}</div>` : ''}
+                                ${(b.website || (b.social_links && Object.keys(b.social_links||{}).length > 0)) ? `<div class="mt-1" style="font-size:0.72rem; line-height:1.15;">${b.website ? `<a href="${b.website}" target="_blank" rel="noopener" class="text-decoration-none d-inline-flex align-items-center gap-1 me-2" style="color:#8B4513;"><i class="bi bi-globe"></i> <span>Website</span></a>` : ''}${b.social_links ? Object.entries(b.social_links).map(([p, link]) => { const icon = (p==='facebook')?'bi-facebook':(p==='instagram'?'bi-instagram':((p==='twitter'||p==='x')?'bi-twitter-x':'bi-link-45deg')); return `<a href="${link}" target="_blank" rel="noopener" class="text-decoration-none me-1" title="${p}"><i class="bi ${icon}"></i></a>`; }).join('') : ''}</div>` : ''}
                             </div>
                         </div>
 

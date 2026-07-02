@@ -326,7 +326,15 @@ def api_listings():
         listings_query = listings_query.filter(Listing.post_type == post_type)
 
     if town:
-        listings_query = listings_query.filter(Listing.location == town)
+        # VGS-002: match any town in listing's towns list, legacy location, or Klein Karoo full coverage
+        listings_query = listings_query.filter(
+            or_(
+                Listing.location == town,
+                Listing.towns.like(f'%"{town}"%'),
+                Listing.towns.like('%"Klein Karoo"%'),
+                Listing.location == 'Klein Karoo'
+            )
+        )
 
     if user_id:
         try:
@@ -359,6 +367,7 @@ def api_listings():
         'min_price': l.min_price,
         'max_price': l.max_price,
         'location': l.location,
+        'towns': l.town_list if hasattr(l, 'town_list') else ([l.location] if getattr(l, 'location', None) else []),
         'post_type': l.post_type,
         'photo_url': l.photo_url,
         'photo_urls': l.photo_urls,
@@ -444,7 +453,15 @@ def api_categories():
         cat_query = cat_query.filter(Listing.post_type == post_type)
 
     if town:
-        cat_query = cat_query.filter(Listing.location == town)
+        # VGS-002: match any town in listing's towns list, legacy location, or Klein Karoo full coverage
+        cat_query = cat_query.filter(
+            or_(
+                Listing.location == town,
+                Listing.towns.like(f'%"{town}"%'),
+                Listing.towns.like('%"Klein Karoo"%'),
+                Listing.location == 'Klein Karoo'
+            )
+        )
 
     if user_id:
         try:
@@ -530,7 +547,9 @@ def api_businesses():
             'store_url': url_for('main.business_storefront', username=(b.username or '').lstrip('@')),
             'is_business_account': True,
             'wa_phone': wa_phone,
-            'email': contact_email
+            'email': contact_email,
+            'website': getattr(b, 'website', None),
+            'social_links': getattr(b, 'social_links', None) or {}
         })
 
     return jsonify({

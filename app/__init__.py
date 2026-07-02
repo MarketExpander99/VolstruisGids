@@ -98,6 +98,7 @@ def create_app(config_class=Config):
     from app.blueprints.messages import messages_bp   # <-- Private Messaging MVP
     from app.blueprints.sitemap import sitemap_bp
     from app.blueprints.admin import admin_bp
+    from app.utils.admin import is_admin
 
     app.register_blueprint(sitemap_bp)
     app.register_blueprint(auth_bp)
@@ -154,5 +155,13 @@ def create_app(config_class=Config):
     # Expose select Python builtins to Jinja templates (e.g. hasattr for defensive checks on models)
     # Fixes "UndefinedError: 'hasattr' is undefined" on pages using _listing_cards.html (business storefront, category, etc.)
     app.jinja_env.globals['hasattr'] = hasattr
+
+    # Admin status for conditional nav (spec: link visible only to admin)
+    @app.context_processor
+    def inject_admin_flag():
+        try:
+            return {'is_admin_user': bool(is_admin())}
+        except Exception:
+            return {'is_admin_user': False}
 
     return app

@@ -447,7 +447,11 @@
 
             const title = titleEl ? titleEl.value.trim() : '';
             const description = descEl ? descEl.value.trim() : '';
-            const town = townSelect ? (townSelect.options[townSelect.selectedIndex]?.text || '') : '';
+            let town = '';
+            if (townSelect) {
+                const sel = Array.from(townSelect.selectedOptions || []).map(o => o.value || o.text).filter(Boolean);
+                town = sel.length ? sel.join(', ') : (townSelect.options[townSelect.selectedIndex]?.text || '');
+            }
             const category_id = categorySelect ? categorySelect.value : null;
 
             let price = null;

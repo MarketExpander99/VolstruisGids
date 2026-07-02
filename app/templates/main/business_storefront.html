@@ -49,6 +49,23 @@
                     </div>
                     {% endif %}
 
+                    {# Website + social links on business storefront (consistent with directory cards) #}
+                    {% if business_user.website or business_user.social_links %}
+                    <div class="mt-2 small" style="font-size:0.82rem;">
+                        {% if business_user.website %}
+                        <a href="{{ business_user.website }}" target="_blank" rel="noopener" class="text-decoration-none d-inline-flex align-items-center gap-1 me-2" style="color:#8B4513;">
+                            <i class="bi bi-globe"></i> <span>Website</span>
+                        </a>
+                        {% endif %}
+                        {% if business_user.social_links %}
+                            {% for p, link in (business_user.social_links or {}).items() %}
+                                {% set icon = 'bi-facebook' if p=='facebook' else ('bi-instagram' if p=='instagram' else ('bi-twitter-x' if p in ('twitter','x') else 'bi-link-45deg')) %}
+                                <a href="{{ link }}" target="_blank" rel="noopener" class="text-decoration-none me-1" title="{{ p|title }}"><i class="bi {{ icon }}"></i></a>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
                     <div class="mt-2">
                         <a href="{{ url_for('main.index') }}" class="small text-muted text-decoration-none">← Back to all listings</a>
                     </div>

@@ -23,6 +23,11 @@ class Listing(db.Model):
     
     location = db.Column(db.String(100), nullable=False, index=True)
     area = db.Column(db.String(100), nullable=False, index=True, server_default="")
+
+    # Multi-town servicing (VGS-002): JSON array of towns selected by seller.
+    # Legacy single-town listings continue to use `location`.
+    # No cap on number of towns. 'Klein Karoo' is special region sentinel for full coverage.
+    towns = db.Column(db.JSON, nullable=True, default=list)
     contact_phone = db.Column(db.String(20))
     contact_email = db.Column(db.String(120))
     # Multi-select contact methods: comma-separated e.g. 'dm,email,phone'
@@ -75,6 +80,78 @@ class Listing(db.Model):
     
     def __repr__(self):
         return f'<Listing {self.title}>'
+
+    # ============================================================
+    # Multi-town support (VGS-002)
+    # ============================================================
+    TOWNS = [
+        'Calitzdorp',
+        'Cape Town',
+        'De Rust',
+        'Dysselsdorp',
+        'George',
+        'Groenfontein',
+        'Ladismith',
+        'Mossel Bay',
+        'Oudtshoorn',
+        'Van Wyksdorp',
+        'Zoar'
+    ]
+    KLEIN_KAROO = 'Klein Karoo'
+
+    @property
+    def town_list(self):
+        """Return list of towns this listing covers.
+        - Uses new `towns` JSON if populated.
+        - Falls back to legacy single `location` for backward compat.
+        - Always returns a list (never None/empty string).
+        """
+        if self.towns:
+            try:
+                if isinstance(self.towns, (list, tuple)):
+                    cleaned = [str(t).strip() for t in self.towns if t and str(t).strip()]
+                    if cleaned:
+                        return cleaned
+                elif isinstance(self.towns, str):
+                    # In case stored as plain string somehow
+                    t = self.towns.strip()
+                    if t:
+                        return [t]
+            except Exception:
+                pass
+        if self.location:
+            loc = str(self.location).strip()
+            if loc:
+                return [loc]
+        return []
+
+    def covers_town(self, town: str) -> bool:
+        """True if this listing serves the given town (for filtering)."""
+        if not town:
+            return True
+        tl = self.town_list
+        if town in tl:
+            return True
+        # Klein Karoo provides full region coverage
+        if self.KLEIN_KAROO in tl:
+            return True
+        return False
+
+    def get_town_display(self):
+        """Human friendly display: comma list, or 'Klein Karoo' special."""
+        tl = self.town_list
+        if not tl:
+            return 'Klein Karoo'
+        if self.KLEIN_KAROO in tl:
+            # If ONLY Klein Karoo or mixed, prefer showing region when selected
+            if len(tl) == 1 or tl == [self.KLEIN_KAROO]:
+                return self.KLEIN_KAROO
+            # mixed: show specific + region note? keep as list but note full
+            others = [t for t in tl if t != self.KLEIN_KAROO]
+            if others:
+                return ', '.join(others) + f' + {self.KLEIN_KAROO}'
+            return self.KLEIN_KAROO
+        return ', '.join(tl)
     
     def get_display_price(self):
         """Return human-readable price string for templates and API responses.

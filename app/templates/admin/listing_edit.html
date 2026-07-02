@@ -11,7 +11,7 @@
     <div class="card-body">
         <div class="small text-muted mb-2">
             Owner: <strong>{{ listing.user.username if listing.user else listing.user_id }}</strong>
-            • Area: {{ listing.area or listing.location }}
+            • Towns: {{ listing.get_town_display() if listing.get_town_display is defined else (listing.area or listing.location) }}
             • Type: {{ listing.post_type }}
         </div>
 
@@ -37,12 +37,24 @@
 
 <!-- Admin actions -->
 <div class="card border-danger shadow-sm">
-    <div class="card-header text-danger">Danger Zone</div>
-    <div class="card-body d-flex gap-2 flex-wrap">
-        <form method="POST" onsubmit="return confirm('Deactivate this listing? It will be hidden from the public feed.');">
-            <input type="hidden" name="deactivate" value="1">
-            <button type="submit" class="btn btn-outline-warning">Deactivate (soft hide)</button>
+    <div class="card-header text-danger">Admin Actions</div>
+    <div class="card-body d-flex gap-2 flex-wrap align-items-center">
+        {% if listing.is_active %}
+        <form method="POST" onsubmit="return confirm('Suspend this listing? It will be hidden from public search and feed.');">
+            <input type="hidden" name="suspend" value="1">
+            <button type="submit" class="btn btn-outline-warning">Suspend (hide from public)</button>
         </form>
+        {% else %}
+        <form method="POST" onsubmit="return confirm('Activate / restore this listing to public?');">
+            <input type="hidden" name="activate" value="1">
+            <button type="submit" class="btn btn-success">Activate (make public)</button>
+        </form>
+        {% endif %}
+
+        <a href="{{ url_for('admin.polish_listing', listing_id=listing.id) }}" class="btn btn-grok">
+            <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" alt="Grok" height="18" class="me-1" style="vertical-align:middle;">
+            Polish with Grok
+        </a>
 
         <form method="POST" onsubmit="return confirm('PERMANENTLY DELETE this listing? Messages will be detached. This cannot be undone.');">
             <input type="hidden" name="delete" value="1">
@@ -50,7 +62,7 @@
         </form>
     </div>
     <div class="card-footer small text-muted">
-        Deleting detaches any related messages (listing_id set to null).
+        Suspend = soft hide (reversible). Polish uses Grok for SEO title+description only then auto-saves + reindexes.
     </div>
 </div>
 {% endblock %}
