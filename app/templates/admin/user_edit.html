@@ -66,6 +66,7 @@
             <div class="card-header"><strong>Adjust Credits</strong> — Current balance: <strong>{{ current_credits }}</strong></div>
             <div class="card-body">
                 <form method="POST" class="row g-3 align-items-end">
+                    {{ credit_form.hidden_tag() }}
                     <div class="col-md-3">
                         {{ credit_form.amount.label(class="form-label") }}
                         {{ credit_form.amount(class="form-control", step="0.5") }}
