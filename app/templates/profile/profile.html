@@ -254,6 +254,10 @@
                                 <div class="alert alert-danger py-1 px-2 small mb-1" style="font-size:0.65rem;">
                                     Expired {{ listing.days_since_freshness }}d ago — hidden
                                 </div>
+                                {% else %}
+                                <div class="text-muted" style="font-size:0.65rem; line-height:1.1;">
+                                    Expires in {{ listing.days_until_expiry }}d
+                                </div>
                                 {% endif %}
 
                                 <h6 class="card-title fw-semibold mb-1" style="font-size:0.95rem; line-height:1.2;">{{ listing.title }}</h6>

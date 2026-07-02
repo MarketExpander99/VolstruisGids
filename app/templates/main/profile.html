@@ -116,7 +116,11 @@
                             </span>
                             {% if listing.is_expired %}
                             <div class="alert alert-danger py-1 px-2 small mb-1" style="font-size: 0.65rem;">
-                                Expired — hidden from public
+                                Expired {{ listing.days_since_freshness }}d ago — hidden
+                            </div>
+                            {% else %}
+                            <div class="text-muted" style="font-size: 0.65rem;">
+                                Expires in {{ listing.days_until_expiry }}d
                             </div>
                             {% endif %}
                             <h6 class="card-title mt-1 fw-semibold" style="font-size:0.98rem;">{{ listing.title }}</h6>

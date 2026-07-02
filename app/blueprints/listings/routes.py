@@ -802,6 +802,11 @@ def repost_listing(listing_id):
         db.session.add(tx)
         db.session.commit()
 
+        current_app.logger.info(
+            f"Repost successful: listing_id={listing.id} user_id={current_user.id} "
+            f"new_expires_at={listing.expires_at} credits_deducted={not has_unlimited}"
+        )
+
         # === Google Indexing API: repost = fresh content, notify Google ===
         try:
             listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
@@ -809,7 +814,15 @@ def repost_listing(listing_id):
         except Exception as _e:
             print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
 
-        flash("Listing reposted! It is now visible on the homepage again.", "success")
+        # Calculate friendly expiry info for the user (use model's logic for consistency)
+        new_expires = listing.expires_at
+        if new_expires:
+            # Approximate using the property (or direct for precision right after set)
+            days_left = listing.days_until_expiry or max(1, (new_expires - now).days)
+            expiry_str = new_expires.strftime('%b %d')
+            flash(f"Listing reposted! Now visible for {days_left} more day{'s' if days_left != 1 else ''} (until {expiry_str}).", "success")
+        else:
+            flash("Listing reposted! It is now visible on the homepage again.", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Error reposting listing: {str(e)}", "danger")

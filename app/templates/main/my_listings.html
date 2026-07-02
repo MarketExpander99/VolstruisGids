@@ -69,6 +69,10 @@
                         <div class="alert alert-success py-1 px-2 small mb-2" style="font-size:0.7rem;">
                             Marked as sold — slot freed
                         </div>
+                        {% else %}
+                        <div class="alert alert-light border py-1 px-2 small mb-2 text-muted" style="font-size:0.7rem; background:#f8f1e9;">
+                            ⏱️ Expires in <strong>{{ listing.days_until_expiry }}</strong> day{{ 's' if listing.days_until_expiry != 1 else '' }} — repost to extend
+                        </div>
                         {% endif %}
 
                         <h5 class="card-title fw-semibold mb-1" style="font-size:1.02rem;">{{ listing.title }}</h5>

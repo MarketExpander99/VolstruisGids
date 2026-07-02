@@ -565,6 +565,50 @@ a:hover {
   height: 1.1em;
 }
 
+/* Click-to-toggle town pills (VGS-002b / create form improvement)
+   Replaces awkward Ctrl+click <select multiple> with friendly chips.
+*/
+.town-pill {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  user-select: none;
+  white-space: nowrap;
+}
+.town-pill:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+.town-pill:has(input:checked),
+.town-pill input:checked ~ *,
+.town-pill.selected {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 6px rgba(139, 69, 19, 0.18);
+}
+.town-pill input {
+  display: none;
+}
+
+/* Make "Klein Karoo (entire region)" stand out */
+.town-pill.klein-karoo {
+  border-style: dashed;
+  font-weight: 500;
+}
+.town-pill.klein-karoo:has(input:checked),
+.town-pill.klein-karoo.selected {
+  background: #5C4033; /* warm dark brown */
+  border-color: #5C4033;
+}
+
 /* ============================================
    NAV + FOOTER + MOBILE BOTTOM NAV
    ============================================ */

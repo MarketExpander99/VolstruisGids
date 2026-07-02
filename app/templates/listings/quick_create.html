@@ -167,8 +167,38 @@
                             </div>
                             <div class="col-md-6">
                                 {{ form.town.label(class="form-label") }}
-                                {{ form.town(class="form-select") }}
+                                <div class="town-choices d-flex flex-wrap gap-2 mb-1" id="town-choices">
+                                    {% for value, label_text in form.town.choices %}
+                                        {% set is_checked = value in (form.town.data or []) %}
+                                        <label class="town-pill {% if value == 'Klein Karoo' %}klein-karoo{% endif %}">
+                                            <input type="checkbox"
+                                                   name="{{ form.town.name }}"
+                                                   value="{{ value }}"
+                                                   {% if is_checked %}checked{% endif %}>
+                                            <span>{{ label_text }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                                <small class="text-muted d-block mb-1">Click / tap any that apply (no Ctrl needed)</small>
+                                {% for error in form.town.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
                             </div>
+
+                            <!-- Robust toggle feedback for town pills (works even if :has() CSS is limited) -->
+                            <script>
+                            (function(){
+                              var wrap = document.getElementById('town-choices');
+                              if(!wrap) return;
+                              wrap.querySelectorAll('.town-pill').forEach(function(pill){
+                                var inp = pill.querySelector('input[type=\"checkbox\"]');
+                                if(!inp) return;
+                                function sync(){ pill.classList.toggle('selected', inp.checked); }
+                                inp.addEventListener('change', sync);
+                                sync(); // initial state for edit prefills
+                              });
+                            })();
+                            </script>
                         </div>
 
                         <!-- Contact Methods -->
@@ -442,15 +472,15 @@
 
             const titleEl = document.getElementById('title');
             const descEl = document.getElementById('description');
-            const townSelect = document.getElementById('town');
             const categorySelect = document.getElementById('category');
 
             const title = titleEl ? titleEl.value.trim() : '';
             const description = descEl ? descEl.value.trim() : '';
+            // Collect from new click-to-toggle town pills (no more <select multiple>)
             let town = '';
-            if (townSelect) {
-                const sel = Array.from(townSelect.selectedOptions || []).map(o => o.value || o.text).filter(Boolean);
-                town = sel.length ? sel.join(', ') : (townSelect.options[townSelect.selectedIndex]?.text || '');
+            const checkedTowns = document.querySelectorAll('input[name="town"]:checked');
+            if (checkedTowns.length) {
+                town = Array.from(checkedTowns).map(cb => cb.value).join(', ');
             }
             const category_id = categorySelect ? categorySelect.value : null;
 

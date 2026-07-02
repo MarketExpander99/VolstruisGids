@@ -233,6 +233,26 @@ class Listing(db.Model):
             return 0
         return (datetime.utcnow() - base).days
 
+    @property
+    def days_until_expiry(self):
+        """Calendar days remaining until this listing expires.
+        Returns at least 1 while the listing is still active (so 'Expires in 1 day').
+        Returns 0 if already expired or no expiry date set.
+        Uses date() so a listing expiring late tonight still shows as 1 day left.
+        """
+        if getattr(self, 'expires_at', None) is None:
+            return 0
+        now = datetime.utcnow()
+        if self.expires_at <= now:
+            return 0
+        delta_days = (self.expires_at.date() - now.date()).days
+        return max(1, delta_days)
+
+    @property
+    def expiry_date(self):
+        """The expires_at value (for direct use in templates if needed)."""
+        return getattr(self, 'expires_at', None)
+
     # ============================================================
     # v1.1 / v1.2 Spec aliases for "effective freshness"
     # effective_date respects refreshed_at (preferred), last_reposted_at, created_at
