@@ -566,12 +566,14 @@ def api_businesses():
 
 
 # PSA Banner per-user dismiss (server authoritative for logged-in users)
+# Supports VGS-004 global + VGS-004b system-generated (synthetic negative IDs). Works for int banner_id (positive/negative).
 # This ensures a banner dismissed by one user is still visible when another user logs in (same or different browser)
 @main_bp.route('/api/dismiss-psa/<int:banner_id>', methods=['POST'])
 @login_required
 def dismiss_psa_banner(banner_id):
     """Record dismissal for the current authenticated user.
     Client always hides immediately; this makes it persist across logins/sessions/devices for that account.
+    Negative IDs are used for system banners (VGS-004b) and are stored the same way.
     """
     try:
         user = current_user

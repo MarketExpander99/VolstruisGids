@@ -118,4 +118,21 @@
     Banners appear (in priority order) below the main navigation on the homepage and listing pages.<br>
     Logged-in users dismiss per-account (server recorded); anonymous use browser localStorage. Admins always preview all active banners.
 </div>
+
+<!-- VGS-004b: System-generated banners (no manual creation) -->
+<div class="card mt-4 border-warning">
+    <div class="card-header bg-light">System-Generated PSA (VGS-004b) — Automatic for Owners</div>
+    <div class="card-body small">
+        <p class="mb-1"><strong>Expired listings:</strong> “Your listing 'XXX' has expired. Reactivate to keep it visible!” (danger style)</p>
+        <p class="mb-1"><strong>Expiring soon (&lt; 3 days):</strong> “Your listing 'XXX' expires soon. Renew now!” (warning style)</p>
+        <ul class="mb-2">
+            <li>Shown only to the logged-in owner of the listing(s).</li>
+            <li>Max 1 expired + 1 expiring banner per user (prioritized; system ones appear first).</li>
+            <li>Use the same per-user dismiss system (persisted in DB; survives logins).</li>
+            <li>Link goes to “My Listings” (owner can Repost there using credits).</li>
+            <li>Fully automatic — no admin creation needed. Threshold hardcoded to 3 days (easy to move to config later).</li>
+        </ul>
+        <p class="mb-0 text-muted">WhatsApp push is Phase 2 placeholder. Admin view of live system banners per-user is future enhancement.</p>
+    </div>
+</div>
 {% endblock %}

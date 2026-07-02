@@ -137,12 +137,12 @@
         </div>
     </nav>
 
-    <!-- PSA / News Headline Banners (VGS-004) -->
+    <!-- PSA / News Headline Banners (VGS-004 + VGS-004b system-generated for expiring/expired listings) -->
     {% if active_psa_banners %}
     <div id="psa-banners" class="psa-banners-wrapper">
         {% for banner in active_psa_banners %}
             {% set bid = banner.id %}
-            <div class="alert alert-{{ banner.color or 'info' }} alert-dismissible fade show mb-1 psa-banner"
+            <div class="alert alert-{{ banner.color or 'info' }} alert-dismissible fade show mb-1 psa-banner {% if bid and bid < 0 %}psa-system{% endif %}"
                  role="alert"
                  data-banner-id="{{ bid }}"
                  style="border-radius:0; border-left: 5px solid var(--bs-{{ banner.color or 'info' }});">
@@ -161,7 +161,12 @@
                                 <span class="d-block d-md-inline ms-md-2 small">{{ banner.content }}</span>
                             {% endif %}
                             {% if banner.link %}
-                                <a href="{{ banner.link }}" class="ms-2 fw-semibold small text-decoration-underline" target="_blank" rel="noopener">More info →</a>
+                                {% if bid and bid < 0 %}
+                                    {# VGS-004b: internal action link, no new tab #}
+                                    <a href="{{ banner.link }}" class="ms-2 fw-semibold small text-decoration-underline">Manage listings →</a>
+                                {% else %}
+                                    <a href="{{ banner.link }}" class="ms-2 fw-semibold small text-decoration-underline" target="_blank" rel="noopener">More info →</a>
+                                {% endif %}
                             {% endif %}
                         </div>
                         <button type="button"
@@ -465,8 +470,9 @@
             span.textContent = `${formatted} Credits Available`;
         }
 
-        // ===== VGS-004: PSA Banner Dismiss (localStorage) =====
-        // Banners are per-browser (resets on clear storage). Simple and effective.
+        // ===== VGS-004 / VGS-004b: PSA Banner Dismiss (localStorage + server) =====
+        // Supports both admin PSA (positive ids) and system synthetic (negative ids for user listings).
+        // Server record (for logged-in) + localStorage for instant/anon UX.
         function dismissPSABanner(closeBtn, bannerId) {
             const bannerEl = closeBtn.closest('.psa-banner');
             if (!bannerEl) return;
@@ -506,7 +512,7 @@
             }, 280);
         }
 
-        // On load: hide any previously dismissed banners
+        // On load: hide any previously dismissed banners (works for negative system ids too)
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 const key = 'dismissed_psa_banners';

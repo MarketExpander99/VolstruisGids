@@ -165,18 +165,22 @@ def create_app(config_class=Config):
         except Exception:
             return {'is_admin_user': False}
 
-    # Active PSA / News banners for frontend display (VGS-004)
-    # Queried once per request, ordered by priority (desc) then newest.
-    # Only active + not expired banners.
-    # Per-user dismissal respected for authenticated non-admins (fixes "visible in admin but not for other users" after browser close/login).
+    # Active PSA / News banners for frontend display (VGS-004 + VGS-004b)
+    # - DB banners (admin-managed) + system-generated user-specific for own expired/soon-expiring listings.
+    # Queried once per request. System banners are light dynamic objects (no DB rows).
+    # Per-user dismissal respected (via dismissed_psa_banners JSON) for all logged-in users.
     @app.context_processor
     def inject_active_psa_banners():
         try:
-            from datetime import datetime as dt
+            from datetime import datetime as dt, timedelta
             from app.models.psa_banner import PSABanner
+            from app.models.listing import Listing
             from app.utils.admin import is_admin
+            from types import SimpleNamespace
+            from flask import url_for as _url_for
+
             now = dt.utcnow()
-            banners = (
+            db_banners = (
                 PSABanner.query
                 .filter(
                     PSABanner.active == True,
@@ -186,22 +190,109 @@ def create_app(config_class=Config):
                 .limit(5)  # safety cap
                 .all()
             )
-            # Exclude banners dismissed by this (non-admin) user; admins always see all current active ones.
+
+            # Dismissed set (support list/JSON-string, ints or synthetic negative ints)
+            dismissed_set = set()
+            if current_user.is_authenticated:
+                try:
+                    dismissed = current_user.dismissed_psa_banners or []
+                    if isinstance(dismissed, str):
+                        import json
+                        try:
+                            dismissed = json.loads(dismissed) or []
+                        except Exception:
+                            dismissed = []
+                    dismissed_set = {int(x) for x in (dismissed or []) if x is not None}
+                except Exception:
+                    dismissed_set = set()
+
+            # Filter global DB banners for non-admins only (admins preview everything)
+            banners = db_banners
             if current_user.is_authenticated:
                 try:
                     if not is_admin(current_user):
-                        dismissed = current_user.dismissed_psa_banners or []
-                        if isinstance(dismissed, str):
-                            import json
-                            try:
-                                dismissed = json.loads(dismissed) or []
-                            except Exception:
-                                dismissed = []
-                        dismissed = {int(x) for x in (dismissed or []) if x is not None}
-                        banners = [b for b in banners if getattr(b, 'id', None) not in dismissed]
+                        banners = [b for b in db_banners if getattr(b, 'id', None) not in dismissed_set]
                 except Exception:
-                    pass  # never let bad dismiss data hide banners
-            return {'active_psa_banners': banners}
+                    banners = db_banners
+
+            # ============================================================
+            # VGS-004b: System-generated PSA for current user's own listings
+            # - Expired: "has expired. Reactivate..."
+            # - Soon (< 3 days): "expires soon. Renew now!"
+            # Synthetic negative IDs (no collision with real PSA ids) so reuse dismiss + template.
+            # Only for owners; max 1 expired + 1 expiring; respect same dismissed store.
+            # Links go to /my-listings (where repost button appears for expired).
+            # ============================================================
+            system_banners = []
+            if current_user.is_authenticated:
+                try:
+                    DAYS_SOON = 3
+                    soon_threshold = now + timedelta(days=DAYS_SOON)
+
+                    # Efficient owner-only queries (is_active=True to ignore sold)
+                    expired_ones = (
+                        Listing.query
+                        .filter(
+                            Listing.user_id == current_user.id,
+                            Listing.is_active == True,
+                            Listing.expires_at <= now
+                        )
+                        .order_by(Listing.expires_at.asc())
+                        .limit(1)
+                        .all()
+                    )
+                    expiring_soon = (
+                        Listing.query
+                        .filter(
+                            Listing.user_id == current_user.id,
+                            Listing.is_active == True,
+                            Listing.expires_at > now,
+                            Listing.expires_at <= soon_threshold
+                        )
+                        .order_by(Listing.expires_at.asc())
+                        .limit(1)
+                        .all()
+                    )
+
+                    # Expired banner first (higher urgency)
+                    for l in expired_ones:
+                        sid = -(100000 + getattr(l, 'id', 0))
+                        if sid in dismissed_set:
+                            continue
+                        title = f"Your listing '{(getattr(l, 'title', 'Listing') or '')[:55]}' has expired."
+                        system_banners.append(SimpleNamespace(
+                            id=sid,
+                            title=title,
+                            content="Reactivate to keep it visible!",
+                            color='danger',
+                            banner_type='alert',
+                            link=_url_for('main.my_listings'),
+                        ))
+                        break  # max 1
+
+                    # Then expiring (if room)
+                    for l in expiring_soon:
+                        sid = -(200000 + getattr(l, 'id', 0))
+                        if sid in dismissed_set:
+                            continue
+                        title = f"Your listing '{(getattr(l, 'title', 'Listing') or '')[:55]}' expires soon."
+                        system_banners.append(SimpleNamespace(
+                            id=sid,
+                            title=title,
+                            content="Renew now!",
+                            color='warning',
+                            banner_type='psa',
+                            link=_url_for('main.my_listings'),
+                        ))
+                        break  # max 1
+
+                except Exception:
+                    # Non-fatal: never break page load for banner gen
+                    system_banners = []
+
+            # Prioritize system (personal, actionable) then any global banners
+            combined = system_banners + banners
+            return {'active_psa_banners': combined}
         except Exception:
             # Table may not exist yet on first boot, or other transient issue
             return {'active_psa_banners': []}
