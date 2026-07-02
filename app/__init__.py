@@ -75,6 +75,7 @@ def create_app(config_class=Config):
     from app.models.user_ai_usage import UserAIUsage  # Daily free Grok chat quota (v1.1 free AI spec)
     from app.models.like import Like
     from app.models.comment import Comment
+    from app.models.psa_banner import PSABanner  # PSA / News banners (VGS-004)
 
     # Safe DB column updates for Credit System v1.1 (refreshed_at / credits / free tier)
     # Run inside app context so inspector/engine access is valid
@@ -163,5 +164,29 @@ def create_app(config_class=Config):
             return {'is_admin_user': bool(is_admin())}
         except Exception:
             return {'is_admin_user': False}
+
+    # Active PSA / News banners for frontend display (VGS-004)
+    # Queried once per request, ordered by priority (desc) then newest.
+    # Only active + not expired banners.
+    @app.context_processor
+    def inject_active_psa_banners():
+        try:
+            from datetime import datetime as dt
+            from app.models.psa_banner import PSABanner
+            now = dt.utcnow()
+            banners = (
+                PSABanner.query
+                .filter(
+                    PSABanner.active == True,
+                    (PSABanner.expiry == None) | (PSABanner.expiry > now)
+                )
+                .order_by(PSABanner.priority.desc(), PSABanner.created_at.desc())
+                .limit(5)  # safety cap
+                .all()
+            )
+            return {'active_psa_banners': banners}
+        except Exception:
+            # Table may not exist yet on first boot, or other transient issue
+            return {'active_psa_banners': []}
 
     return app

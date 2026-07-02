@@ -17,10 +17,11 @@ from app.models.listing import Listing
 from app.models.message import Message
 from app.models.credit_transaction import CreditTransaction
 from app.models.category import Category
+from app.models.psa_banner import PSABanner
 from app.blueprints.admin import admin_bp
 from app.blueprints.admin.forms import (
     UserSearchForm, UsernameChangeForm, PasswordResetForm,
-    CreditAdjustForm, ListingEditForm
+    CreditAdjustForm, ListingEditForm, PSABannerForm
 )
 from app.utils.admin import (
     admin_required, is_admin, log_admin_action, generate_temp_password
@@ -442,3 +443,96 @@ def listing_edit(listing_id):
         listing=listing,
         form=form
     )
+
+
+# ============================================================
+# VGS-004: Admin PSA / News Banner Management
+# ============================================================
+
+@admin_bp.route('/psa-banners', methods=['GET', 'POST'])
+@admin_required
+def psa_banners():
+    """List all PSA banners + quick create form."""
+    form = PSABannerForm()
+
+    if request.method == 'POST' and form.validate_on_submit():
+        banner = PSABanner(
+            title=form.title.data.strip(),
+            content=(form.content.data or '').strip() or None,
+            banner_type=form.banner_type.data,
+            color=form.color.data,
+            active=bool(form.active.data),
+            priority=int(form.priority.data or 0),
+            link=(form.link.data or '').strip() or None,
+            expiry=form.expiry.data
+        )
+        db.session.add(banner)
+        db.session.commit()
+        log_admin_action('create_psa_banner', 'psa_banner', banner.id, f"title={banner.title[:50]} type={banner.banner_type}")
+        flash('PSA Banner created.', 'success')
+        return redirect(url_for('admin.psa_banners'))
+
+    # Show all (admin sees inactive/expired too), newest first
+    banners = PSABanner.query.order_by(PSABanner.priority.desc(), PSABanner.created_at.desc()).all()
+    return render_template('admin/psa_banners.html', form=form, banners=banners)
+
+
+@admin_bp.route('/psa-banner/<int:banner_id>', methods=['GET', 'POST'])
+@admin_required
+def psa_banner_edit(banner_id):
+    """Edit an existing banner. Also used for preview."""
+    banner = PSABanner.query.get_or_404(banner_id)
+    form = PSABannerForm(obj=banner)
+
+    if request.method == 'GET':
+        # Prefill
+        form.active.data = banner.active
+
+    if request.method == 'POST':
+        if request.form.get('delete') == '1':
+            log_admin_action('delete_psa_banner', 'psa_banner', banner.id, f"title={banner.title[:50]}")
+            db.session.delete(banner)
+            db.session.commit()
+            flash('Banner permanently deleted.', 'success')
+            return redirect(url_for('admin.psa_banners'))
+
+        if form.validate_on_submit():
+            banner.title = form.title.data.strip()
+            banner.content = (form.content.data or '').strip() or None
+            banner.banner_type = form.banner_type.data
+            banner.color = form.color.data
+            banner.active = bool(form.active.data)
+            banner.priority = int(form.priority.data or 0)
+            banner.link = (form.link.data or '').strip() or None
+            banner.expiry = form.expiry.data
+            db.session.commit()
+            log_admin_action('update_psa_banner', 'psa_banner', banner.id, f"title={banner.title[:50]} active={banner.active}")
+            flash('Banner updated.', 'success')
+            return redirect(url_for('admin.psa_banner_edit', banner_id=banner.id))
+
+        # Quick toggle from edit page
+        if request.form.get('toggle_active') == '1':
+            banner.active = not banner.active
+            db.session.commit()
+            log_admin_action('toggle_psa_banner', 'psa_banner', banner.id, f"active={banner.active}")
+            flash(f'Banner {"activated" if banner.active else "deactivated"}.', 'success')
+            return redirect(url_for('admin.psa_banner_edit', banner_id=banner.id))
+
+    # Live preview data for template
+    return render_template(
+        'admin/psa_banner_edit.html',
+        banner=banner,
+        form=form
+    )
+
+
+@admin_bp.route('/psa-banner/<int:banner_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_psa_banner(banner_id):
+    """Quick active toggle from list."""
+    banner = PSABanner.query.get_or_404(banner_id)
+    banner.active = not banner.active
+    db.session.commit()
+    log_admin_action('toggle_psa_banner', 'psa_banner', banner.id, f"active={banner.active}")
+    flash(f'Banner {"activated" if banner.active else "deactivated"}.', 'success')
+    return redirect(request.referrer or url_for('admin.psa_banners'))

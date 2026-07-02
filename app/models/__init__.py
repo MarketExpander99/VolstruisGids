@@ -11,8 +11,9 @@ from app.models.site_stat import SiteStat
 from app.models.user_ai_usage import UserAIUsage
 from app.models.like import Like
 from app.models.comment import Comment
+from app.models.psa_banner import PSABanner
 
-__all__ = ['User', 'Category', 'Listing', 'Promotion', 'Message', 'Payment', 'CreditTransaction', 'PaymentTransaction', 'UserCreditPass', 'SiteStat', 'UserAIUsage', 'Like', 'Comment']
+__all__ = ['User', 'Category', 'Listing', 'Promotion', 'Message', 'Payment', 'CreditTransaction', 'PaymentTransaction', 'UserCreditPass', 'SiteStat', 'UserAIUsage', 'Like', 'Comment', 'PSABanner']
 
 from .user import User
 from .credit_transaction import CreditTransaction
@@ -20,3 +21,4 @@ from .payment_transaction import PaymentTransaction
 from .user_credit_pass import UserCreditPass
 from .like import Like
 from .comment import Comment
+from .psa_banner import PSABanner

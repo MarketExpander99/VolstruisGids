@@ -49,7 +49,10 @@
                 <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary me-2 mb-2">
                     <i class="bi bi-card-list"></i> Manage Listings
                 </a>
-                <span class="text-muted small d-block mt-1">Listings support quick Suspend/Activate + “Polish with Grok” (SEO title+desc preview + apply).</span>
+                <a href="{{ url_for('admin.psa_banners') }}" class="btn btn-outline-dark me-2 mb-2">
+                    <i class="bi bi-megaphone"></i> Manage PSA Banners
+                </a>
+                <span class="text-muted small d-block mt-1">Listings support quick Suspend/Activate + “Polish with Grok”. PSA Banners for community alerts &amp; headlines.</span>
                 <p class="small text-muted mt-3 mb-0">
                     All actions are logged to <code>instance/admin_audit.log</code>.
                     Credit adjustments also appear in CreditTransaction table.

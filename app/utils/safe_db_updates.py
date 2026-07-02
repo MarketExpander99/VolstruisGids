@@ -312,6 +312,12 @@ def apply_safe_db_updates(db):
     except Exception as ex:
         logger.warning(f"Non-fatal error creating likes/comments tables: {ex}")
 
+    # PSA / News Headline Banners (VGS-004)
+    try:
+        create_psa_banners_table(db)
+    except Exception as ex:
+        logger.warning(f"Non-fatal error creating psa_banners table: {ex}")
+
 
 def create_payment_tables(db):
     """Create payment_transactions table (idempotent) + ensure Stripe user columns.
@@ -609,4 +615,46 @@ def create_likes_comments_tables(db):
                     pass
         else:
             logger.info("Column 'comments_count' already exists on listings — ok.")
+
+
+def create_psa_banners_table(db):
+    """Create psa_banners table for Admin-Managed PSA / News Headline Banners (VGS-004).
+    Idempotent CREATE TABLE IF NOT EXISTS.
+    Simple model for prominent but dismissible top-of-page banners.
+    """
+    from sqlalchemy import text
+
+    try:
+        engine = db.engine
+        inspector = inspect(engine)
+    except Exception as ex:
+        logger.warning(f"Could not obtain inspector for psa_banners: {ex}")
+        return
+
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS psa_banners (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title VARCHAR(200) NOT NULL,
+                content TEXT,
+                banner_type VARCHAR(50) DEFAULT 'info',
+                color VARCHAR(50) DEFAULT 'info',
+                active BOOLEAN DEFAULT 1,
+                priority INTEGER DEFAULT 0,
+                link VARCHAR(500),
+                expiry DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+        conn.commit()
+        logger.info("✅ Ensured 'psa_banners' table exists (VGS-004 PSA/News banners).")
+
+        # Optional indexes for common admin/public queries
+        try:
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_psa_banners_active ON psa_banners (active)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_psa_banners_priority ON psa_banners (priority)"))
+            conn.commit()
+        except Exception:
+            pass  # SQLite lenient
 

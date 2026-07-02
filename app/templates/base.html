@@ -137,6 +137,44 @@
         </div>
     </nav>
 
+    <!-- PSA / News Headline Banners (VGS-004) -->
+    {% if active_psa_banners %}
+    <div id="psa-banners" class="psa-banners-wrapper">
+        {% for banner in active_psa_banners %}
+            {% set bid = banner.id %}
+            <div class="alert alert-{{ banner.color or 'info' }} alert-dismissible fade show mb-1 psa-banner"
+                 role="alert"
+                 data-banner-id="{{ bid }}"
+                 style="border-radius:0; border-left: 5px solid var(--bs-{{ banner.color or 'info' }});">
+                <div class="container">
+                    <div class="d-flex align-items-start">
+                        <div class="me-2 fs-5" aria-hidden="true">
+                            {% if banner.banner_type == 'alert' %}⚠️
+                            {% elif banner.banner_type == 'psa' %}📢
+                            {% elif banner.banner_type == 'news' %}📰
+                            {% elif banner.banner_type == 'howto' %}💡
+                            {% else %}ℹ️{% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong>{{ banner.title }}</strong>
+                            {% if banner.content %}
+                                <span class="d-block d-md-inline ms-md-2 small">{{ banner.content }}</span>
+                            {% endif %}
+                            {% if banner.link %}
+                                <a href="{{ banner.link }}" class="ms-2 fw-semibold small text-decoration-underline" target="_blank" rel="noopener">More info →</a>
+                            {% endif %}
+                        </div>
+                        <button type="button"
+                                class="btn-close"
+                                aria-label="Dismiss this announcement"
+                                onclick="dismissPSABanner(this, {{ bid }})"></button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Global Flash Notifications -->
     <div class="container mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -426,6 +464,56 @@
             const formatted = (typeof newBalance === 'number') ? newBalance.toFixed(1).replace(/\.0$/, '') : newBalance;
             span.textContent = `${formatted} Credits Available`;
         }
+
+        // ===== VGS-004: PSA Banner Dismiss (localStorage) =====
+        // Banners are per-browser (resets on clear storage). Simple and effective.
+        function dismissPSABanner(closeBtn, bannerId) {
+            const bannerEl = closeBtn.closest('.psa-banner');
+            if (!bannerEl) return;
+
+            // Remember dismissal
+            try {
+                const key = 'dismissed_psa_banners';
+                let dismissed = JSON.parse(localStorage.getItem(key) || '[]');
+                if (!dismissed.includes(bannerId)) {
+                    dismissed.push(bannerId);
+                    localStorage.setItem(key, JSON.stringify(dismissed));
+                }
+            } catch (e) {
+                // localStorage unavailable — just hide for this page view
+            }
+
+            // Animate out
+            bannerEl.style.transition = 'opacity .25s ease, max-height .25s ease';
+            bannerEl.style.opacity = '0';
+            bannerEl.style.maxHeight = '0';
+            setTimeout(() => {
+                if (bannerEl && bannerEl.parentNode) bannerEl.parentNode.removeChild(bannerEl);
+                // If no more banners left in wrapper, optionally hide wrapper
+                const wrapper = document.getElementById('psa-banners');
+                if (wrapper && wrapper.children.length === 0) {
+                    wrapper.style.display = 'none';
+                }
+            }, 280);
+        }
+
+        // On load: hide any previously dismissed banners
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const key = 'dismissed_psa_banners';
+                const dismissed = JSON.parse(localStorage.getItem(key) || '[]');
+                if (!dismissed.length) return;
+
+                document.querySelectorAll('.psa-banner[data-banner-id]').forEach(el => {
+                    const id = parseInt(el.dataset.bannerId, 10);
+                    if (dismissed.includes(id)) {
+                        el.style.display = 'none';
+                    }
+                });
+            } catch (e) {
+                // ignore
+            }
+        });
     </script>
 
     <!-- Footer with ID for scroll behavior -->

@@ -1,0 +1,121 @@
+{% extends "admin/base.html" %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">PSA / News Headline Banners</h4>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+</div>
+
+<p class="text-muted small">Create eye-catching, dismissible banners for urgent local notices, news, or tips. They appear at the top of the homepage and listing pages. Multiple can be active (sorted by priority).</p>
+
+<!-- Quick Create -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">Create New Banner</div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="row g-3">
+                <div class="col-md-8">
+                    {{ form.title.label(class="form-label") }}
+                    {{ form.title(class="form-control") }}
+                    {% for e in form.title.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-4">
+                    {{ form.banner_type.label(class="form-label") }}
+                    {{ form.banner_type(class="form-select") }}
+                </div>
+
+                <div class="col-md-12">
+                    {{ form.content.label(class="form-label") }}
+                    {{ form.content(class="form-control", rows=2, placeholder="Short supporting text (optional). Keep concise.") }}
+                </div>
+
+                <div class="col-md-3">
+                    {{ form.color.label(class="form-label") }}
+                    {{ form.color(class="form-select") }}
+                </div>
+                <div class="col-md-2">
+                    {{ form.priority.label(class="form-label") }}
+                    {{ form.priority(class="form-control", value=0) }}
+                </div>
+                <div class="col-md-4">
+                    {{ form.link.label(class="form-label") }}
+                    {{ form.link(class="form-control", placeholder="https://... or /some-page") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.expiry.label(class="form-label") }}
+                    {{ form.expiry(class="form-control", placeholder="2026-07-10 18:00") }}
+                    <small class="text-muted">Optional UTC expiry</small>
+                </div>
+
+                <div class="col-12 d-flex align-items-center gap-3">
+                    <div class="form-check">
+                        {{ form.active(class="form-check-input") }}
+                        {{ form.active.label(class="form-check-label") }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Banner</button>
+                    <a href="{{ url_for('admin.psa_banners') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- List -->
+<div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th style="width:50px;">ID</th>
+                <th>Headline</th>
+                <th>Type</th>
+                <th>Color</th>
+                <th>Prio</th>
+                <th>Status</th>
+                <th>Expires</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in banners %}
+            <tr>
+                <td>{{ b.id }}</td>
+                <td>
+                    <strong>{{ b.title }}</strong>
+                    {% if b.content %}<div class="small text-muted">{{ b.content[:80] }}{% if b.content|length > 80 %}...{% endif %}</div>{% endif %}
+                    {% if b.link %}<div class="small"><a href="{{ b.link }}" target="_blank" class="text-decoration-underline">Link →</a></div>{% endif %}
+                </td>
+                <td><span class="badge bg-secondary">{{ b.banner_type }}</span></td>
+                <td><span class="badge bg-{{ b.color }}">{{ b.color }}</span></td>
+                <td>{{ b.priority }}</td>
+                <td>
+                    {% if b.is_expired %}
+                        <span class="badge bg-dark">Expired</span>
+                    {% elif b.active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="small text-muted">{{ b.expiry.strftime('%Y-%m-%d %H:%M') if b.expiry else '—' }}</td>
+                <td class="text-end">
+                    <a href="{{ url_for('admin.psa_banner_edit', banner_id=b.id) }}" class="btn btn-sm btn-outline-primary">Edit / Preview</a>
+                    <form method="post" action="{{ url_for('admin.toggle_psa_banner', banner_id=b.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-sm {{ 'btn-success' if not b.active else 'btn-warning' }}">
+                            {{ 'Activate' if not b.active else 'Deactivate' }}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted py-4">No banners yet. Create one above.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="mt-3 small text-muted">
+    Banners appear (in priority order) below the main navigation on the homepage and listing pages.<br>
+    Users can dismiss individual banners (remembered in their browser via localStorage).
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends "admin/base.html" %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between mb-3">
+    <h4>Edit PSA Banner #{{ banner.id }}</h4>
+    <a href="{{ url_for('admin.psa_banners') }}" class="btn btn-sm btn-outline-secondary">← All Banners</a>
+</div>
+
+<div class="row g-4">
+    <!-- Edit Form -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header">Banner Details</div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control") }}
+                        {% for e in form.title.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.content.label(class="form-label") }}
+                        {{ form.content(class="form-control", rows=3) }}
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form.banner_type.label(class="form-label") }}
+                            {{ form.banner_type(class="form-select") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.color.label(class="form-label") }}
+                            {{ form.color(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            {{ form.priority.label(class="form-label") }}
+                            {{ form.priority(class="form-control") }}
+                        </div>
+                        <div class="col-md-8">
+                            {{ form.link.label(class="form-label") }}
+                            {{ form.link(class="form-control") }}
+                            <small class="text-muted">Optional destination link</small>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2 align-items-end">
+                        <div class="col-md-5">
+                            {{ form.expiry.label(class="form-label") }}
+                            {{ form.expiry(class="form-control") }}
+                            <small class="text-muted">Leave blank for no expiry</small>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                {{ form.active(class="form-check-input") }}
+                                {{ form.active.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer d-flex gap-2">
+                <form method="POST">
+                    <input type="hidden" name="toggle_active" value="1">
+                    <button type="submit" class="btn btn-sm {{ 'btn-warning' if banner.active else 'btn-success' }}">
+                        {{ 'Deactivate' if banner.active else 'Activate' }} Now
+                    </button>
+                </form>
+
+                <form method="POST" onsubmit="return confirm('Permanently delete this banner?');">
+                    <input type="hidden" name="delete" value="1">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete Banner</button>
+                </form>
+
+                <a href="{{ url_for('admin.psa_banners') }}" class="btn btn-sm btn-outline-secondary ms-auto">Cancel</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Preview -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <strong>Live Preview</strong>
+                <small class="text-muted ms-2">(how it will appear to visitors)</small>
+            </div>
+            <div class="card-body p-2">
+                {% set preview_color = form.color.data or banner.color or 'info' %}
+                {% set preview_type = form.banner_type.data or banner.banner_type or 'info' %}
+                {% set preview_title = form.title.data or banner.title %}
+                {% set preview_content = form.content.data or banner.content %}
+                {% set preview_link = form.link.data or banner.link %}
+
+                <div class="alert alert-{{ preview_color }} mb-0 psa-preview" role="alert">
+                    <div class="d-flex">
+                        <div class="me-2 fs-4">
+                            {% if preview_type == 'alert' %}⚠️
+                            {% elif preview_type == 'psa' %}📢
+                            {% elif preview_type == 'news' %}📰
+                            {% elif preview_type == 'howto' %}💡
+                            {% else %}ℹ️{% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong>{{ preview_title }}</strong>
+                            {% if preview_content %}
+                                <div class="small mt-1">{{ preview_content }}</div>
+                            {% endif %}
+                            {% if preview_link %}
+                                <div class="mt-2">
+                                    <a href="{{ preview_link }}" class="fw-semibold small text-decoration-underline" target="_blank">Learn more →</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <button type="button" class="btn-close" aria-label="Close" disabled></button>
+                    </div>
+                </div>
+
+                <div class="small text-muted mt-2">
+                    Status in preview: 
+                    {% if (form.active.data if form.active.data is not none else banner.active) %}
+                        <span class="text-success">Active</span>
+                    {% else %}
+                        <span class="text-secondary">Inactive (not shown)</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-light small mt-3">
+            This preview updates when you save. Color &amp; type affect styling on public pages.
+        </div>
+    </div>
+</div>
+{% endblock %}
