@@ -29,6 +29,7 @@
             <tr>
                 <th>ID</th>
                 <th>Title</th>
+                <th>Price</th>
                 <th>Owner</th>
                 <th>Area</th>
                 <th>Status</th>
@@ -41,6 +42,7 @@
             <tr>
                 <td>{{ l.id }}</td>
                 <td style="max-width: 260px;">{{ l.title[:65] }}{% if l.title|length > 65 %}...{% endif %}</td>
+                <td class="small text-nowrap">{{ l.get_display_price() if l.get_display_price is defined else (l.price or '—') }}</td>
                 <td class="small">
                     {{ l.user.username if l.user else l.user_id }}
                     {% if l.user and l.user.business_name %}<span class="text-muted">({{ l.user.business_name }})</span>{% endif %}
@@ -68,7 +70,7 @@
                         </form>
                         {% endif %}
 
-                        <a href="{{ url_for('admin.listing_edit', listing_id=l.id) }}" class="btn btn-outline-primary">Edit</a>
+                        <a href="{{ url_for('admin.listing_full_edit', listing_id=l.id) }}" class="btn btn-outline-primary" title="Edit listing (title, price, category, images, status, location, etc.)">Edit</a>
 
                         <a href="{{ url_for('admin.polish_listing', listing_id=l.id) }}" class="btn btn-grok btn-sm d-flex align-items-center gap-1" title="Polish title + description with Grok for SEO">
                             <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" alt="" height="14">
@@ -78,7 +80,7 @@
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="7" class="text-center text-muted">No listings found.</td></tr>
+            <tr><td colspan="8" class="text-center text-muted">No listings found.</td></tr>
             {% endfor %}
         </tbody>
     </table>

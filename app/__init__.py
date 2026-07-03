@@ -128,7 +128,12 @@ def create_app(config_class=Config):
             )
         except Exception:
             pass  # Never let logging break error response
-        return render_template('errors/404.html'), 404
+
+        # Provide context for ghost/expired listing friendly message (used by SEO-REMOVE-GHOST-LISTINGS).
+        # Heuristic on path is cheap and catches the common case of old search result links to /listing/<id>
+        # that no longer exist or are expired/inactive. Non-listing 404s won't trigger the special text.
+        is_ghost_listing = bool(request and ('/listings/listing/' in (getattr(request, 'path', '') or '') or '/listing/' in (getattr(request, 'path', '') or '')))
+        return render_template('errors/404.html', is_ghost_listing=is_ghost_listing), 404
 
     # Context processor to provide unread message count for navbar notifications (NEW messages only)
     @app.context_processor

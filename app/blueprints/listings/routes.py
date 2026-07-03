@@ -992,12 +992,12 @@ def detail(listing_id):
     # Load with user eagerly for seller info in SEO + templates
     listing = Listing.query.options(joinedload(Listing.user)).get_or_404(listing_id)
 
-    # Enforce 7-day expiration + is_active for non-owners (spec requirement).
-    # Owners may view their own (expired or sold) in order to repost/edit/delete.
-    is_owner = current_user.is_authenticated and current_user.id == listing.user_id
-    if not is_owner:
-        if not listing.is_active or listing.is_expired:
-            abort(404)
+    # Enforce visibility for public (expired, inactive/suspended, or removed listings must 404).
+    # Reuses model helper (is_visible_to_public) so logic is centralized + reusable.
+    # Owners + admins can still preview via public URL (for repost, support, etc.).
+    # Hard-deleted rows already 404 via get_or_404. Soft (is_active=False) + expiry also 404 here.
+    if listing.should_return_404(current_user):
+        abort(404)
 
     # Increment views safely (using the correct model attribute)
     current_views = getattr(listing, 'views', 0) or 0

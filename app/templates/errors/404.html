@@ -4,6 +4,9 @@
 
 {% block meta_description %}The page you are looking for could not be found on VolstruisGids.{% endblock %}
 
+{# For SEO ghost listing removal: 404 pages must not be indexed by crawlers. #}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -17,6 +20,11 @@
             <div class="card border-0 shadow-sm mb-4" style="border-radius:16px; background:#FDF6E9;">
                 <div class="card-body p-4">
                     <p class="mb-3">You might have followed an old link, or the username / listing has moved or no longer exists.</p>
+                    {% if is_ghost_listing %}
+                    <p class="mb-3 text-muted small">
+                        <strong>Note:</strong> This listing has expired or been removed.
+                    </p>
+                    {% endif %}
                     <div class="d-flex flex-wrap justify-content-center gap-2">
                         <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm px-4">← Back to Home</a>
                         <a href="{{ url_for('main.directory') }}" class="btn btn-outline-primary btn-sm px-4">Browse Business Directory</a>

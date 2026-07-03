@@ -1,0 +1,264 @@
+{% extends "admin/base.html" %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h4>Edit Listing #{{ listing.id }}</h4>
+        <div class="small text-muted">
+            Owner: <strong>{{ listing.user.username if listing.user else listing.user_id }}</strong>
+            {% if listing.user and listing.user.business_name %} ({{ listing.user.business_name }}){% endif %}
+            • Current status:
+            {% if listing.is_active %}
+                <span class="badge bg-success">Active</span>
+            {% else %}
+                <span class="badge bg-secondary">Suspended</span>
+            {% endif %}
+            • {{ listing.post_type|capitalize if listing.post_type else '' }}
+        </div>
+    </div>
+    <div class="btn-group btn-group-sm">
+        <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary">← All Listings</a>
+        <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="btn btn-outline-info" target="_blank">View Public</a>
+    </div>
+</div>
+
+<!-- Flash handled by admin base -->
+
+<form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+
+    <!-- Core -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Core Information</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    {{ form.title.label(class="form-label") }}
+                    {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else "")) }}
+                    {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-4">
+                    {{ form.post_type.label(class="form-label") }}
+                    {{ form.post_type(class="form-select" + (" is-invalid" if form.post_type.errors else "")) }}
+                    {% for e in form.post_type.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+
+                <div class="col-12">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-control", rows=7) }}
+                    {% for e in form.description.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    <div class="form-text">Supports basic text. Sanitized on save.</div>
+                </div>
+
+                <div class="col-md-6">
+                    {{ form.category.label(class="form-label") }}
+                    {{ form.category(class="form-select") }}
+                    {% for e in form.category.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    {{ form.allow_comments.label(class="form-check-label") }}
+                    <div class="form-check mt-2">
+                        {{ form.allow_comments(class="form-check-input") }}
+                        <span class="small text-muted ms-2">Comments allowed on public detail page</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pricing (including price adjustments) -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Pricing <span class="text-muted small">(admin can adjust freely)</span></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    {{ form.price_type.label(class="form-label") }}
+                    {{ form.price_type(class="form-select") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.price.label(class="form-label") }}
+                    <div class="input-group">
+                        <span class="input-group-text">R</span>
+                        {{ form.price(class="form-control") }}
+                    </div>
+                    {% for e in form.price.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-3">
+                    {{ form.min_price.label(class="form-label") }}
+                    <div class="input-group">
+                        <span class="input-group-text">R</span>
+                        {{ form.min_price(class="form-control") }}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    {{ form.max_price.label(class="form-label") }}
+                    <div class="input-group">
+                        <span class="input-group-text">R</span>
+                        {{ form.max_price(class="form-control") }}
+                    </div>
+                </div>
+            </div>
+            <div class="form-text small mt-1">
+                Use <strong>Fixed</strong> + Price for standard. <strong>Range</strong> uses Min/Max. <strong>Negotiable</strong> or <strong>Free</strong> set price fields to 0 automatically.
+            </div>
+            {% if form.price_type.errors or form.min_price.errors or form.max_price.errors %}
+                <div class="text-danger small">Fix price validation errors above.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Location & Towns -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Location / Service Areas</div>
+        <div class="card-body">
+            <div>
+                {{ form.town.label(class="form-label") }}
+                {{ form.town(class="form-select", multiple=True, size="5" if form.town.choices|length > 3 else "3") }}
+                {% for e in form.town.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                <div class="form-text">Hold Ctrl/Cmd to select multiple. "Klein Karoo" = full regional coverage.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Contact Details</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    {{ form.contact_phone.label(class="form-label") }}
+                    {{ form.contact_phone(class="form-control", placeholder="+27...") }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.contact_email.label(class="form-label") }}
+                    {{ form.contact_email(class="form-control", type="email") }}
+                </div>
+                <div class="col-12">
+                    {{ form.contact_methods.label(class="form-label d-block") }}
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for value, label_text in form.contact_methods.choices %}
+                            {% set is_checked = value in (form.contact_methods.data or []) %}
+                            <div class="form-check">
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="contact_{{ value }}"
+                                       name="{{ form.contact_methods.name }}"
+                                       value="{{ value }}"
+                                       {% if is_checked %}checked{% endif %}>
+                                <label class="form-check-label small" for="contact_{{ value }}">{{ label_text }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% for e in form.contact_methods.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rental (conditional note only; always shown for admin completeness) -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Rental Details (only applies if Post Type = Rental)</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    {{ form.rental_duration.label(class="form-label") }}
+                    {{ form.rental_duration(class="form-control") }}
+                </div>
+                <div class="col-md-4">
+                    {{ form.rental_duration_unit.label(class="form-label") }}
+                    {{ form.rental_duration_unit(class="form-select") }}
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <small class="text-muted">Ignored for non-rental listings.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Media / Images -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Images</div>
+        <div class="card-body">
+            {% if current_images %}
+            <div class="mb-3">
+                <small class="fw-semibold text-muted d-block mb-1">Current images ({{ current_images|length }}) — first is featured:</small>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for img in current_images[:6] %}
+                        <div>
+                            <img src="{{ img }}" alt="listing photo" style="max-width:110px; max-height:80px; object-fit:cover; border:1px solid #ddd; border-radius:4px;">
+                        </div>
+                    {% endfor %}
+                    {% if current_images|length > 6 %}<small class="align-self-center text-muted">+{{ current_images|length - 6 }} more</small>{% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-light small py-2">No images currently attached.</div>
+            {% endif %}
+
+            <div class="mb-2">
+                {{ form.photo.label(class="form-label") }}
+                {{ form.photo(class="form-control") }}
+                <div class="form-text">Uploading one or more files <strong>replaces</strong> the entire current photo set (main = first uploaded).</div>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="clear_photos" id="clear_photos" value="1">
+                <label class="form-check-label small text-danger" for="clear_photos">
+                    Clear all photos (use only if also uploading replacement or intentionally removing images)
+                </label>
+            </div>
+            {% for e in form.photo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+    </div>
+
+    <!-- Flags & Status + Expiry -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Status, Flags &amp; Expiry</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        {{ form.is_active(class="form-check-input") }}
+                        <label class="form-check-label fw-semibold">{{ form.is_active.label.text }}</label>
+                    </div>
+                    <div class="small text-muted">Turning off hides from all public feeds (same as Suspend).</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        {{ form.is_promoted(class="form-check-input") }}
+                        <label class="form-check-label">{{ form.is_promoted.label.text }}</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        {{ form.is_business_ad(class="form-check-input") }}
+                        <label class="form-check-label">{{ form.is_business_ad.label.text }}</label>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    {{ form.expires_at.label(class="form-label") }}
+                    {{ form.expires_at(class="form-control") }}
+                    <div class="form-text small">Leave blank to keep current auto-expiry. Set a future date to extend visibility window.</div>
+                    {% for e in form.expires_at.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6 small text-muted align-self-end">
+                    Current expires: <strong>{{ listing.expires_at.strftime('%Y-%m-%d %H:%M') if listing.expires_at else 'N/A' }}</strong><br>
+                    (Listings auto-expire ~7 days after creation / last refresh unless extended.)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">{{ form.submit.label.text }}</button>
+        <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
+    </div>
+
+    <p class="small text-muted mt-3">
+        All changes are audited. Price, category, location, images, status and more will immediately affect public display after save.
+        Google re-index is triggered automatically where applicable.
+    </p>
+</form>
+
+{% endblock %}

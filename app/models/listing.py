@@ -267,6 +267,39 @@ class Listing(db.Model):
         """True if this listing counts as an 'active' (non-expired) slot for free-tier rules."""
         return not self.is_expired
 
+    def is_visible_to_public(self, user=None):
+        """Return whether this listing should be visible on public-facing pages and detail view.
+
+        - Core rule: must have is_active=True AND not past its expires_at.
+        - Owners can view their own listings even if expired/inactive (for management/repost).
+        - Admins can preview any listing (expired or not) via public URLs.
+        - No DB schema impact; reuses existing columns + is_expired property.
+        - Handles legacy rows with null expires_at.
+        """
+        # Publicly visible
+        if getattr(self, 'is_active', False) and not getattr(self, 'is_expired', True):
+            return True
+
+        # Allow the owner to preview their own (even if expired/soft-deleted flag)
+        if user is not None and getattr(user, 'is_authenticated', False):
+            if getattr(user, 'id', None) == getattr(self, 'user_id', None):
+                return True
+
+            # Admin support preview (uses existing env-based admin check)
+            try:
+                from app.utils.admin import is_admin
+                if is_admin(user):
+                    return True
+            except Exception:
+                # If utils not available for some reason, fail closed to public rule
+                pass
+
+        return False
+
+    def should_return_404(self, user=None):
+        """Convenience: inverse of is_visible_to_public for route guards."""
+        return not self.is_visible_to_public(user)
+
     # ============================================================
     # Community engagement (spec 2026-06-25)
     # Denormalized counts to avoid COUNT(*) on every render.

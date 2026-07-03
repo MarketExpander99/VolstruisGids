@@ -10,24 +10,74 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 from decimal import Decimal, InvalidOperation
 from werkzeug.security import generate_password_hash
+import os
+from werkzeug.utils import secure_filename
+from PIL import Image
 
 from app import db
 from app.models.user import User
 from app.models.listing import Listing
 from app.models.message import Message
 from app.models.credit_transaction import CreditTransaction
-from app.models.category import Category
+from app.models.category import Category, seed_categories
 from app.models.psa_banner import PSABanner
 from app.blueprints.admin import admin_bp
 from app.blueprints.admin.forms import (
     UserSearchForm, UsernameChangeForm, PasswordResetForm,
-    CreditAdjustForm, ListingEditForm, PSABannerForm
+    CreditAdjustForm, PSABannerForm, AdminListingForm
 )
 from app.utils.admin import (
     admin_required, is_admin, log_admin_action, generate_temp_password
 )
 from app.services.google_indexing import notify_listing_change
 from app.services.grok_polish import perform_grok_polish
+
+
+# --- Minimal image helpers (duplicated from listings/routes for minimal diff; no new modules) ---
+UPLOAD_FOLDER = 'app/static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def resize_image_to_square(image_path, size=800, bg_color=(250, 244, 235)):
+    try:
+        with Image.open(image_path) as img:
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            img.thumbnail((size, size), Image.Resampling.LANCZOS)
+            new_img = Image.new("RGB", (size, size), bg_color)
+            offset = ((size - img.width) // 2, (size - img.height) // 2)
+            new_img.paste(img, offset)
+            new_img.save(image_path, quality=92)
+        return True
+    except Exception as e:
+        print(f"[ADMIN IMAGE] Resize error: {e}")
+        return False
+
+
+def _safe_float(v):
+    """Defensive numeric parse (handles '1,234.00', Decimals, etc). Matches listings logic."""
+    if v is None or v == '':
+        return None
+    if isinstance(v, (int, float, Decimal)):
+        return float(v)
+    try:
+        s = str(v).strip().replace(' ', '').replace('\xa0', '')
+        if '.' in s:
+            s = s.replace(',', '')
+        elif ',' in s:
+            parts = s.split(',')
+            if len(parts) == 2 and len(parts[1]) <= 2:
+                s = parts[0] + '.' + parts[1]
+            else:
+                s = s.replace(',', '')
+        return float(s) if s else None
+    except (ValueError, TypeError):
+        return None
+
 
 
 @admin_bp.route('/')
@@ -316,7 +366,7 @@ def polish_listing(listing_id):
             print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
 
         flash('Listing polished with Grok, saved, and re-index triggered.', 'success')
-        return redirect(url_for('admin.listing_edit', listing_id=listing.id))
+        return redirect(url_for('admin.listing_full_edit', listing_id=listing.id))
 
     # GET: fetch fresh polish preview
     try:
@@ -344,7 +394,7 @@ def polish_listing(listing_id):
 
     except Exception as e:
         flash(f'Grok polish failed: {e}', 'danger')
-        return redirect(url_for('admin.listing_edit', listing_id=listing.id))
+        return redirect(url_for('admin.listing_full_edit', listing_id=listing.id))
 
     return render_template(
         'admin/polish_preview.html',
@@ -359,90 +409,213 @@ def polish_listing(listing_id):
 @admin_bp.route('/listing/<int:listing_id>', methods=['GET', 'POST'])
 @admin_required
 def listing_edit(listing_id):
-    """Edit title/description or delete a listing."""
+    """Legacy partial edit route — consolidated to the single full editor."""
+    # All admin listing editing is now handled by the unified full editor
+    # (title, description, price, category, images, status, location, expiry, flags, etc.)
+    return redirect(url_for('admin.listing_full_edit', listing_id=listing_id))
+
+
+# ============================================================
+# Full Listing Edit (Admin) — expands partial title/desc edit to all editable fields
+# Route: /admin/listings/<id>/edit
+# - GET pre-populates current values
+# - POST validates + applies updates (incl. price, category, images, towns, expiry, flags)
+# - Reuses WTForms, existing audit logger, notify, image resize helpers
+# - No DB schema changes
+# ============================================================
+
+@admin_bp.route('/listings/<int:listing_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def listing_full_edit(listing_id):
+    """Admin full-field editor for any listing. Supports price adjustments etc."""
     listing = Listing.query.get_or_404(listing_id)
-    form = ListingEditForm()
+
+    seed_categories()
+    cats = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
+    if not cats:
+        cats = [(-1, "No categories (run seed_categories.py)")]
+
+    form = AdminListingForm()
+    form.category.choices = cats
+
+    # Ensure town choices are always current (in case)
+    form.town.choices = form.town.choices or [(t, t) for t in Listing.TOWNS] + [(Listing.KLEIN_KAROO, 'Klein Karoo (entire region)')]
 
     if request.method == 'GET':
+        # Prefill EVERY editable main field from current model state
         form.title.data = listing.title
         form.description.data = listing.description
+        form.post_type.data = listing.post_type or 'sale'
+        form.category.data = listing.category_id
+        form.price_type.data = listing.price_type or 'fixed'
+
+        # Price fields — convert float -> Decimal for the form widget (precision)
+        if listing.price_type == 'fixed' or listing.price_type not in ('range', 'negotiable', 'free'):
+            if listing.price is not None:
+                form.price.data = Decimal(str(listing.price))
+        else:
+            if listing.min_price is not None:
+                form.min_price.data = Decimal(str(listing.min_price))
+            if listing.max_price is not None:
+                form.max_price.data = Decimal(str(listing.max_price))
+
+        form.town.data = listing.town_list
+        form.contact_phone.data = listing.contact_phone or ''
+        form.contact_email.data = listing.contact_email or ''
+        form.allow_comments.data = bool(listing.allow_comments) if listing.allow_comments is not None else True
+
+        if listing.contact_methods:
+            form.contact_methods.data = [m.strip() for m in listing.contact_methods.split(',') if m.strip()]
+        else:
+            form.contact_methods.data = ['dm']
+
+        form.is_active.data = bool(listing.is_active)
+        form.is_promoted.data = bool(listing.is_promoted)
+        form.is_business_ad.data = bool(getattr(listing, 'is_business_ad', False))
+
+        if listing.post_type == 'rental':
+            form.rental_duration.data = listing.rental_duration
+            form.rental_duration_unit.data = listing.rental_duration_unit or 'day'
+
+        form.expires_at.data = listing.expires_at
 
     if request.method == 'POST':
-        # Delete action (with safe FK handling for messages)
-        if request.form.get('delete') == '1':
+        # === Image handling (simple replace-or-keep for admin) ===
+        # If new file(s) uploaded -> replace entire photo set. Supports clear checkbox.
+        photo_url = listing.photo_url
+        photo_urls = listing.photo_urls
+
+        upload_dir = current_app.config.get('UPLOAD_FOLDER', UPLOAD_FOLDER)
+        new_added = []
+        if form.photo.data:
+            files = form.photo.data if isinstance(form.photo.data, (list, tuple)) else [form.photo.data]
+            for f in files:
+                if f and getattr(f, 'filename', None) and allowed_file(f.filename):
+                    filename = secure_filename(f.filename)
+                    os.makedirs(upload_dir, exist_ok=True)
+                    filepath = os.path.join(upload_dir, filename)
+                    f.save(filepath)
+                    resize_image_to_square(filepath)
+                    new_added.append(f'/static/uploads/{filename}')
+
+        clear_photos = request.form.get('clear_photos') == '1'
+        if new_added:
+            photo_url = new_added[0]
+            photo_urls = ','.join(new_added[1:]) if len(new_added) > 1 else None
+        elif clear_photos:
+            photo_url = None
+            photo_urls = None
+        # else: keep existing
+
+        # === Validate and apply ===
+        if form.validate_on_submit():
             try:
-                # Detach any messages referencing this listing (FK is nullable)
-                Message.query.filter_by(listing_id=listing.id).update({Message.listing_id: None})
-                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
-                log_admin_action('delete_listing', 'listing', listing.id,
-                                 f"title={listing.title[:60]} user_id={listing.user_id}")
-                db.session.delete(listing)
+                # Core text
+                listing.title = (form.title.data or '').strip()
+                listing.description = (form.description.data or '').strip()
+
+                # Type + category
+                listing.post_type = form.post_type.data
+                listing.category_id = form.category.data
+
+                # Pricing (admin can set any, including 0 for free/negotiable)
+                ptype = form.price_type.data or 'fixed'
+                if ptype == 'fixed':
+                    p = _safe_float(form.price.data)
+                    listing.price = p if p is not None else 0.0
+                    listing.min_price = None
+                    listing.max_price = None
+                elif ptype == 'range':
+                    listing.price = 0.0
+                    listing.min_price = _safe_float(form.min_price.data)
+                    listing.max_price = _safe_float(form.max_price.data)
+                else:
+                    # negotiable or free
+                    listing.price = 0.0
+                    listing.min_price = None
+                    listing.max_price = None
+                listing.price_type = ptype
+
+                # Rental (conditional clear when not rental)
+                if form.post_type.data == 'rental':
+                    listing.rental_duration = form.rental_duration.data
+                    listing.rental_duration_unit = form.rental_duration_unit.data
+                else:
+                    listing.rental_duration = None
+                    listing.rental_duration_unit = None
+
+                # Location / towns (VGS-002)
+                selected_towns = [t for t in (form.town.data or []) if t and str(t).strip()]
+                listing.towns = selected_towns or None
+                real_towns = [t for t in selected_towns if t != Listing.KLEIN_KAROO] if selected_towns else []
+                if real_towns:
+                    listing.location = real_towns[0]
+                elif selected_towns:
+                    listing.location = selected_towns[0]
+                # area kept or defaulted (no schema impact)
+                if not listing.area:
+                    listing.area = "Western Cape"
+
+                # Contact
+                selected_methods = form.contact_methods.data or []
+                listing.contact_phone = form.contact_phone.data if 'phone' in selected_methods else None
+                listing.contact_email = form.contact_email.data if 'email' in selected_methods else None
+                listing.contact_methods = ','.join(selected_methods) if selected_methods else 'dm,email,phone'
+
+                listing.allow_comments = bool(form.allow_comments.data)
+
+                # Flags (admin power, incl. is_active for status)
+                listing.is_active = bool(form.is_active.data)
+                listing.is_promoted = bool(form.is_promoted.data)
+                listing.is_business_ad = bool(form.is_business_ad.data)
+
+                # Expiry (admin override / extension)
+                if form.expires_at.data is not None:
+                    listing.expires_at = form.expires_at.data
+
+                # Persist photos decided above
+                listing.photo_url = photo_url
+                listing.photo_urls = photo_urls
+
                 db.session.commit()
 
-                # Google Indexing: remove from search
+                log_admin_action(
+                    'full_edit_listing',
+                    'listing',
+                    listing.id,
+                    f"title={listing.title[:60]} price_type={listing.price_type} active={listing.is_active}"
+                )
+
+                # Re-index (or remove) based on new state
                 try:
-                    notify_listing_change(listing_url, "URL_DELETED")
+                    listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
+                    action = "URL_UPDATED" if listing.is_active else "URL_DELETED"
+                    notify_listing_change(listing_url, action)
                 except Exception as _e:
                     print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
 
-                flash('Listing permanently deleted.', 'success')
-                return redirect(url_for('admin.listings'))
+                flash('Full listing updated successfully (all fields saved).', 'success')
+                return redirect(url_for('admin.listing_full_edit', listing_id=listing.id))
+
             except Exception as e:
                 db.session.rollback()
-                flash(f'Delete failed: {e}', 'danger')
+                flash(f'Update failed: {e}', 'danger')
+        else:
+            # Validation failed — surface errors (WTForms + custom)
+            flash('Please correct the highlighted errors below.', 'danger')
 
-        # Suspend (soft hide, aka deactivate)
-        if request.form.get('suspend') == '1' or request.form.get('deactivate') == '1':
-            listing.is_active = False
-            db.session.commit()
-            log_admin_action('suspend_listing', 'listing', listing.id, '')
-
-            # Google Indexing: remove from search (soft delete)
-            try:
-                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
-                notify_listing_change(listing_url, "URL_DELETED")
-            except Exception as _e:
-                print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
-
-            flash('Listing suspended (hidden from public).', 'warning')
-            return redirect(url_for('admin.listing_edit', listing_id=listing.id))
-
-        # Activate
-        if request.form.get('activate') == '1':
-            listing.is_active = True
-            db.session.commit()
-            log_admin_action('activate_listing', 'listing', listing.id, '')
-
-            try:
-                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
-                notify_listing_change(listing_url, "URL_UPDATED")
-            except Exception as _e:
-                print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
-
-            flash('Listing activated and visible to public.', 'success')
-            return redirect(url_for('admin.listing_edit', listing_id=listing.id))
-
-        # Save edits
-        if form.validate_on_submit():
-            listing.title = form.title.data.strip()
-            listing.description = form.description.data.strip()
-            db.session.commit()
-            log_admin_action('edit_listing', 'listing', listing.id, f"title={listing.title[:50]}")
-
-            # Google Indexing: updated content
-            try:
-                listing_url = url_for('listings.detail', listing_id=listing.id, _external=True)
-                notify_listing_change(listing_url, "URL_UPDATED")
-            except Exception as _e:
-                print(f"[GOOGLE INDEXING] Skipped (non-fatal): {_e}")
-
-            flash('Listing updated.', 'success')
-            return redirect(url_for('admin.listing_edit', listing_id=listing.id))
+    # Current images summary for template (no complex JS)
+    current_images = []
+    if listing.photo_url:
+        current_images.append(listing.photo_url)
+    if listing.photo_urls:
+        current_images.extend([u.strip() for u in listing.photo_urls.split(',') if u.strip()])
 
     return render_template(
-        'admin/listing_edit.html',
+        'admin/listing_full_edit.html',
         listing=listing,
-        form=form
+        form=form,
+        current_images=current_images
     )
 
 

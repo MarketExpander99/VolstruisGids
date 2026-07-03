@@ -8,7 +8,7 @@
         <small class="text-muted ms-2">Listing #{{ listing.id }}</small>
     </div>
     <div>
-        <a href="{{ url_for('admin.listing_edit', listing_id=listing.id) }}" class="btn btn-sm btn-outline-secondary">← Back to Edit</a>
+        <a href="{{ url_for('admin.listing_full_edit', listing_id=listing.id) }}" class="btn btn-sm btn-outline-secondary">← Back to Edit</a>
     </div>
 </div>
 
@@ -77,7 +77,7 @@
                     ✅ Confirm &amp; Apply Polish (Save + Re-index)
                 </button>
 
-                <a href="{{ url_for('admin.listing_edit', listing_id=listing.id) }}" class="btn btn-outline-secondary">Cancel / Edit Manually</a>
+                <a href="{{ url_for('admin.listing_full_edit', listing_id=listing.id) }}" class="btn btn-outline-secondary">Cancel / Edit Manually</a>
 
                 <a href="{{ url_for('admin.polish_listing', listing_id=listing.id) }}" class="btn btn-outline-primary">Re-fetch Polish Preview</a>
             </div>

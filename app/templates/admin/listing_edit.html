@@ -3,7 +3,14 @@
 {% block admin_content %}
 <div class="d-flex justify-content-between mb-3">
     <h4>Edit Listing #{{ listing.id }}</h4>
-    <a href="{{ url_for('admin.listings') }}" class="btn btn-sm btn-outline-secondary">Back to listings</a>
+    <div>
+        <a href="{{ url_for('admin.listings') }}" class="btn btn-sm btn-outline-secondary">Back to listings</a>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    Admin listing editing has been consolidated into a single full editor.
+    <a href="{{ url_for('admin.listing_full_edit', listing_id=listing.id) }}">Go to full edit</a>.
 </div>
 
 <div class="card shadow-sm mb-4">

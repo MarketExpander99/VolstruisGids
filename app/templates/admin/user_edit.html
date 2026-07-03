@@ -170,7 +170,7 @@
                         </td>
                         <td class="small text-muted">{{ l.created_at.strftime('%Y-%m-%d') if l.created_at else '' }}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('admin.listing_edit', listing_id=l.id) }}" class="btn btn-sm btn-outline-primary">Manage</a>
+                            <a href="{{ url_for('admin.listing_full_edit', listing_id=l.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                             <a href="{{ url_for('admin.polish_listing', listing_id=l.id) }}" class="btn btn-sm btn-grok">Polish</a>
                         </td>
                     </tr>
