@@ -1,20 +1,22 @@
 {% extends "admin/base.html" %}
 
 {% block admin_content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">
-        User: <span class="text-primary">{{ user.username }}</span>
-        {% if user.business_name %}<span class="badge bg-success ms-2 align-middle" style="font-size: 0.8rem; font-weight: 500;">{{ user.business_name }}</span>{% endif %}
-        <small class="text-muted">(ID {{ user.id }})</small>
-    </h4>
-    <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-secondary">← All Users</a>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h4 class="mb-1">
+            User: <span class="text-primary">{{ user.username }}</span>
+            {% if user.business_name %}<span class="badge bg-success ms-2 align-middle">{{ user.business_name }}</span>{% endif %}
+            <small class="text-muted ms-2">(ID {{ user.id }})</small>
+        </h4>
+    </div>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary btn-sm">← Back to Users</a>
 </div>
 
 <div class="row g-4">
     <!-- Username -->
     <div class="col-lg-5">
-        <div class="card shadow-sm h-100">
-            <div class="card-header"><strong>Change Username</strong></div>
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0"><strong class="fw-bold">Change Username</strong></div>
             <div class="card-body">
                 <form method="POST">
                     {{ username_form.hidden_tag() }}
@@ -28,7 +30,7 @@
                             <div class="text-danger small">{{ err }}</div>
                         {% endfor %}
                     </div>
-                    <button type="submit" class="btn btn-warning">Change Username</button>
+                    <button type="submit" class="btn btn-primary">Change Username</button>
                 </form>
                 <div class="small text-muted mt-2">User will use the new username on next login.</div>
             </div>
@@ -37,7 +39,7 @@
 
     <!-- Password Reset -->
     <div class="col-lg-7">
-        <div class="card shadow-sm h-100 border-warning">
+        <div class="card h-100 border-warning">
             <div class="card-header bg-warning-subtle"><strong>Reset Password</strong></div>
             <div class="card-body">
                 <form method="POST">

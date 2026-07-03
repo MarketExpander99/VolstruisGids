@@ -3,32 +3,48 @@
 {% block title %}Admin • {{ super() }}{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <!-- Admin Header / Nav -->
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <span class="badge bg-danger me-2">ADMIN</span>
-            <strong class="fs-4">VolstruisGids Admin Panel</strong>
-            <span class="text-muted small ms-2">v1 • {{ current_user.username }}</span>
+<div class="container py-5 admin-panel">
+    <!-- Admin Header / Nav - polished to match main app -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-danger px-3 py-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">ADMIN</span>
+            <div>
+                <strong class="fs-3" style="color: var(--text-primary);">VolstruisGids</strong>
+                <span class="text-muted small ms-2">Admin Panel</span>
+            </div>
+            <span class="text-muted small ms-1">• {{ current_user.username }}</span>
         </div>
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-dark btn-sm">Dashboard</a>
-            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-dark btn-sm">Users</a>
-            <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-dark btn-sm">Listings</a>
-            <a href="{{ url_for('admin.psa_banners') }}" class="btn btn-outline-dark btn-sm">PSA Banners</a>
-            <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm">← Back to Site</a>
+
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary">
+                <i class="bi bi-speedometer2 me-1"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">
+                <i class="bi bi-people me-1"></i> Users
+            </a>
+            <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-primary">
+                <i class="bi bi-card-list me-1"></i> Listings
+            </a>
+            <a href="{{ url_for('admin.psa_banners') }}" class="btn btn-outline-primary">
+                <i class="bi bi-megaphone me-1"></i> PSA Banners
+            </a>
+            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Site
+            </a>
         </div>
     </div>
 
-    <!-- Flash messages local to admin (in addition to base) -->
+    <!-- Flash messages - consistent with main app -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
+            <div class="mb-4">
             {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category in ['error','danger'] else 'success' if category=='success' else 'warning' if category=='warning' else 'info' }} alert-dismissible fade show" role="alert">
+                <div class="alert alert-{{ 'danger' if category in ['error','danger'] else 'success' if category=='success' else 'warning' if category=='warning' else 'info' }} alert-dismissible fade show rounded-3" role="alert" style="border: 1px solid var(--border);">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             {% endfor %}
+            </div>
         {% endif %}
     {% endwith %}
 

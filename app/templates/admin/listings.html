@@ -1,33 +1,34 @@
 {% extends "admin/base.html" %}
 
 {% block admin_content %}
-<h4 class="mb-3">Listing Management</h4>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0 fw-bold">Listing Management</h4>
+    <a href="{{ url_for('admin.listings', status='all') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+</div>
 
-<div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
-    <form method="get" class="row g-2 flex-grow-1">
-        <div class="col-md-5">
-            <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search title or description...">
-        </div>
-        <input type="hidden" name="status" value="{{ status or 'active' }}">
-        <div class="col-auto">
-            <button class="btn btn-primary">Search</button>
+<div class="d-flex flex-wrap gap-3 mb-3 align-items-end">
+    <form method="get" class="flex-grow-1">
+        <div class="input-group">
+            <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search title or description..." style="max-width: 380px;">
+            <input type="hidden" name="status" value="{{ status or 'active' }}">
+            <button class="btn btn-primary" type="submit">Search</button>
             <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary">Clear</a>
         </div>
     </form>
 
-    <!-- Status filters -->
-    <div class="btn-group btn-group-sm" role="group" aria-label="Status filter">
-        <a href="{{ url_for('admin.listings', q=q, status='active') }}" class="btn {{ 'btn-success' if (status or 'active') == 'active' else 'btn-outline-secondary' }}">Active</a>
-        <a href="{{ url_for('admin.listings', q=q, status='suspended') }}" class="btn {{ 'btn-warning' if status == 'suspended' else 'btn-outline-secondary' }}">Suspended</a>
-        <a href="{{ url_for('admin.listings', q=q, status='all') }}" class="btn {{ 'btn-dark' if status == 'all' else 'btn-outline-secondary' }}">All</a>
+    <!-- Status filters - brand aligned -->
+    <div class="btn-group" role="group" aria-label="Status filter">
+        <a href="{{ url_for('admin.listings', q=q, status='active') }}" class="btn {{ 'btn-success' if (status or 'active') == 'active' else 'btn-outline-secondary' }} btn-sm">Active</a>
+        <a href="{{ url_for('admin.listings', q=q, status='suspended') }}" class="btn {{ 'btn-warning' if status == 'suspended' else 'btn-outline-secondary' }} btn-sm">Suspended</a>
+        <a href="{{ url_for('admin.listings', q=q, status='all') }}" class="btn {{ 'btn-dark' if status == 'all' else 'btn-outline-secondary' }} btn-sm">All</a>
     </div>
 </div>
 
 <div class="table-responsive">
-    <table class="table table-sm table-hover align-middle">
-        <thead>
+    <table class="table table-hover align-middle" style="font-size: 0.95rem;">
+        <thead class="table-light">
             <tr>
-                <th>ID</th>
+                <th style="width: 50px;">ID</th>
                 <th>Title</th>
                 <th>Price</th>
                 <th>Owner</th>
@@ -57,24 +58,24 @@
                 </td>
                 <td class="small text-muted">{{ l.created_at.strftime('%Y-%m-%d') if l.created_at else '' }}</td>
                 <td class="text-end">
-                    <div class="btn-group btn-group-sm" role="group">
+                    <div class="btn-group btn-sm" role="group">
                         {% if l.is_active %}
                         <form method="post" action="{{ url_for('admin.toggle_listing', listing_id=l.id) }}" class="d-inline">
                             <input type="hidden" name="action" value="suspend">
-                            <button type="submit" class="btn btn-outline-warning" onclick="return confirm('Suspend this listing?');" title="Suspend">Suspend</button>
+                            <button type="submit" class="btn btn-outline-warning btn-sm" onclick="return confirm('Suspend this listing?');" title="Suspend">Suspend</button>
                         </form>
                         {% else %}
                         <form method="post" action="{{ url_for('admin.toggle_listing', listing_id=l.id) }}" class="d-inline">
                             <input type="hidden" name="action" value="activate">
-                            <button type="submit" class="btn btn-outline-success" onclick="return confirm('Activate this listing?');" title="Activate">Activate</button>
+                            <button type="submit" class="btn btn-outline-success btn-sm" onclick="return confirm('Activate this listing?');" title="Activate">Activate</button>
                         </form>
                         {% endif %}
 
-                        <a href="{{ url_for('admin.listing_full_edit', listing_id=l.id) }}" class="btn btn-outline-primary" title="Edit listing (title, price, category, images, status, location, etc.)">Edit</a>
+                        <a href="{{ url_for('admin.listing_full_edit', listing_id=l.id) }}" class="btn btn-outline-primary btn-sm" title="Edit full listing">Edit</a>
 
-                        <a href="{{ url_for('admin.polish_listing', listing_id=l.id) }}" class="btn btn-grok btn-sm d-flex align-items-center gap-1" title="Polish title + description with Grok for SEO">
-                            <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" alt="" height="14">
-                            Polish
+                        <a href="{{ url_for('admin.polish_listing', listing_id=l.id) }}" class="btn btn-grok btn-sm d-flex align-items-center gap-1" title="Polish with Grok">
+                            <img src="{{ url_for('static', filename='img/GrokLogo.png') }}" alt="" height="13">
+                            <span class="d-none d-md-inline">Polish</span>
                         </a>
                     </div>
                 </td>

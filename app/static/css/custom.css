@@ -639,6 +639,45 @@ a[href*="/create"] .btn-primary,
   box-shadow: 0 6px 18px rgba(139, 69, 19, 0.4);
 }
 
+/* ============================================
+   ADMIN PANEL POLISH
+   Match the warm, generous, premium feel of the main site
+   ============================================ */
+.admin-panel .card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.admin-panel .table {
+  border-color: var(--border);
+}
+
+.admin-panel .table thead th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: #f8f4eb;
+  border-bottom-width: 2px;
+}
+
+.admin-panel .btn {
+  min-height: 42px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+}
+
+.admin-panel .btn-sm {
+  min-height: 36px;
+  padding: 4px 14px;
+  font-size: 0.82rem;
+}
+
+/* Admin nav header polish */
+.admin-panel .d-flex.align-items-center.justify-content-between {
+  padding-bottom: 0.5rem;
+}
+}
+
 /* Footer */
 footer, #main-footer {
   background-color: var(--surface);

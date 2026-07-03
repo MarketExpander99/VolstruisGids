@@ -1,24 +1,24 @@
 {% extends "admin/base.html" %}
 
 {% block admin_content %}
-<div class="d-flex justify-content-between align-items-start mb-3">
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
-        <h4>Edit Listing #{{ listing.id }}</h4>
+        <h4 class="mb-1">Edit Listing #{{ listing.id }}</h4>
         <div class="small text-muted">
             Owner: <strong>{{ listing.user.username if listing.user else listing.user_id }}</strong>
             {% if listing.user and listing.user.business_name %} ({{ listing.user.business_name }}){% endif %}
-            • Current status:
+            • {{ listing.post_type|capitalize or '—' }}
+            • 
             {% if listing.is_active %}
                 <span class="badge bg-success">Active</span>
             {% else %}
                 <span class="badge bg-secondary">Suspended</span>
             {% endif %}
-            • {{ listing.post_type|capitalize if listing.post_type else '' }}
         </div>
     </div>
-    <div class="btn-group btn-group-sm">
-        <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary">← All Listings</a>
-        <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="btn btn-outline-info" target="_blank">View Public</a>
+    <div class="btn-group">
+        <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary btn-sm">← All Listings</a>
+        <a href="{{ url_for('listings.detail', listing_id=listing.id) }}" class="btn btn-outline-primary btn-sm" target="_blank">View Public</a>
     </div>
 </div>
 
@@ -28,7 +28,7 @@
     {{ form.hidden_tag() }}
 
     <!-- Core -->
-    <div class="card shadow-sm mb-4">
+    <div class="card mb-4">
         <div class="card-header">Core Information</div>
         <div class="card-body">
             <div class="row g-3">
@@ -67,7 +67,7 @@
     </div>
 
     <!-- Pricing (including price adjustments) -->
-    <div class="card shadow-sm mb-4">
+    <div class="card mb-4">
         <div class="card-header">Pricing <span class="text-muted small">(admin can adjust freely)</span></div>
         <div class="card-body">
             <div class="row g-3">
@@ -108,7 +108,7 @@
     </div>
 
     <!-- Location & Towns -->
-    <div class="card shadow-sm mb-4">
+    <div class="card mb-4">
         <div class="card-header">Location / Service Areas</div>
         <div class="card-body">
             <div>
@@ -121,7 +121,7 @@
     </div>
 
     <!-- Contact -->
-    <div class="card shadow-sm mb-4">
+    <div class="card mb-4">
         <div class="card-header">Contact Details</div>
         <div class="card-body">
             <div class="row g-3">
@@ -156,7 +156,7 @@
     </div>
 
     <!-- Rental (conditional note only; always shown for admin completeness) -->
-    <div class="card shadow-sm mb-4">
+    <div class="card mb-4">
         <div class="card-header">Rental Details (only applies if Post Type = Rental)</div>
         <div class="card-body">
             <div class="row g-3">
@@ -176,7 +176,7 @@
     </div>
 
     <!-- Media / Images -->
-    <div class="card shadow-sm mb-4">
+    <div class="card mb-4">
         <div class="card-header">Images</div>
         <div class="card-body">
             {% if current_images %}
@@ -212,7 +212,7 @@
     </div>
 
     <!-- Flags & Status + Expiry -->
-    <div class="card shadow-sm mb-4">
+    <div class="card mb-4">
         <div class="card-header">Status, Flags &amp; Expiry</div>
         <div class="card-body">
             <div class="row g-3">

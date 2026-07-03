@@ -1,15 +1,12 @@
 {% extends "admin/base.html" %}
 
 {% block admin_content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <div>
-        <span class="badge bg-danger me-2">ADMIN</span>
-        <h4 class="d-inline">Polish with Grok — Preview</h4>
+        <h4 class="mb-1 d-inline">Polish with Grok — Preview</h4>
         <small class="text-muted ms-2">Listing #{{ listing.id }}</small>
     </div>
-    <div>
-        <a href="{{ url_for('admin.listing_full_edit', listing_id=listing.id) }}" class="btn btn-sm btn-outline-secondary">← Back to Edit</a>
-    </div>
+    <a href="{{ url_for('admin.listing_full_edit', listing_id=listing.id) }}" class="btn btn-outline-secondary btn-sm">← Back to Edit</a>
 </div>
 
 <div class="alert alert-info small">

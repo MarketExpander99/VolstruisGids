@@ -1,11 +1,9 @@
 {% extends "admin/base.html" %}
 
 {% block admin_content %}
-<div class="d-flex justify-content-between mb-3">
-    <h4>Edit Listing #{{ listing.id }}</h4>
-    <div>
-        <a href="{{ url_for('admin.listings') }}" class="btn btn-sm btn-outline-secondary">Back to listings</a>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Edit Listing #{{ listing.id }} <small class="text-muted">(legacy redirect)</small></h4>
+    <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary btn-sm">Back to listings</a>
 </div>
 
 <div class="alert alert-info">
